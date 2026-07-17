@@ -1,0 +1,20 @@
+<app-page-header title="Colaboradores" description="Registro y administración de colaboradores." />
+
+<section class="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+  <table class="w-full text-left text-sm">
+    <thead class="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+      <tr><th class="px-4 py-3">Código</th><th class="px-4 py-3">Nombre</th><th class="px-4 py-3">Cargo</th><th class="px-4 py-3">Área</th><th class="px-4 py-3">Estado</th></tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      @for (colaborador of colaboradores; track colaborador.id) {
+        <tr>
+          <td class="px-4 py-3 font-medium">{{ colaborador.id }}</td>
+          <td class="px-4 py-3">{{ colaborador.nombres }}</td>
+          <td class="px-4 py-3">{{ colaborador.cargo }}</td>
+          <td class="px-4 py-3">{{ colaborador.area }}</td>
+          <td class="px-4 py-3">{{ colaborador.estado }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</section>

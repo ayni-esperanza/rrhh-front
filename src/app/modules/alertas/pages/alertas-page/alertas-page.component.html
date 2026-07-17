@@ -1,0 +1,12 @@
+<app-page-header title="Alertas" description="Notificaciones, inasistencias, pagos pendientes y vencimientos." />
+<section class="space-y-3">
+  @for (alerta of alertas; track alerta.titulo) {
+    <article class="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <div class="flex items-center justify-between gap-4">
+        <h2 class="font-semibold">{{ alerta.titulo }}</h2>
+        <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">{{ alerta.prioridad }}</span>
+      </div>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ alerta.tipo }}</p>
+    </article>
+  }
+</section>
