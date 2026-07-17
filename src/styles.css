@@ -6,3 +6,29 @@
 
 @plugin "flowbite/plugin";
 @source "../node_modules/flowbite";
+/* Configuracion de dark mode con selector de clase para Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+.dark input,
+.dark textarea,
+.dark select {
+  color-scheme: dark;
+}
+
+html.dark,
+html.dark body {
+  color-scheme: dark;
+  scrollbar-color: #475569 transparent;
+}
+
+.dark * {
+  scrollbar-color: #475569 transparent;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background-color: #475569;
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
+}
