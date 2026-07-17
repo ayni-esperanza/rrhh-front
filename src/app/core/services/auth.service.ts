@@ -10,7 +10,7 @@ const DEMO_USERS: Record<string, UserSession & { password: string }> = {
     email: 'admin@rrhh.com',
     password: 'admin123',
     role: 'admin',
-    permissions: ['dashboard:view', 'colaboradores:manage', 'asistencias:manage', 'pagos:manage', 'reportes:view', 'alertas:view']
+    permissions: ['dashboard:view', 'colaboradores:manage', 'asistencias:manage', 'pagos:manage', 'usuarios:manage', 'alertas:view']
   },
   'supervisor@rrhh.com': {
     id: '2',
@@ -74,7 +74,7 @@ export class AuthService {
     if (this.hasPermission('colaboradores:manage')) return '/colaboradores';
     if (this.hasPermission('asistencias:view')) return '/asistencias';
     if (this.hasPermission('pagos:manage')) return '/pagos';
-    if (this.hasPermission('reportes:view')) return '/reportes';
+    if (this.hasPermission('usuarios:manage')) return '/usuarios';
     if (this.hasPermission('alertas:view')) return '/alertas';
 
     return '/auth/login';

@@ -43,10 +43,10 @@ export const routes: Routes = [
         loadChildren: () => import('./modules/pagos/pagos.routes').then((m) => m.PAGOS_ROUTES)
       },
       {
-        path: 'reportes',
+        path: 'usuarios',
         canMatch: [authMatchGuard],
-        data: { permissions: ['reportes:view'] },
-        loadChildren: () => import('./modules/reportes/reportes.routes').then((m) => m.REPORTES_ROUTES)
+        data: { permissions: ['usuarios:manage'] },
+        loadChildren: () => import('./modules/usuarios/usuarios.routes').then((m) => m.USUARIOS_ROUTES)
       },
       {
         path: 'alertas',
