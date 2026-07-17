@@ -22,7 +22,7 @@ export class LoadingScreenComponent implements OnInit, OnDestroy {
     const nextUrl = this.sanitizeNextUrl(nextRaw);
 
     if (source === 'logout') {
-      this.loadingText = 'Cerrando sesion';
+      this.loadingText = 'Cerrando sesión';
     }
 
     const durationMs = source === 'logout' ? 300 : source === 'startup' ? 900 : 850;
