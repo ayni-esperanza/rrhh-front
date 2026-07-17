@@ -4,6 +4,11 @@ import { ShellComponent } from './layout/shell/shell.component';
 
 export const routes: Routes = [
   {
+    path: 'loading',
+    loadComponent: () => import('./shared/components/loading-screen/loading-screen.component').then((m) => m.LoadingScreenComponent),
+    title: 'Cargando - AYNI RR.HH.'
+  },
+  {
     path: 'auth',
     loadChildren: () => import('./modules/auth/auth.routes').then((m) => m.AUTH_ROUTES)
   },

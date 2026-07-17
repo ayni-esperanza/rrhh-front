@@ -1,0 +1,130 @@
+/* Estilos adicionales para el Sidebar - Tailwind maneja la mayoria */
+
+:host {
+  display: block;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  :host {
+    height: 100vh;
+  }
+}
+
+@media (max-width: 767px) {
+  :host {
+    width: 0;
+    flex-basis: 0;
+  }
+}
+
+nav {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+:host-context(.dark) nav {
+  scrollbar-color: #475569 transparent;
+}
+
+nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+nav::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 2px;
+}
+
+nav::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}
+
+:host-context(.dark) nav::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+:host-context(.dark) nav::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.menu-item-container a.bg-green-50 {
+  margin-left: -4px;
+  padding-left: calc(0.75rem + 4px);
+}
+
+@keyframes slide-in {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: center;
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 0.3s ease-out;
+}
+
+.menu-item-container {
+  position: relative;
+}
+
+.menu-item-container a {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.menu-item-container a:hover {
+  transform: translateX(2px);
+}
+
+.sidebar-mobile-nav {
+  box-shadow: 0 -16px 40px -28px rgba(15, 23, 42, 0.6);
+}
+
+.sidebar-mobile-nav a,
+.sidebar-mobile-nav button {
+  min-height: 3rem;
+}
+
+.sidebar-mobile-nav a svg,
+.sidebar-mobile-nav button svg {
+  filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.08));
+}
+
+.sidebar-user-panel {
+  max-height: min(32rem, calc(100vh - 1.5rem));
+  overflow: hidden;
+}

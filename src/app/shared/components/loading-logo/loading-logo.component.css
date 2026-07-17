@@ -1,0 +1,57 @@
+.loading-container {
+  display: inline-grid;
+  justify-items: center;
+  gap: 0.5rem;
+  color: #009d45;
+}
+
+.logo-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.size-sm .logo-wrapper { width: 5rem; }
+.size-md .logo-wrapper { width: 9rem; }
+.size-lg .logo-wrapper { width: 14rem; }
+
+.logo-base {
+  opacity: 0.18;
+  stroke-width: 1.4;
+}
+
+.logo-draw {
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: logoDraw 1.8s ease-in-out infinite;
+}
+
+.logo-fill {
+  opacity: 0;
+  animation: logoFill 1.8s ease-in-out infinite;
+}
+
+.mode-stroke .logo-fill {
+  display: none;
+}
+
+.loading-text {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@keyframes logoDraw {
+  0% { stroke-dashoffset: 100; }
+  60%, 100% { stroke-dashoffset: 0; }
+}
+
+@keyframes logoFill {
+  0%, 55% { opacity: 0; }
+  100% { opacity: 0.18; }
+}

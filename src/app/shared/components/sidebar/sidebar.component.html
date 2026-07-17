@@ -1,0 +1,68 @@
+<aside class="hidden h-screen w-64 flex-col border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 md:flex">
+  <div class="border-b border-gray-200 p-4 dark:border-gray-700">
+    <p class="text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400">Ayni</p>
+    <h1 class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">Recursos Humanos</h1>
+  </div>
+
+  <nav class="flex-1 overflow-y-auto px-2 py-3">
+    @for (item of visibleNavigation(); track item.route) {
+      <div class="menu-item-container mb-0.5">
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300"
+          class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+        >
+          <span class="h-2 w-2 rounded-full bg-current opacity-60"></span>
+          <span>{{ item.label }}</span>
+        </a>
+      </div>
+    }
+  </nav>
+
+  <div class="border-t border-gray-200 p-2 dark:border-gray-700">
+    <button
+      (click)="toggleTheme()"
+      type="button"
+      class="mb-0.5 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+      [attr.aria-label]="themeService.isDarkMode() ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+    >
+      <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          [attr.d]="themeService.isDarkMode()
+            ? 'M12 3v2m0 14v2m7-9h2M3 12H5m11.364 6.364l1.414 1.414M6.222 6.222l1.414 1.414m8.728 0 1.414-1.414M6.222 17.778l1.414-1.414M12 8a4 4 0 100 8 4 4 0 000-8z'
+            : 'M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z'"
+        />
+      </svg>
+      <span class="text-xs font-medium">{{ themeService.isDarkMode() ? 'Modo claro' : 'Modo oscuro' }}</span>
+    </button>
+
+    <section class="sidebar-user-panel rounded-lg px-2.5 py-2">
+      <p class="truncate text-sm font-medium text-gray-900 dark:text-white">{{ authService.user()?.name }}</p>
+      <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ authService.user()?.role }}</p>
+    </section>
+
+    <button
+      type="button"
+      (click)="logout()"
+      class="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+    >
+      Cerrar sesión
+    </button>
+  </div>
+</aside>
+
+<nav class="sidebar-mobile-nav fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-gray-200 bg-white px-2 py-1 dark:border-gray-700 dark:bg-gray-900 md:hidden">
+  @for (item of visibleNavigation(); track item.route) {
+    <a
+      [routerLink]="item.route"
+      routerLinkActive="text-green-700 dark:text-green-300"
+      class="flex flex-1 flex-col items-center justify-center rounded-lg px-2 text-xs font-medium text-gray-600 dark:text-gray-300"
+    >
+      <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
+      <span>{{ item.label }}</span>
+    </a>
+  }
+</nav>

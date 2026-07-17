@@ -27,6 +27,7 @@ export class AuthService {
   private readonly router = inject(Router);
   private readonly tokenStorage = inject(TokenStorageService);
   private readonly state = signal<AuthState>(this.tokenStorage.getState());
+  private logoutInProgress = false;
 
   readonly user = computed(() => this.state().user);
   readonly token = computed(() => this.state().token);
@@ -51,9 +52,32 @@ export class AuthService {
   }
 
   logout(): void {
-    this.state.set({ token: null, user: null });
-    this.tokenStorage.clear();
-    void this.router.navigate(['/auth/login']);
+    if (this.logoutInProgress) {
+      return;
+    }
+
+    this.logoutInProgress = true;
+    this.clearSession();
+
+    void this.router.navigate(['/loading'], {
+      queryParams: { next: '/auth/login', source: 'logout' },
+      replaceUrl: true
+    }).finally(() => {
+      setTimeout(() => {
+        this.logoutInProgress = false;
+      }, 1500);
+    });
+  }
+
+  getLandingRoute(): string {
+    if (this.hasPermission('dashboard:view')) return '/dashboard';
+    if (this.hasPermission('colaboradores:manage')) return '/colaboradores';
+    if (this.hasPermission('asistencias:view')) return '/asistencias';
+    if (this.hasPermission('pagos:manage')) return '/pagos';
+    if (this.hasPermission('reportes:view')) return '/reportes';
+    if (this.hasPermission('alertas:view')) return '/alertas';
+
+    return '/auth/login';
   }
 
   hasPermission(permission: string): boolean {
@@ -63,5 +87,10 @@ export class AuthService {
 
   hasAnyPermission(permissions: string[]): boolean {
     return permissions.length === 0 || permissions.some((permission) => this.hasPermission(permission));
+  }
+
+  private clearSession(): void {
+    this.state.set({ token: null, user: null });
+    this.tokenStorage.clear();
   }
 }
