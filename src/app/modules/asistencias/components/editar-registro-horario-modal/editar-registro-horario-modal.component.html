@@ -1,0 +1,65 @@
+﻿@if (isOpen && draft) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-2 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="editar-registro-title" (click)="closeModal.emit()">
+    <section class="max-h-[calc(100vh-1rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-4 shadow-2xl dark:bg-slate-900" (click)="$event.stopPropagation()">
+      <header class="flex items-start justify-between gap-3">
+        <h2 id="editar-registro-title" class="text-base font-bold text-slate-950 dark:text-white">Editar registro de horario</h2>
+        <button class="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white" type="button" aria-label="Cerrar modal" (click)="closeModal.emit()">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </header>
+
+      <div class="mt-3 grid gap-2 md:grid-cols-[1fr_1.15fr] md:items-center">
+        <div class="flex items-center gap-2.5">
+          <img class="h-10 w-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800" [src]="draft.avatar" [alt]="draft.colaborador" />
+          <div>
+            <p class="text-[11px] font-bold text-slate-950 dark:text-white">{{ draft.colaborador }}</p>
+            <p class="mt-0.5 text-[11px] font-semibold text-slate-600 dark:text-slate-300">{{ draft.cargo }}</p>
+          </div>
+        </div>
+
+        <label class="rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-950">
+          <span class="flex items-center gap-2 text-[11px] font-bold text-slate-950 dark:text-white"><svg class="h-4 w-4 text-slate-700 dark:text-slate-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>Fecha</span>
+          <span class="mt-0.5 block pl-6 text-[11px] font-semibold text-slate-700 dark:text-slate-300">{{ draft.fecha }}</span>
+        </label>
+      </div>
+
+      <form class="mt-3 grid gap-2.5 md:grid-cols-2">
+        <label class="space-y-1">
+          <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Hora de entrada</span>
+          <span class="flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 dark:border-slate-800"><svg class="h-3.5 w-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><input class="min-w-0 flex-1 bg-transparent text-[11px] font-bold text-slate-700 outline-none dark:text-slate-200" name="entrada" [(ngModel)]="draft.entrada" /></span>
+        </label>
+        <label class="space-y-1">
+          <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Hora de salida</span>
+          <span class="flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 dark:border-slate-800"><svg class="h-3.5 w-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><input class="min-w-0 flex-1 bg-transparent text-[11px] font-bold text-slate-700 outline-none dark:text-slate-200" name="salida" [(ngModel)]="draft.salida" /></span>
+        </label>
+        <label class="space-y-1"><span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Entrada de almuerzo</span><span class="flex h-9 items-center rounded-lg border border-slate-200 px-3 text-[11px] font-bold text-slate-700 dark:border-slate-800 dark:text-slate-200">{{ draft.entradaAlmuerzo }}</span></label>
+        <label class="space-y-1"><span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Salida de almuerzo</span><span class="flex h-9 items-center rounded-lg border border-slate-200 px-3 text-[11px] font-bold text-slate-700 dark:border-slate-800 dark:text-slate-200">{{ draft.salidaAlmuerzo }}</span></label>
+        <label class="space-y-1"><span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Horas trabajadas (normal)</span><span class="flex h-9 items-center rounded-lg bg-blue-50 px-3 text-[11px] font-bold text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">{{ draft.horasNormales }}</span></label>
+        <label class="space-y-1"><span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Horas extras</span><span class="flex h-9 items-center rounded-lg bg-emerald-50 px-3 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">{{ draft.horasExtras }}</span></label>
+        <label class="space-y-1">
+          <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Tipo de registro</span>
+          <select class="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200" name="tipoRegistro" [(ngModel)]="draft.tipoRegistro">
+            @for (tipo of tiposRegistro; track tipo) { <option [value]="tipo">{{ tipo }}</option> }
+          </select>
+        </label>
+        <label class="space-y-1">
+          <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Estado</span>
+          <select class="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200" name="estado" [(ngModel)]="draft.estado">
+            @for (estado of estados; track estado) { <option [value]="estado">{{ estado }}</option> }
+          </select>
+        </label>
+        <label class="space-y-1 md:col-span-2">
+          <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Lugar donde esta trabajando</span>
+          <select class="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200" name="lugar" [(ngModel)]="draft.lugar">
+            @for (lugar of lugares; track lugar) { <option [value]="lugar">{{ lugar }}</option> }
+          </select>
+        </label>
+      </form>
+
+      <footer class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button class="h-9 rounded-lg border border-slate-200 px-5 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800" type="button" (click)="closeModal.emit()">Cancelar</button>
+        <button class="h-9 rounded-lg bg-blue-600 px-5 text-[11px] font-bold text-white shadow-sm transition hover:bg-blue-700" type="button" (click)="save()">Guardar cambios</button>
+      </footer>
+    </section>
+  </div>
+}

@@ -61,10 +61,14 @@
   </section>
 
   <nav class="grid overflow-hidden rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 md:grid-cols-3">
-    <a routerLink="horas-dia" routerLinkActive="border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300" class="inline-flex h-11 items-center justify-center gap-2 border-t-2 border-transparent px-3"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horas trabajadas por dia</a>
-    <a routerLink="entrada-salida" routerLinkActive="border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300" class="inline-flex h-11 items-center justify-center gap-2 border-t-2 border-transparent px-3"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4v18h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>Hora de entrada y salida</a>
-    <a routerLink="lugar-trabajo" routerLinkActive="border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300" class="inline-flex h-11 items-center justify-center gap-2 border-t-2 border-transparent px-3"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2"/></svg>Lugar donde esta trabajando</a>
+    <button type="button" (click)="setActiveTab('horas-dia')" class="inline-flex h-11 items-center justify-center gap-2 border-t-2 px-3" [class]="tabClasses('horas-dia')"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Horas trabajadas por dia</button>
+    <button type="button" (click)="setActiveTab('entrada-salida')" class="inline-flex h-11 items-center justify-center gap-2 border-t-2 px-3" [class]="tabClasses('entrada-salida')"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4v18h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>Hora de entrada y salida</button>
+    <button type="button" (click)="setActiveTab('lugar-trabajo')" class="inline-flex h-11 items-center justify-center gap-2 border-t-2 px-3" [class]="tabClasses('lugar-trabajo')"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11Z"/><circle cx="12" cy="10" r="2"/></svg>Lugar donde esta trabajando</button>
   </nav>
 
-  <router-outlet />
+  @switch (activeTab) {
+    @case ('horas-dia') { <app-horas-dia-page /> }
+    @case ('entrada-salida') { <app-entrada-salida-page /> }
+    @case ('lugar-trabajo') { <app-lugar-trabajo-page /> }
+  }
 </section>

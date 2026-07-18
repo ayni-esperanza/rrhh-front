@@ -1,15 +1,28 @@
 ﻿import { Component, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AsistenciaMetric } from '../../models/asistencia.model';
 import { AsistenciasService } from '../../services/asistencias.service';
+import { EntradaSalidaPageComponent } from '../entrada-salida-page/entrada-salida-page.component';
+import { HorasDiaPageComponent } from '../horas-dia-page/horas-dia-page.component';
+import { LugarTrabajoPageComponent } from '../lugar-trabajo-page/lugar-trabajo-page.component';
+
+type AsistenciaTab = 'horas-dia' | 'entrada-salida' | 'lugar-trabajo';
 
 @Component({
   selector: 'app-asistencias-layout',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [HorasDiaPageComponent, EntradaSalidaPageComponent, LugarTrabajoPageComponent],
   templateUrl: './asistencias-layout.component.html'
 })
 export class AsistenciasLayoutComponent {
   protected readonly metrics = inject(AsistenciasService).getMetrics();
+  protected activeTab: AsistenciaTab = 'horas-dia';
+
+  protected setActiveTab(tab: AsistenciaTab): void {
+    this.activeTab = tab;
+  }
+
+  protected tabClasses(tab: AsistenciaTab): string {
+    return this.activeTab === tab ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' : 'border-transparent';
+  }
 
   protected iconPath(icon: AsistenciaMetric['icon']): string {
     const paths = {
