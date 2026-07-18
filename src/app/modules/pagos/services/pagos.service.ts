@@ -1,7 +1,11 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { PagoColaborador, PagoMetric } from '../models/pago.model';
 
-const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const MESES = [
+  ['Ene', 'Enero 2025'], ['Feb', 'Febrero 2025'], ['Mar', 'Marzo 2025'], ['Abr', 'Abril 2025'],
+  ['May', 'Mayo 2025'], ['Jun', 'Junio 2025'], ['Jul', 'Julio 2025'], ['Ago', 'Agosto 2025'],
+  ['Sep', 'Septiembre 2025'], ['Oct', 'Octubre 2025'], ['Nov', 'Noviembre 2025'], ['Dic', 'Diciembre 2025']
+] as const;
 
 @Injectable({ providedIn: 'root' })
 export class PagosService {
@@ -37,16 +41,29 @@ export class PagosService {
       cta,
       cci,
       banco,
-      meses: MESES.map((mes, index) => {
+      meses: MESES.map(([mes, mesCompleto], index) => {
         const estado = pagados.includes(index) ? 'Pagado' : abonados.includes(index) ? 'Abonado' : 'Pendiente';
-        const pago = estado === 'Pendiente' ? 0 : estado === 'Abonado' ? 1000 : monto;
+        const programado = index === 4 && estado !== 'Pagado' ? monto + 100 : monto;
+        const pagado = estado === 'Pagado' ? programado : estado === 'Abonado' ? Math.round(programado / 2) : 0;
+        const pendiente = Math.max(programado - pagado, 0);
         return {
           mes,
+          mesCompleto,
           estado,
-          monto: `S/ ${pago.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-          referencia: `de S/ ${monto.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          monto: this.money(pagado),
+          referencia: `de ${this.money(programado)}`,
+          montoProgramado: this.money(programado),
+          pagadoAbonado: this.money(pagado),
+          pendiente: this.money(pendiente),
+          fechaPago: estado === 'Pendiente' ? '-' : `${String(index + 5).padStart(2, '0')} ${mes} 2025`,
+          responsable: estado === 'Pendiente' ? '-' : index < 3 ? 'Juan Perez' : 'Maria Lopez',
+          entidadMedio: estado === 'Pendiente' ? '-' : estado === 'Abonado' ? 'Plin' : index < 3 ? 'Banco de Credito' : 'Banco de la Nacion'
         };
       })
     };
+  }
+
+  private money(value: number): string {
+    return `S/ ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 }

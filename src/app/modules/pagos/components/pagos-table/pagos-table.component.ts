@@ -1,24 +1,24 @@
 ﻿import { Component, Input } from '@angular/core';
 import { PagoColaborador, PagoMes } from '../../models/pago.model';
+import { DetallePagoModalComponent } from '../detalle-pago-modal/detalle-pago-modal.component';
 
 @Component({
   selector: 'app-pagos-table',
+  imports: [DetallePagoModalComponent],
   templateUrl: './pagos-table.component.html'
 })
 export class PagosTableComponent {
   @Input({ required: true }) pagos: PagoColaborador[] = [];
   protected expandedId: number | null = null;
+  protected selectedPago: PagoColaborador | null = null;
+  protected isDetalleOpen = false;
 
-  protected togglePago(id: number): void {
-    this.expandedId = this.expandedId === id ? null : id;
-  }
+  protected togglePago(id: number): void { this.expandedId = this.expandedId === id ? null : id; }
+  protected openDetalle(pago: PagoColaborador): void { this.selectedPago = pago; this.isDetalleOpen = true; }
+  protected closeDetalle(): void { this.isDetalleOpen = false; }
 
   protected estadoClasses(estado: PagoMes['estado']): string {
-    const classes = {
-      Pagado: 'text-emerald-600 dark:text-emerald-300',
-      Abonado: 'text-orange-600 dark:text-orange-300',
-      Pendiente: 'text-red-600 dark:text-red-300'
-    };
+    const classes = { Pagado: 'text-emerald-600 dark:text-emerald-300', Abonado: 'text-orange-600 dark:text-orange-300', Pendiente: 'text-red-600 dark:text-red-300' };
     return classes[estado];
   }
 

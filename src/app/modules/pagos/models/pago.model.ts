@@ -22,7 +22,14 @@ export interface PagoColaborador {
 
 export interface PagoMes {
   mes: string;
+  mesCompleto: string;
   estado: 'Pagado' | 'Abonado' | 'Pendiente';
   monto: string;
   referencia: string;
+  montoProgramado: string;
+  pagadoAbonado: string;
+  pendiente: string;
+  fechaPago: string;
+  responsable: string;
+  entidadMedio: string;
 }
