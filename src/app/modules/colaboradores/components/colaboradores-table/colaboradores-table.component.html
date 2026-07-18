@@ -1,0 +1,95 @@
+﻿<section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[940px] text-left text-xs">
+      <thead class="bg-slate-50 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+        <tr>
+          <th class="px-3 py-3">Imagen</th>
+          <th class="px-3 py-3">Nombre</th>
+          <th class="px-3 py-3">Apellido</th>
+          <th class="px-3 py-3">DNI</th>
+          <th class="px-3 py-3">Cargo</th>
+          <th class="px-3 py-3">Telefono de emergencia</th>
+          <th class="px-3 py-3">Estado civil</th>
+          <th class="px-3 py-3">Tallas</th>
+          <th class="px-3 py-3">Estado</th>
+          <th class="px-3 py-3 text-center">(click para ver mas)</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
+        @for (colaborador of colaboradores; track colaborador.id) {
+          <tr class="transition hover:bg-slate-50/70 dark:hover:bg-slate-800/50" [class.bg-blue-50]="expandedId === colaborador.id">
+            <td class="px-3 py-2">
+              <div class="flex items-center gap-2">
+                <span class="w-3 font-semibold text-slate-500">{{ colaborador.id }}</span>
+                <img class="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" [src]="colaborador.imagen" [alt]="colaborador.nombre" />
+              </div>
+            </td>
+            <td class="px-3 py-2 font-medium">{{ colaborador.nombre }}</td>
+            <td class="px-3 py-2">{{ colaborador.apellido }}</td>
+            <td class="px-3 py-2">{{ colaborador.dni }}</td>
+            <td class="px-3 py-2">{{ colaborador.cargo }}</td>
+            <td class="px-3 py-2">{{ colaborador.telefonoEmergencia }}</td>
+            <td class="px-3 py-2">{{ colaborador.estadoCivil }}</td>
+            <td class="px-3 py-2 leading-4">
+              <div>M: Camisa</div>
+              <div>L: Pantalon</div>
+              <div>{{ colaborador.tallas.calzado }}: Calzado</div>
+            </td>
+            <td class="px-3 py-2">
+              <span class="inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold" [class]="colaborador.estado === 'Activo' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'">{{ colaborador.estado }}</span>
+            </td>
+            <td class="px-3 py-2 text-center">
+              <button class="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" type="button" (click)="toggle(colaborador.id)" [attr.aria-expanded]="expandedId === colaborador.id" [attr.aria-label]="expandedId === colaborador.id ? 'Comprimir registro' : 'Desplegar registro'">
+                <svg class="h-3.5 w-3.5 transition" [class.rotate-180]="expandedId === colaborador.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>
+              </button>
+            </td>
+          </tr>
+          @if (expandedId === colaborador.id) {
+            <tr class="bg-white dark:bg-slate-900">
+              <td colspan="10" class="px-3 pb-3">
+                <div class="grid gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-950/30 md:grid-cols-2 xl:grid-cols-4">
+                  <section class="space-y-2 border-slate-200 dark:border-slate-800 xl:border-r xl:pr-4">
+                    <h3 class="flex items-center gap-2 text-[11px] font-bold text-slate-900 dark:text-white"><span class="text-blue-600">i</span> Informacion personal</h3>
+                    <div class="space-y-2 text-[11px]"><p><span class="block font-semibold text-slate-500">Fecha de nacimiento</span>{{ colaborador.fechaNacimiento }}</p><p><span class="block font-semibold text-slate-500">Direccion</span>{{ colaborador.direccion }}</p><p><span class="block font-semibold text-slate-500">Correo</span>{{ colaborador.correo }}</p></div>
+                  </section>
+                  <section class="space-y-2 border-slate-200 dark:border-slate-800 xl:border-r xl:pr-4">
+                    <h3 class="flex items-center gap-2 text-[11px] font-bold text-slate-900 dark:text-white"><span class="h-2 w-2 rounded-sm bg-blue-600"></span> Informacion laboral</h3>
+                    <div class="space-y-2 text-[11px]"><p><span class="block font-semibold text-slate-500">Fecha de ingreso</span>{{ colaborador.fechaIngreso }}</p><p><span class="block font-semibold text-slate-500">Tipo de contrato</span>{{ colaborador.tipoContrato }}</p><p><span class="block font-semibold text-slate-500">Jornada</span>{{ colaborador.jornada }}</p><p><span class="block font-semibold text-slate-500">Sueldo basico</span>{{ colaborador.sueldoBasico }}</p></div>
+                  </section>
+                  <section class="space-y-2 border-slate-200 dark:border-slate-800 xl:border-r xl:pr-4">
+                    <h3 class="flex items-center gap-2 text-[11px] font-bold text-slate-900 dark:text-white"><span class="text-blue-600">i</span> Informacion adicional</h3>
+                    <div class="space-y-2 text-[11px]"><p><span class="block font-semibold text-slate-500">Grado de instruccion</span>{{ colaborador.gradoInstruccion }}</p><p><span class="block font-semibold text-slate-500">N de cuenta bancaria</span>{{ colaborador.cuentaBancaria }}</p><p><span class="block font-semibold text-slate-500">EPS / Seguro</span>{{ colaborador.epsSeguro }}</p><p><span class="block font-semibold text-slate-500">Contacto de emergencia</span>{{ colaborador.contactoEmergencia }}</p></div>
+                  </section>
+                  <section class="space-y-2">
+                    <h3 class="flex items-center gap-2 text-[11px] font-bold text-slate-900 dark:text-white"><span class="h-2 w-2 rounded-sm bg-blue-600"></span> Documentos</h3>
+                    <div class="space-y-2">
+                      @for (documento of colaborador.documentos; track documento.nombre) {
+                        <div class="flex items-center justify-between gap-4 text-[11px]">
+                          <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>{{ documento.nombre }}</span>
+                          <span class="text-emerald-600 dark:text-emerald-300">{{ documento.estado }}</span>
+                        </div>
+                      }
+                    </div>
+                    <button class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" type="button">Ver todos los documentos</button>
+                  </section>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+  <footer class="flex flex-col gap-2 border-t border-slate-200 px-3 py-2 text-[11px] text-slate-500 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+    <span>Mostrando 1 a 10 de 186 colaboradores</span>
+    <nav class="flex items-center gap-1.5" aria-label="Paginacion">
+      <button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button" aria-label="Pagina anterior"><svg class="mx-auto h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+      <button class="h-7 w-7 rounded-md border border-blue-200 bg-blue-50 font-semibold text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300" type="button">1</button>
+      <button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">2</button>
+      <button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">3</button>
+      <span class="px-1">...</span>
+      <button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">19</button>
+      <button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button" aria-label="Pagina siguiente"><svg class="mx-auto h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+    </nav>
+  </footer>
+</section>
