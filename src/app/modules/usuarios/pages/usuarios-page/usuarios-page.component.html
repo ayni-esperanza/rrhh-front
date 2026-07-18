@@ -1,19 +1,9 @@
-<app-page-header title="Usuarios" description="Administración de usuarios, roles y accesos del sistema." />
+<section class="flex min-h-full flex-col gap-4">
+  <header class="min-h-9">
+    <h1 class="text-xl font-bold text-slate-950 dark:text-white">Usuarios</h1>
+  </header>
 
-<section class="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-  <table class="w-full text-left text-sm">
-    <thead class="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-      <tr><th class="px-4 py-3">Nombre</th><th class="px-4 py-3">Correo</th><th class="px-4 py-3">Rol</th><th class="px-4 py-3">Estado</th></tr>
-    </thead>
-    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-      @for (usuario of usuarios; track usuario.correo) {
-        <tr>
-          <td class="px-4 py-3 font-medium">{{ usuario.nombre }}</td>
-          <td class="px-4 py-3">{{ usuario.correo }}</td>
-          <td class="px-4 py-3">{{ usuario.rol }}</td>
-          <td class="px-4 py-3">{{ usuario.estado }}</td>
-        </tr>
-      }
-    </tbody>
-  </table>
+  <app-usuarios-metrics [usuarios]="usuarios" />
+  <app-usuarios-filters />
+  <app-usuarios-table [usuarios]="usuarios" />
 </section>

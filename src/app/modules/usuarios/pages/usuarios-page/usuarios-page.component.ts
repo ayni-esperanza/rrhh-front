@@ -1,10 +1,12 @@
 import { Component, inject } from '@angular/core';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { UsuariosFiltersComponent } from '../../components/usuarios-filters/usuarios-filters.component';
+import { UsuariosMetricsComponent } from '../../components/usuarios-metrics/usuarios-metrics.component';
+import { UsuariosTableComponent } from '../../components/usuarios-table/usuarios-table.component';
 import { UsuariosService } from '../../services/usuarios.service';
 
 @Component({
   selector: 'app-usuarios-page',
-  imports: [PageHeaderComponent],
+  imports: [UsuariosMetricsComponent, UsuariosFiltersComponent, UsuariosTableComponent],
   templateUrl: './usuarios-page.component.html'
 })
 export class UsuariosPageComponent {

@@ -1,4 +1,4 @@
-﻿import { Component, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { EditarRegistroHorarioModalComponent } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.component';
 import { AsistenciaRegistroEdicion } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.model';
 import { AsistenciaCelda, AsistenciaSemana } from '../../models/asistencia.model';
@@ -21,12 +21,11 @@ import { AsistenciasService } from '../../services/asistencias.service';
       <div class="overflow-x-auto">
         <table class="w-full min-w-[980px] text-left text-xs">
           <thead class="bg-slate-50 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-            <tr><th class="w-10 px-3 py-3">#</th><th class="px-3 py-3">Colaborador</th>@for (dia of dias; track dia.dia) {<th class="px-3 py-3 text-center"><span class="block">{{ dia.dia }}</span><span class="font-semibold text-slate-500">{{ dia.fecha }}</span></th>}<th class="px-3 py-3 text-center">Total<br />semana</th></tr>
+            <tr><th class="px-3 py-3">Colaborador</th>@for (dia of dias; track dia.dia) {<th class="px-3 py-3 text-center"><span class="block">{{ dia.dia }}</span><span class="font-semibold text-slate-500">{{ dia.fecha }}</span></th>}<th class="px-3 py-3 text-center">Total<br />semana</th></tr>
           </thead>
           <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
             @for (item of semana; track item.id) {
               <tr class="cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/50" (click)="openEditarRegistro(item, item.dias[0])">
-                <td class="px-3 py-3 font-semibold text-slate-500">{{ item.id }}</td>
                 <td class="px-3 py-3"><div class="flex items-center gap-2"><img class="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" [src]="item.avatar" [alt]="item.colaborador" /><div class="min-w-0"><p class="font-bold text-slate-900 dark:text-white">{{ item.colaborador }}</p><p class="text-[11px] text-slate-500">{{ item.cargo }}</p></div></div></td>
                 @for (dia of item.dias; track dia.dia) {
                   <td class="px-3 py-3 text-center" (click)="openEditarRegistro(item, dia); $event.stopPropagation()"><span class="inline-flex min-w-16 flex-col items-center rounded-md px-2 py-1 font-semibold" [class]="cellClasses(dia)"><span>{{ dia.valor }}</span>@if (dia.detalle) { <span class="text-[10px]">{{ dia.detalle }}</span> }</span></td>

@@ -3,4 +3,5 @@ export interface Usuario {
   correo: string;
   rol: 'admin' | 'rrhh' | 'supervisor' | 'colaborador';
   estado: 'activo' | 'inactivo';
+  ultimoAcceso: string;
 }

@@ -41,7 +41,7 @@ interface LugarSemana {
         <table class="w-full min-w-[980px] text-left text-xs">
           <thead class="bg-slate-50 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
             <tr>
-              <th class="w-10 px-3 py-3">#</th>
+              
               <th class="px-3 py-3">Colaborador</th>
               @for (dia of dias; track dia.dia) { <th class="px-3 py-3 text-center">{{ dia.dia }} {{ dia.fecha }}</th> }
               <th class="px-3 py-3 text-center">Total dias<br />registrados<br /><span class="text-[10px] text-slate-500">Semana</span></th>
@@ -50,7 +50,6 @@ interface LugarSemana {
           <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
             @for (item of registros; track item.id) {
               <tr class="cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/50" (click)="openEditarRegistro(item, item.dias[0])">
-                <td class="px-3 py-3 font-semibold text-slate-500">{{ item.id }}</td>
                 <td class="px-3 py-3"><div class="flex items-center gap-2"><img class="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" [src]="item.avatar" [alt]="item.colaborador" /><div class="min-w-0"><p class="font-bold text-slate-900 dark:text-white">{{ item.colaborador }}</p><p class="text-[11px] text-slate-500">{{ item.cargo }}</p></div></div></td>
                 @for (dia of item.dias; track dia.dia) { <td class="px-3 py-3 text-center" (click)="openEditarRegistro(item, dia); $event.stopPropagation()"><span class="inline-flex min-w-20 justify-center rounded-md px-2 py-1 font-semibold" [class]="badgeClasses(dia.tipo)">{{ dia.valor }}</span></td> }
                 <td class="px-3 py-3 text-center font-bold text-slate-900 dark:text-white">{{ item.total }}</td>
