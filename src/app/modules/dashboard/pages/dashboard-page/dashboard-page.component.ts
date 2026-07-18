@@ -1,12 +1,12 @@
-import { Component, inject } from '@angular/core';
-import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
-import { DashboardService } from '../../services/dashboard.service';
+﻿import { Component } from '@angular/core';
+import { DashboardAnalyticsRowComponent } from '../../components/dashboard-analytics-row/dashboard-analytics-row.component';
+import { DashboardCostsRowComponent } from '../../components/dashboard-costs-row/dashboard-costs-row.component';
+import { DashboardRankingRowComponent } from '../../components/dashboard-ranking-row/dashboard-ranking-row.component';
+import { DashboardSummaryRowComponent } from '../../components/dashboard-summary-row/dashboard-summary-row.component';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [PageHeaderComponent],
+  imports: [DashboardSummaryRowComponent, DashboardRankingRowComponent, DashboardAnalyticsRowComponent, DashboardCostsRowComponent],
   templateUrl: './dashboard-page.component.html'
 })
-export class DashboardPageComponent {
-  protected readonly indicators = inject(DashboardService).getIndicators();
-}
+export class DashboardPageComponent {}

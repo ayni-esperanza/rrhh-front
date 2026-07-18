@@ -1,0 +1,26 @@
+<section class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+  <article class="rounded-lg border border-emerald-100 bg-emerald-50/40 p-4 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/10"><p class="text-xs font-bold text-emerald-800 dark:text-emerald-300">Costo salarial por empleado</p><strong class="mt-6 block text-xl text-slate-950 dark:text-white">S/ 2,856.40</strong><p class="mt-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">promedio mensual</p><a class="mt-5 block text-[11px] font-bold text-blue-600">Ver reporte completo -></a></article>
+  <article class="rounded-lg border border-blue-100 bg-blue-50/40 p-4 shadow-sm dark:border-blue-500/20 dark:bg-blue-500/10"><p class="text-xs font-bold text-blue-800 dark:text-blue-300">Costo salarial por area</p><strong class="mt-6 block text-xl text-slate-950 dark:text-white">S/ 532,680.50</strong><p class="mt-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300">costo total mensual</p><a class="mt-5 block text-[11px] font-bold text-blue-600">Ver reporte completo -></a></article>
+  <article class="rounded-lg border border-purple-100 bg-purple-50/40 p-4 shadow-sm dark:border-purple-500/20 dark:bg-purple-500/10"><p class="text-xs font-bold text-purple-800 dark:text-purple-300">Horas extras pagadas (Mes)</p><strong class="mt-6 block text-xl text-slate-950 dark:text-white">348.6 h</strong><p class="mt-1 text-sm font-bold text-purple-700 dark:text-purple-300">S/ 12,458.60</p><a class="mt-5 block text-[11px] font-bold text-blue-600">Ver reporte completo -></a></article>
+  <article class="rounded-lg border border-amber-100 bg-amber-50/40 p-4 shadow-sm dark:border-amber-500/20 dark:bg-amber-500/10"><p class="text-xs font-bold text-amber-800 dark:text-amber-300">Costo de planilla (Mes)</p><strong class="mt-6 block text-xl text-slate-950 dark:text-white">S/ 531,245.80</strong><p class="mt-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">Costo total</p><a class="mt-5 block text-[11px] font-bold text-blue-600">Ver reporte completo -></a></article>
+  <article class="rounded-lg border border-rose-100 bg-rose-50/40 p-4 shadow-sm dark:border-rose-500/20 dark:bg-rose-500/10">
+    <p class="text-xs font-bold text-rose-800 dark:text-rose-300">Comparacion de asistencia entre meses</p>
+    <div class="mt-3 h-28 overflow-hidden">
+      <ngx-charts-bar-vertical
+        [view]="[190, 110]"
+        [results]="attendanceComparison"
+        [scheme]="comparisonScheme"
+        [legend]="false"
+        [xAxis]="true"
+        [yAxis]="false"
+        [showGridLines]="false"
+        [roundEdges]="true"
+        [showDataLabel]="true"
+        [dataLabelFormatting]="percentFormat"
+        [barPadding]="12"
+        [animations]="true">
+      </ngx-charts-bar-vertical>
+    </div>
+    <a class="mt-2 block text-center text-[11px] font-bold text-blue-600">Ver reporte completo -></a>
+  </article>
+</section>
