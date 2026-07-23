@@ -1,4 +1,4 @@
-/* You can add global styles to this file, and also import other style files */
+﻿/* You can add global styles to this file, and also import other style files */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
@@ -13,6 +13,17 @@
 .dark textarea,
 .dark select {
   color-scheme: dark;
+}
+
+.dark select option,
+.dark select optgroup {
+  background-color: #020617;
+  color: #e2e8f0;
+}
+
+.dark select option:checked {
+  background-color: #1e3a8a;
+  color: #ffffff;
 }
 
 html.dark,
