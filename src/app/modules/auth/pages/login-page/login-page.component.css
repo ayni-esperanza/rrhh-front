@@ -1,0 +1,57 @@
+:host {
+  display: block;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+input:focus {
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+:host-context(.dark) input {
+  color-scheme: dark;
+}
+
+:host-context(.dark) input:-webkit-autofill,
+:host-context(.dark) input:-webkit-autofill:hover,
+:host-context(.dark) input:-webkit-autofill:focus,
+:host-context(.dark) input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f9fafb;
+  caret-color: #f9fafb;
+  -webkit-box-shadow: 0 0 0 1000px #374151 inset;
+  box-shadow: 0 0 0 1000px #374151 inset;
+  border-color: #4b5563;
+  transition: background-color 9999s ease-out 0s;
+}
+
+button[type='submit'] {
+  transition: all 0.2s ease-in-out;
+}
+
+button[type='submit']:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

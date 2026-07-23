@@ -1,41 +1,117 @@
-<main class="grid min-h-screen place-items-center bg-slate-100 px-4 dark:bg-slate-950">
-  <section class="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-    <p class="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Ayni RR.HH.</p>
-    <h1 class="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">Ingresar al sistema</h1>
-    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Usa una cuenta autorizada para acceder a los módulos de Recursos Humanos.</p>
+﻿<main class="flex min-h-dvh w-full items-center justify-center bg-green-100 px-4 py-6 dark:bg-gray-900">
+  <section class="w-full max-w-sm">
+    <div class="space-y-5 rounded-xl bg-white p-6 shadow-lg dark:bg-gray-800">
+      <div class="text-center">
+        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-500">
+          <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <h1 class="mt-3 text-lg font-semibold text-gray-900 dark:text-white">Módulo de Recursos Humanos</h1>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Ingresa tus credenciales para continuar</p>
+      </div>
 
-    <form class="mt-6 space-y-4" (ngSubmit)="login()">
-      <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">
-        Correo
-        <input
-          type="email"
-          name="email"
-          [ngModel]="email()"
-          (ngModelChange)="email.set($event)"
-          class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-        />
-      </label>
-
-      <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">
-        Contraseña
-        <input
-          type="password"
-          name="password"
-          [ngModel]="password()"
-          (ngModelChange)="password.set($event)"
-          class="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-        />
-      </label>
-
-      @if (error()) {
-        <p class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300">{{ error() }}</p>
+      @if (error) {
+        <div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-800 dark:bg-red-900/30 dark:text-red-400">
+          <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{{ error }}</span>
+        </div>
       }
 
-      <button class="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700" type="submit">
-        Iniciar sesión
-      </button>
-    </form>
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-4">
+        <div>
+          <label for="username" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Usuario</label>
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <input
+              id="username"
+              type="email"
+              formControlName="username"
+              class="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              placeholder="Ingresa tu correo"
+              autocomplete="email"
+              [class.border-red-500]="f['username'].touched && f['username'].errors"
+            />
+          </div>
+          @if (f['username'].touched && f['username'].errors) {
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">
+              @if (f['username'].errors['required']) {
+                El usuario es requerido
+              } @else if (f['username'].errors['email']) {
+                Ingresa un correo válido
+              }
+            </p>
+          }
+        </div>
 
-    <a routerLink="/auth/recuperar-password" class="mt-4 inline-block text-sm font-medium text-emerald-700 dark:text-emerald-300">Recuperar contraseña</a>
+        <div>
+          <label for="password" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="password"
+              class="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-9 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              placeholder="Ingresa tu contraseña"
+              autocomplete="current-password"
+              [class.border-red-500]="f['password'].touched && f['password'].errors"
+            />
+            <button
+              type="button"
+              (click)="togglePasswordVisibility()"
+              class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            >
+              @if (showPassword) {
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                </svg>
+              } @else {
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              }
+            </button>
+          </div>
+          @if (f['password'].touched && f['password'].errors) {
+            <p class="mt-1 text-xs text-red-600 dark:text-red-400">
+              @if (f['password'].errors['required']) {
+                La contraseña es requerida
+              } @else if (f['password'].errors['minlength']) {
+                La contraseña debe tener al menos 6 caracteres
+              }
+            </p>
+          }
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="loading"
+          class="flex w-full items-center justify-center rounded-lg border border-transparent bg-green-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          @if (loading) {
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Iniciando sesión...
+          } @else {
+            Iniciar sesión
+          }
+        </button>
+      </form>
+    </div>
   </section>
 </main>
