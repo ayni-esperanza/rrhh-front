@@ -1,0 +1,164 @@
+﻿@if (isOpen) {
+  <div class="modal-shell fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-[2px] sm:p-5" role="dialog" aria-modal="true" aria-labelledby="nuevo-colaborador-title" (click)="close()">
+    <section class="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-white/10 bg-white shadow-[0_24px_80px_-24px_rgba(15,23,42,0.55)] dark:border-slate-700/80 dark:bg-slate-900 sm:max-h-[calc(100dvh-2.5rem)]" (click)="$event.stopPropagation()">
+      <header class="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
+        <h2 id="nuevo-colaborador-title" class="text-lg font-bold text-slate-950 dark:text-white">{{ isEditing ? 'Editar colaborador' : 'Nuevo colaborador' }}</h2>
+        <button class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E] dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white" type="button" aria-label="Cerrar modal" (click)="close()">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </header>
+
+      <div class="min-h-0 flex-1 space-y-5 overflow-y-auto bg-white p-4 sm:p-5 dark:bg-slate-900">
+        <nav class="relative grid grid-cols-4 px-1" aria-label="Fases del registro">
+          <span class="absolute left-[12.5%] right-[12.5%] top-4 h-px bg-slate-200 dark:bg-slate-700" aria-hidden="true"></span>
+          @for (step of steps; track step.label; let index = $index) {
+            <button
+              type="button"
+              class="relative z-10 flex min-w-0 flex-col items-center gap-1.5 px-1 text-center transition focus-visible:outline-none"
+              [class]="currentStep === index ? 'text-[#22C55E]' : index < currentStep ? 'text-[#22C55E]' : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'"
+              (click)="goToStep(index)"
+            >
+              <span
+                class="flex h-8 w-8 items-center justify-center rounded-full border-2 transition"
+                [class]="currentStep === index ? 'border-[#22C55E] bg-white text-[#22C55E] ring-4 ring-green-50 dark:bg-slate-900 dark:ring-green-500/10' : index < currentStep ? 'border-[#22C55E] bg-[#22C55E] text-white' : 'border-slate-300 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500'"
+              >
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path [attr.d]="step.icon" /></svg>
+              </span>
+              <span class="max-w-full text-[10px] font-bold leading-tight sm:text-[11px]">{{ step.label }}</span>
+            </button>
+          }
+        </nav>
+
+        <form [formGroup]="form" class="min-w-0">
+          @if (currentStep === 0) {
+            <section formGroupName="personal" class="space-y-3">
+              <div><h3 class="text-sm font-bold text-slate-950 dark:text-white">Información personal</h3><p class="text-xs text-slate-500 dark:text-slate-400">Datos de identificación, contacto y tallas.</p></div>
+              <div class="grid gap-2.5 md:grid-cols-2">
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Nombre</span><input formControlName="nombre" class="field-input" placeholder="Ej. Luis Alberto" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Apellido</span><input formControlName="apellido" class="field-input" placeholder="Ej. Romero" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">DNI</span><input formControlName="dni" class="field-input" placeholder="8 digitos" maxlength="8" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Fecha de nacimiento</span><input formControlName="fechaNacimiento" type="date" class="field-input" /></label>
+                <label class="space-y-1.5 md:col-span-2"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Dirección</span><input formControlName="direccion" class="field-input" placeholder="Av./Jr./Calle, distrito" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Correo</span><input formControlName="correo" type="email" class="field-input" placeholder="correo@empresa.com" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Teléfono de emergencia</span><input formControlName="telefonoEmergencia" class="field-input" placeholder="987 654 321" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Estado civil</span><select formControlName="estadoCivil" class="field-input"><option>Soltero</option><option>Soltera</option><option>Casado</option><option>Casada</option></select></label>
+                <div class="grid grid-cols-3 gap-2">
+                  <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Camisa</span><select formControlName="camisa" class="field-input"><option>S</option><option>M</option><option>L</option><option>XL</option></select></label>
+                  <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pantalón</span><select formControlName="pantalon" class="field-input"><option>S</option><option>M</option><option>L</option><option>XL</option></select></label>
+                  <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Calzado</span><input formControlName="calzado" class="field-input" placeholder="42" /></label>
+                </div>
+              </div>
+            </section>
+          }
+
+          @if (currentStep === 1) {
+            <section formGroupName="laboral" class="space-y-3">
+              <div><h3 class="text-sm font-bold text-slate-950 dark:text-white">Información laboral</h3><p class="text-xs text-slate-500 dark:text-slate-400">Puesto, contrato, jornada, estado y remuneración.</p></div>
+              <div class="grid gap-2.5 md:grid-cols-2">
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Cargo</span><input formControlName="cargo" class="field-input" placeholder="Ej. Técnico mecánico" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Fecha de ingreso</span><input formControlName="fechaIngreso" type="date" class="field-input" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Tipo de contrato</span><select formControlName="tipoContrato" class="field-input"><option>Indeterminado</option><option>Plazo fijo</option><option>Temporal</option></select></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Jornada</span><select formControlName="jornada" class="field-input"><option>Tiempo completo</option><option>Medio tiempo</option><option>Turno nocturno</option></select></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Sueldo básico</span><input formControlName="sueldoBasico" class="field-input" placeholder="S/ 2,800.00" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Estado</span><select formControlName="estado" class="field-input"><option>Activo</option><option>Inactivo</option></select></label>
+              </div>
+            </section>
+          }
+
+          @if (currentStep === 2) {
+            <section formGroupName="adicional" class="space-y-3">
+              <div><h3 class="text-sm font-bold text-slate-950 dark:text-white">Información adicional</h3><p class="text-xs text-slate-500 dark:text-slate-400">Datos bancarios, seguro y contacto complementario.</p></div>
+              <div class="grid gap-2.5 md:grid-cols-2">
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Grado de instrucción</span><input formControlName="gradoInstruccion" class="field-input" placeholder="Universitario, Técnico, etc." /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">N° de cuenta bancaria</span><input formControlName="cuentaBancaria" class="field-input" placeholder="002-1234-567890123456" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">EPS / Seguro</span><input formControlName="epsSeguro" class="field-input" placeholder="Rimac EPS, SIS, etc." /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Contacto de emergencia</span><input formControlName="contactoEmergencia" class="field-input" placeholder="Nombre - teléfono" /></label>
+              </div>
+            </section>
+          }
+
+          @if (currentStep === 3) {
+            <section formGroupName="documentos" class="space-y-4">
+              <div>
+                <h3 class="text-sm font-bold text-slate-950 dark:text-white">Documentos</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Carga los archivos y registra su fecha de vencimiento.</p>
+              </div>
+
+              <div class="grid gap-3 md:grid-cols-2">
+                @for (document of documentDefinitions; track document.key) {
+                  <article class="overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600">
+                    <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-3.5 py-3 dark:border-slate-800">
+                      <div class="flex min-w-0 items-center gap-2.5">
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-green-50 text-[#22C55E] dark:bg-green-500/10 dark:text-green-400">
+                          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 3h7l5 5v13H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v6h5"/></svg>
+                        </span>
+                        <span class="truncate text-xs font-bold text-slate-900 dark:text-white">{{ document.label }}</span>
+                      </div>
+                      <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ring-1 ring-inset" [class]="documentStatusClasses(documentStatus(document.key))">
+                        {{ documentStatus(document.key) }}
+                      </span>
+                    </div>
+
+                    <div class="space-y-3 p-3.5">
+                      @if (documentFiles[document.key]; as uploaded) {
+                        <div class="flex min-w-0 items-center gap-2 rounded-lg bg-slate-50 p-2.5 dark:bg-slate-950/70">
+                          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-rose-500 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
+                          </span>
+                          <div class="min-w-0 flex-1">
+                            <p class="truncate text-[11px] font-bold text-slate-800 dark:text-slate-200" [title]="uploaded.file.name">{{ uploaded.file.name }}</p>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400">{{ formatFileSize(uploaded.file.size) }}</p>
+                          </div>
+                          <div class="flex shrink-0 items-center gap-0.5">
+                            <button type="button" class="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-white hover:text-[#22C55E] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-green-400" title="Visualizar archivo" [attr.aria-label]="'Visualizar ' + document.label" (click)="viewDocument(document.key)">
+                              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button type="button" class="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-white hover:text-[#22C55E] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-green-400" title="Descargar archivo" [attr.aria-label]="'Descargar ' + document.label" (click)="downloadDocument(document.key)">
+                              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M5 21h14"/></svg>
+                            </button>
+                            <button type="button" class="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400" title="Eliminar archivo" [attr.aria-label]="'Eliminar ' + document.label" (click)="removeDocument(document.key)">
+                              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                            </button>
+                          </div>
+                        </div>
+                      } @else {
+                        <input #fileInput type="file" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" (change)="onFileSelected($event, document.key)" />
+                        <button type="button" class="flex h-16 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 text-[11px] font-bold text-slate-600 transition hover:border-[#22C55E] hover:bg-green-50 hover:text-[#22C55E] dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-400 dark:hover:border-[#22C55E] dark:hover:bg-green-500/10 dark:hover:text-green-300" (click)="fileInput.click()">
+                          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+                          Subir archivo
+                        </button>
+                      }
+
+                      <label class="block space-y-1.5">
+                        <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">Fecha de vencimiento</span>
+                        <input type="date" class="field-input" [formControlName]="document.key" />
+                      </label>
+                    </div>
+                  </article>
+                }
+              </div>
+            </section>
+          }
+        </form>
+      </div>
+
+      <footer class="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <button class="h-9 rounded-lg border border-slate-200 px-5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800" type="button" (click)="close()">Cancelar</button>
+        <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+          <button class="h-9 rounded-lg border border-slate-200 px-5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800" type="button" [disabled]="currentStep === 0" (click)="previousStep()">Anterior</button>
+          @if (currentStep < 3) {
+            <button class="h-9 rounded-lg bg-[#22C55E] px-5 text-xs font-bold text-white transition hover:bg-green-600" type="button" (click)="nextStep()">Siguiente</button>
+          } @else {
+            <button class="h-9 rounded-lg bg-[#22C55E] px-5 text-xs font-bold text-white transition hover:bg-green-600" type="button" (click)="submit()">{{ isEditing ? 'Guardar cambios' : 'Guardar colaborador' }}</button>
+          }
+        </div>
+      </footer>
+    </section>
+  </div>
+}
+
+
+
+
+
+

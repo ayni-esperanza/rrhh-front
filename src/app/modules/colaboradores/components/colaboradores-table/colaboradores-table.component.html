@@ -17,7 +17,7 @@
       </thead>
       <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
         @for (colaborador of colaboradores; track colaborador.id) {
-          <tr [class]="'transition hover:bg-slate-50/70 dark:hover:bg-slate-800/50 ' + (expandedId === colaborador.id ? 'bg-blue-50 text-slate-900 dark:bg-blue-500/10 dark:text-slate-100' : '')">
+          <tr class="cursor-pointer" [class]="'transition hover:bg-slate-50/70 dark:hover:bg-slate-800/50 ' + (expandedId === colaborador.id ? 'bg-blue-50 text-slate-900 dark:bg-blue-500/10 dark:text-slate-100' : '')" (click)="editColaborador.emit(colaborador)">
             <td class="px-3 py-2">
               <div class="flex items-center gap-2"><img class="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" [src]="colaborador.imagen" [alt]="colaborador.nombre" />
               </div>
@@ -37,7 +37,7 @@
               <span class="inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold" [class]="colaborador.estado === 'Activo' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'">{{ colaborador.estado }}</span>
             </td>
             <td class="px-3 py-2 text-center">
-              <button class="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" type="button" (click)="toggle(colaborador.id)" [attr.aria-expanded]="expandedId === colaborador.id" [attr.aria-label]="expandedId === colaborador.id ? 'Comprimir registro' : 'Desplegar registro'">
+              <button class="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" type="button" (click)="$event.stopPropagation(); toggle(colaborador.id)" [attr.aria-expanded]="expandedId === colaborador.id" [attr.aria-label]="expandedId === colaborador.id ? 'Comprimir registro' : 'Desplegar registro'">
                 <svg class="h-3.5 w-3.5 transition" [class.rotate-180]="expandedId === colaborador.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>
               </button>
             </td>
@@ -82,7 +82,7 @@
     <span>Mostrando 1 a 10 de 186 colaboradores</span>
     <nav class="flex items-center gap-1.5" aria-label="Paginacion">
       <button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button" aria-label="Pagina anterior"><svg class="mx-auto h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
-      <button class="h-7 w-7 rounded-md border border-blue-200 bg-blue-50 font-semibold text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300" type="button">1</button>
+      <button class="h-7 w-7 rounded-md border border-green-200 bg-green-50 font-semibold text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300" type="button">1</button>
       <button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">2</button>
       <button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">3</button>
       <span class="px-1">...</span>
@@ -91,3 +91,5 @@
     </nav>
   </footer>
 </section>
+
+

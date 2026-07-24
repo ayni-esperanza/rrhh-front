@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+﻿import { Component, inject } from '@angular/core';
 import { EditarRegistroHorarioModalComponent } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.component';
 import { AsistenciaRegistroEdicion } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.model';
 import { AsistenciaCelda, AsistenciaSemana } from '../../models/asistencia.model';
@@ -36,7 +36,7 @@ import { AsistenciasService } from '../../services/asistencias.service';
           </tbody>
         </table>
       </div>
-      <footer class="flex flex-col gap-2 border-t border-slate-200 px-4 py-3 text-[11px] text-slate-500 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between"><span>Mostrando 1 a 5 de 186 colaboradores</span><nav class="flex items-center gap-1.5" aria-label="Paginacion"><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button">‹</button><button class="h-7 w-7 rounded-md border border-blue-200 bg-blue-50 font-semibold text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300" type="button">1</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">2</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">3</button><span class="px-1">...</span><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">38</button><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button">›</button></nav></footer>
+      <footer class="flex flex-col gap-2 border-t border-slate-200 px-4 py-3 text-[11px] text-slate-500 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between"><span>Mostrando 1 a 5 de 186 colaboradores</span><nav class="flex items-center gap-1.5" aria-label="Paginacion"><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button">&#8249;</button><button class="h-7 w-7 rounded-md border border-green-200 bg-green-50 font-semibold text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300" type="button">1</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">2</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">3</button><span class="px-1">...</span><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">38</button><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button">&#8250;</button></nav></footer>
     </section>
     <app-editar-registro-horario-modal [isOpen]="isEditModalOpen" [registro]="selectedRegistro" (closeModal)="closeEditarRegistro()" (saveChanges)="closeEditarRegistro()" />
   `
@@ -74,3 +74,5 @@ export class HorasDiaPageComponent {
     return classes[dia.tipo];
   }
 }
+
+

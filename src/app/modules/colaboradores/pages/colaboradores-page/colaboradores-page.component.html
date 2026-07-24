@@ -1,4 +1,4 @@
-<section class="flex min-h-full flex-col gap-4">
+﻿<section class="flex min-h-full flex-col gap-4">
   <header class="min-h-9">
     <h1 class="text-xl font-bold text-slate-950 dark:text-white">Colaboradores</h1>
   </header>
@@ -8,10 +8,17 @@
   </div>
 
   <div>
-    <app-colaboradores-filters />
+    <app-colaboradores-filters (newColaborador)="openNewColaboradorModal()" />
   </div>
 
   <div>
-    <app-colaboradores-table [colaboradores]="colaboradores" [(expandedId)]="expandedId" />
+    <app-colaboradores-table [colaboradores]="colaboradores" [(expandedId)]="expandedId" (editColaborador)="editColaborador($event)" />
   </div>
 </section>
+
+<app-nuevo-colaborador-modal
+  [isOpen]="isNewColaboradorModalOpen"
+  [colaborador]="selectedColaborador"
+  (closeModal)="closeNewColaboradorModal()"
+  (saveColaborador)="saveColaborador($event)"
+/>

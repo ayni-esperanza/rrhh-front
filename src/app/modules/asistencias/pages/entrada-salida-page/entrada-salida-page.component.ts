@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+﻿import { Component, inject } from '@angular/core';
 import { EditarRegistroHorarioModalComponent } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.component';
 import { AsistenciaRegistroEdicion } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.model';
 import { AsistenciasService } from '../../services/asistencias.service';
@@ -69,7 +69,7 @@ interface EntradaSalidaSemana {
 
       <footer class="flex flex-col gap-2 border-t border-slate-200 px-4 py-3 text-[11px] text-slate-500 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
         <span>Mostrando 1 a 5 de 186 colaboradores</span>
-        <nav class="flex items-center gap-1.5" aria-label="Paginacion"><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button" aria-label="Pagina anterior"><svg class="mx-auto h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button><button class="h-7 w-7 rounded-md border border-blue-200 bg-blue-50 font-semibold text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300" type="button">1</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">2</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">3</button><span class="px-1">...</span><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">38</button><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button" aria-label="Pagina siguiente"><svg class="mx-auto h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button></nav>
+        <nav class="flex items-center gap-1.5" aria-label="Paginacion"><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button" aria-label="Pagina anterior"><svg class="mx-auto h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button><button class="h-7 w-7 rounded-md border border-green-200 bg-green-50 font-semibold text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300" type="button">1</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">2</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">3</button><span class="px-1">...</span><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">38</button><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button" aria-label="Pagina siguiente"><svg class="mx-auto h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button></nav>
       </footer>
     </section>
 
@@ -140,3 +140,4 @@ export class EntradaSalidaPageComponent {
   private empty(dia: string, fecha: string): EntradaSalidaDia { return { dia, fecha, entrada: '-', salida: '-', turno: 'vacio' }; }
   private missing(dia: string, fecha: string): EntradaSalidaDia { return { dia, fecha, entrada: '-', salida: '-', turno: 'falta' }; }
 }
+

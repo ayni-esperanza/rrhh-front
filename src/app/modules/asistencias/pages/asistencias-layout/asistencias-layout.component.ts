@@ -21,7 +21,7 @@ export class AsistenciasLayoutComponent {
   }
 
   protected tabClasses(tab: AsistenciaTab): string {
-    return this.activeTab === tab ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300' : 'border-transparent';
+    return this.activeTab === tab ? 'border-[#22C55E] bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300' : 'border-transparent';
   }
 
   protected iconPath(icon: AsistenciaMetric['icon']): string {
@@ -46,3 +46,4 @@ export class AsistenciasLayoutComponent {
     return tones[tone];
   }
 }
+
