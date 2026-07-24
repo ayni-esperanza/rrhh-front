@@ -1,11 +1,17 @@
-export interface Colaborador {
+﻿export interface Colaborador {
   id: string;
   imagen: string;
   nombre: string;
   apellido: string;
+  apellidoPaterno?: string;
+  apellidoMaterno?: string;
   dni: string;
+  sexo?: 'Masculino' | 'Femenino' | 'No binario';
+  hijos?: string;
   cargo: string;
+  telefono?: string;
   telefonoEmergencia: string;
+  contactosEmergencia?: ContactoEmergencia[];
   estadoCivil: string;
   tallas: {
     camisa: string;
@@ -21,12 +27,19 @@ export interface Colaborador {
   jornada: string;
   sueldoBasico: string;
   gradoInstruccion: string;
+  lugarNacimiento?: string;
+  tipoSangre?: string;
   cuentaBancaria: string;
   epsSeguro: string;
   contactoEmergencia: string;
   documentos: DocumentoColaborador[];
 }
 
+export interface ContactoEmergencia {
+  nombre: string;
+  parentesco?: string;
+  telefono: string;
+}
 export interface DocumentoColaborador {
   nombre: string;
   estado: 'Vigente' | 'Por vencer' | 'Vencido';
@@ -39,3 +52,6 @@ export interface ColaboradorMetric {
   icon: 'users' | 'calendar' | 'clock' | 'money';
   tone: 'blue' | 'purple' | 'amber' | 'emerald';
 }
+
+
+

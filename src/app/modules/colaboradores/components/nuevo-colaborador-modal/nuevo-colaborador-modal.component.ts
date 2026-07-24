@@ -1,6 +1,6 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Colaborador, DocumentoColaborador } from '../../models/colaborador.model';
 
 type ModalStep = 0 | 1 | 2 | 3;
@@ -33,6 +33,10 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     { label: 'Documentos', icon: 'M7 3h7l5 5v13H7a2 2 0 01-2-2V5a2 2 0 012-2zM14 3v6h5' }
   ] as const;
   protected currentStep: ModalStep = 0;
+  protected readonly cargoOptions = ['Técnico mecánico', 'Supervisora', 'Soldador', 'Operaria', 'Electricista', 'Administradora', 'Técnico de Mantenimiento', 'Analista de Recursos Humanos', 'Asistente administrativo'] as const;
+  protected readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'] as const;
+  protected readonly seguroOptions = ['Rimac EPS', 'Pacífico EPS', 'SIS', 'EsSalud', 'Mapfre EPS', 'Sin seguro'] as const;
+  protected readonly parentescoOptions = ['Madre', 'Padre', 'Hermano/a', 'Cónyuge', 'Pareja', 'Hijo/a', 'Tío/a', 'Primo/a', 'Amigo/a'] as const;
   public readonly documentDefinitions: ReadonlyArray<{ key: DocumentKey; label: string }> = [
     { key: 'dni', label: 'DNI' },
     { key: 'curriculum', label: 'Curriculum' },
@@ -44,12 +48,14 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   protected readonly form = this.formBuilder.group({
     personal: this.formBuilder.group({
       nombre: ['', Validators.required],
-      apellido: ['', Validators.required],
+      apellidoPaterno: ['', Validators.required],
+      apellidoMaterno: ['', Validators.required],
       dni: ['', [Validators.required, Validators.minLength(8)]],
+      sexo: ['Masculino', Validators.required],
       fechaNacimiento: ['', Validators.required],
       direccion: ['', Validators.required],
       correo: ['', [Validators.required, Validators.email]],
-      telefonoEmergencia: ['', Validators.required],
+      telefono: ['', Validators.required],
       estadoCivil: ['Soltero', Validators.required],
       camisa: ['M', Validators.required],
       pantalon: ['L', Validators.required],
@@ -65,9 +71,12 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     }),
     adicional: this.formBuilder.group({
       gradoInstruccion: ['', Validators.required],
+      hijos: ['0', Validators.required],
+      lugarNacimiento: ['', Validators.required],
+      tipoSangre: ['', Validators.required],
       cuentaBancaria: ['', Validators.required],
       epsSeguro: ['', Validators.required],
-      contactoEmergencia: ['', Validators.required]
+      contactosEmergencia: this.formBuilder.array<FormGroup>([])
     }),
     documentos: this.formBuilder.group({
       dni: ['', Validators.required],
@@ -76,7 +85,6 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       certificados: ['', Validators.required]
     })
   });
-
   public ngOnChanges(changes: SimpleChanges): void {
     if (!changes['colaborador']) return;
 
@@ -90,6 +98,32 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
   public get isEditing(): boolean {
     return this.colaborador !== null;
+  }
+  public get contactosEmergencia() {
+    return this.form.controls.adicional.controls.contactosEmergencia;
+  }
+
+  protected get edadActual(): string {
+    const fechaNacimiento = this.personal.controls.fechaNacimiento.value;
+    if (!fechaNacimiento) return 'Sin fecha';
+
+    const nacimiento = new Date(`${fechaNacimiento}T00:00:00`);
+    if (Number.isNaN(nacimiento.getTime())) return 'Sin fecha';
+
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const mesPendiente = hoy.getMonth() < nacimiento.getMonth() || (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
+    if (mesPendiente) edad -= 1;
+
+    return edad >= 0 ? `${edad} años` : 'Fecha futura';
+  }
+
+  public agregarContactoEmergencia(nombre = '', parentesco = '', telefono = ''): void {
+    this.contactosEmergencia.push(this.formBuilder.group({ nombre: [nombre], parentesco: [parentesco], telefono: [telefono] }));
+  }
+
+  public eliminarContactoEmergencia(index: number): void {
+    this.contactosEmergencia.removeAt(index);
   }
   protected get personal() { return this.form.controls.personal; }
   protected get laboral() { return this.form.controls.laboral; }
@@ -198,14 +232,23 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     }
 
     const value = this.form.getRawValue();
+    const contactosEmergencia = value.adicional.contactosEmergencia
+      .map((contacto) => ({ nombre: contacto['nombre'] ?? '', parentesco: contacto['parentesco'] ?? '', telefono: contacto['telefono'] ?? '' }))
+      .filter((contacto) => contacto.nombre || contacto.parentesco || contacto.telefono);
     this.saveColaborador.emit({
       id: this.colaborador?.id ?? `nuevo-${Date.now()}`,
       imagen: this.colaborador?.imagen ?? 'https://i.pravatar.cc/96?img=5',
       nombre: value.personal.nombre || '',
-      apellido: value.personal.apellido || '',
+      apellido: [value.personal.apellidoPaterno, value.personal.apellidoMaterno].filter(Boolean).join(' '),
+      apellidoPaterno: value.personal.apellidoPaterno || '',
+      apellidoMaterno: value.personal.apellidoMaterno || '',
       dni: value.personal.dni || '',
+      sexo: (value.personal.sexo || 'Masculino') as Colaborador['sexo'],
+      hijos: value.adicional.hijos || '0',
       cargo: value.laboral.cargo || '',
-      telefonoEmergencia: value.personal.telefonoEmergencia || '',
+      telefono: value.personal.telefono || '',
+      telefonoEmergencia: contactosEmergencia[0]?.telefono ?? '',
+      contactosEmergencia,
       estadoCivil: value.personal.estadoCivil || '',
       tallas: {
         camisa: value.personal.camisa || '',
@@ -221,9 +264,11 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       jornada: value.laboral.jornada || '',
       sueldoBasico: value.laboral.sueldoBasico || '',
       gradoInstruccion: value.adicional.gradoInstruccion || '',
+      lugarNacimiento: value.adicional.lugarNacimiento || '',
+      tipoSangre: value.adicional.tipoSangre || '',
       cuentaBancaria: value.adicional.cuentaBancaria || '',
       epsSeguro: value.adicional.epsSeguro || '',
-      contactoEmergencia: value.adicional.contactoEmergencia || '',
+      contactoEmergencia: contactosEmergencia[0] ? [contactosEmergencia[0].nombre, contactosEmergencia[0].parentesco, contactosEmergencia[0].telefono].filter(Boolean).join(' - ') : '',
       documentos: [
         { nombre: 'DNI', estado: this.documentStatus('dni') as DocumentStatus },
         { nombre: 'Curriculum', estado: this.documentStatus('curriculum') as DocumentStatus },
@@ -243,15 +288,20 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
   private loadColaborador(colaborador: Colaborador): void {
     this.currentStep = 0;
+    this.contactosEmergencia.clear();
+    const contactos = colaborador.contactosEmergencia ?? (colaborador.telefonoEmergencia ? [{ nombre: '', parentesco: '', telefono: colaborador.telefonoEmergencia }] : []);
+    contactos.forEach((contacto) => this.agregarContactoEmergencia(contacto.nombre, contacto.parentesco ?? '', contacto.telefono));
     this.form.patchValue({
       personal: {
         nombre: colaborador.nombre,
-        apellido: colaborador.apellido,
+        apellidoPaterno: colaborador.apellidoPaterno ?? colaborador.apellido.split(' ')[0] ?? '',
+        apellidoMaterno: colaborador.apellidoMaterno ?? colaborador.apellido.split(' ').slice(1).join(' '),
         dni: colaborador.dni,
+        sexo: colaborador.sexo ?? 'Masculino',
         fechaNacimiento: this.dateToInput(colaborador.fechaNacimiento),
         direccion: colaborador.direccion,
         correo: colaborador.correo,
-        telefonoEmergencia: colaborador.telefonoEmergencia,
+        telefono: colaborador.telefono ?? '',
         estadoCivil: colaborador.estadoCivil,
         camisa: colaborador.tallas.camisa,
         pantalon: colaborador.tallas.pantalon,
@@ -267,9 +317,11 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       },
       adicional: {
         gradoInstruccion: colaborador.gradoInstruccion,
+        hijos: colaborador.hijos ?? '0',
+        lugarNacimiento: colaborador.lugarNacimiento ?? '',
+        tipoSangre: colaborador.tipoSangre ?? '',
         cuentaBancaria: colaborador.cuentaBancaria,
         epsSeguro: colaborador.epsSeguro,
-        contactoEmergencia: colaborador.contactoEmergencia
       },
       documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '' }
     });
@@ -300,12 +352,13 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   private reset(): void {
     this.currentStep = 0;
     this.documentDefinitions.forEach(({ key }) => this.removeDocument(key));
+    this.contactosEmergencia.clear();
     this.form.reset({
       personal: {
-        nombre: '', apellido: '', dni: '', fechaNacimiento: '', direccion: '', correo: '', telefonoEmergencia: '', estadoCivil: 'Soltero', camisa: 'M', pantalon: 'L', calzado: ''
+        nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', sexo: 'Masculino', fechaNacimiento: '', direccion: '', correo: '', telefono: '', estadoCivil: 'Soltero', camisa: 'M', pantalon: 'L', calzado: ''
       },
       laboral: { cargo: '', fechaIngreso: '', tipoContrato: 'Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '', estado: 'Activo' },
-      adicional: { gradoInstruccion: '', cuentaBancaria: '', epsSeguro: '', contactoEmergencia: '' },
+      adicional: { gradoInstruccion: '', hijos: '0', lugarNacimiento: '', tipoSangre: '', cuentaBancaria: '', epsSeguro: '', contactosEmergencia: [] },
       documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '' }
     });
   }
@@ -316,6 +369,17 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     return `${day}/${month}/${year}`;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
