@@ -1,4 +1,5 @@
-﻿import { Component, inject } from '@angular/core';
+﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
+import { Component, inject } from '@angular/core';
 import { EditarRegistroHorarioModalComponent } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.component';
 import { AsistenciaRegistroEdicion } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.model';
 import { AsistenciasService } from '../../services/asistencias.service';
@@ -23,7 +24,7 @@ interface LugarSemana {
 
 @Component({
   selector: 'app-lugar-trabajo-page',
-  imports: [EditarRegistroHorarioModalComponent],
+  imports: [EditarRegistroHorarioModalComponent, PaginacionComponent],
   template: `
     <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <header class="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
@@ -48,7 +49,7 @@ interface LugarSemana {
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
-            @for (item of registros; track item.id) {
+            @for (item of paginatedRegistros; track item.id) {
               <tr class="cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/50" (click)="openEditarRegistro(item, item.dias[0])">
                 <td class="px-3 py-3"><div class="flex items-center gap-2"><img class="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" [src]="item.avatar" [alt]="item.colaborador" /><div class="min-w-0"><p class="font-bold text-slate-900 dark:text-white">{{ item.colaborador }}</p><p class="text-[11px] text-slate-500">{{ item.cargo }}</p></div></div></td>
                 @for (dia of item.dias; track dia.dia) { <td class="px-3 py-3 text-center" (click)="openEditarRegistro(item, dia); $event.stopPropagation()"><span class="inline-flex min-w-20 justify-center rounded-md px-2 py-1 font-semibold" [class]="badgeClasses(dia.tipo)">{{ dia.valor }}</span></td> }
@@ -58,11 +59,7 @@ interface LugarSemana {
           </tbody>
         </table>
       </div>
-
-      <footer class="flex flex-col gap-2 border-t border-slate-200 px-4 py-3 text-[11px] text-slate-500 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-        <span>Mostrando 1 a 5 de 186 colaboradores</span>
-        <nav class="flex items-center gap-1.5" aria-label="Paginacion"><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button" aria-label="Pagina anterior"><svg class="mx-auto h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button><button class="h-7 w-7 rounded-md border border-green-200 bg-green-50 font-semibold text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300" type="button">1</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">2</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">3</button><span class="px-1">...</span><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">38</button><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button" aria-label="Pagina siguiente"><svg class="mx-auto h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button></nav>
-      </footer>
+      <app-paginacion [config]="paginationConfig" [opcionesPorPagina]="[10, 25, 50]" (cambioPagina)="onPageChange($event)" />
     </section>
 
     <app-editar-registro-horario-modal [isOpen]="isEditModalOpen" [registro]="selectedRegistro" (closeModal)="closeEditarRegistro()" (saveChanges)="closeEditarRegistro()" />
@@ -75,6 +72,24 @@ export class LugarTrabajoPageComponent {
   protected isEditModalOpen = false;
   protected selectedRegistro: AsistenciaRegistroEdicion | null = null;
   protected readonly registros: LugarSemana[] = this.colaboradores.map((item, index) => ({ id: item.id, colaborador: item.colaborador, cargo: item.cargo, avatar: item.avatar, total: '5/5', dias: this.buildDias(index) }));
+
+  protected paginaActual = 0;
+  protected porPagina = 10;
+
+  protected get paginationConfig(): PaginacionConfig {
+    const totalElementos = this.registros.length;
+    return { paginaActual: this.paginaActual, porPagina: this.porPagina, totalElementos, totalPaginas: Math.max(1, Math.ceil(totalElementos / this.porPagina)) };
+  }
+
+  protected get paginatedRegistros(): LugarSemana[] {
+    const inicio = this.paginaActual * this.porPagina;
+    return this.registros.slice(inicio, inicio + this.porPagina);
+  }
+
+  protected onPageChange(event: CambioPaginaEvent): void {
+    this.paginaActual = event.pagina;
+    this.porPagina = event.porPagina;
+  }
 
   protected openEditarRegistro(item: LugarSemana, dia: LugarDia): void {
     const empty = dia.tipo === 'vacio';
@@ -125,4 +140,5 @@ export class LugarTrabajoPageComponent {
   private place(dia: string, fecha: string, valor: string, tipo: LugarTipo): LugarDia { return { dia, fecha, valor, tipo }; }
   private empty(dia: string, fecha: string): LugarDia { return { dia, fecha, valor: '-', tipo: 'vacio' }; }
 }
+
 

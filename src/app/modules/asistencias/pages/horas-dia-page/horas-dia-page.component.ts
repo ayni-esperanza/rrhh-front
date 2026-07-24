@@ -1,4 +1,5 @@
-﻿import { Component, inject } from '@angular/core';
+﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
+import { Component, inject } from '@angular/core';
 import { EditarRegistroHorarioModalComponent } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.component';
 import { AsistenciaRegistroEdicion } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.model';
 import { AsistenciaCelda, AsistenciaSemana } from '../../models/asistencia.model';
@@ -6,7 +7,7 @@ import { AsistenciasService } from '../../services/asistencias.service';
 
 @Component({
   selector: 'app-horas-dia-page',
-  imports: [EditarRegistroHorarioModalComponent],
+  imports: [EditarRegistroHorarioModalComponent, PaginacionComponent],
   template: `
     <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <header class="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
@@ -24,7 +25,7 @@ import { AsistenciasService } from '../../services/asistencias.service';
             <tr><th class="px-3 py-3">Colaborador</th>@for (dia of dias; track dia.dia) {<th class="px-3 py-3 text-center"><span class="block">{{ dia.dia }}</span><span class="font-semibold text-slate-500">{{ dia.fecha }}</span></th>}<th class="px-3 py-3 text-center">Total<br />semana</th></tr>
           </thead>
           <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
-            @for (item of semana; track item.id) {
+            @for (item of paginatedSemana; track item.id) {
               <tr class="cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/50" (click)="openEditarRegistro(item, item.dias[0])">
                 <td class="px-3 py-3"><div class="flex items-center gap-2"><img class="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" [src]="item.avatar" [alt]="item.colaborador" /><div class="min-w-0"><p class="font-bold text-slate-900 dark:text-white">{{ item.colaborador }}</p><p class="text-[11px] text-slate-500">{{ item.cargo }}</p></div></div></td>
                 @for (dia of item.dias; track dia.dia) {
@@ -36,7 +37,7 @@ import { AsistenciasService } from '../../services/asistencias.service';
           </tbody>
         </table>
       </div>
-      <footer class="flex flex-col gap-2 border-t border-slate-200 px-4 py-3 text-[11px] text-slate-500 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between"><span>Mostrando 1 a 5 de 186 colaboradores</span><nav class="flex items-center gap-1.5" aria-label="Paginacion"><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button">&#8249;</button><button class="h-7 w-7 rounded-md border border-green-200 bg-green-50 font-semibold text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300" type="button">1</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">2</button><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">3</button><span class="px-1">...</span><button class="h-7 w-7 rounded-md border border-slate-200 dark:border-slate-800" type="button">38</button><button class="h-7 w-7 rounded-md border border-slate-200 text-slate-500 dark:border-slate-800" type="button">&#8250;</button></nav></footer>
+      <app-paginacion [config]="paginationConfig" [opcionesPorPagina]="[10, 25, 50]" (cambioPagina)="onPageChange($event)" />
     </section>
     <app-editar-registro-horario-modal [isOpen]="isEditModalOpen" [registro]="selectedRegistro" (closeModal)="closeEditarRegistro()" (saveChanges)="closeEditarRegistro()" />
   `
@@ -46,6 +47,24 @@ export class HorasDiaPageComponent {
   protected readonly dias = this.semana[0]?.dias ?? [];
   protected isEditModalOpen = false;
   protected selectedRegistro: AsistenciaRegistroEdicion | null = null;
+
+  protected paginaActual = 0;
+  protected porPagina = 10;
+
+  protected get paginationConfig(): PaginacionConfig {
+    const totalElementos = this.semana.length;
+    return { paginaActual: this.paginaActual, porPagina: this.porPagina, totalElementos, totalPaginas: Math.max(1, Math.ceil(totalElementos / this.porPagina)) };
+  }
+
+  protected get paginatedSemana(): AsistenciaSemana[] {
+    const inicio = this.paginaActual * this.porPagina;
+    return this.semana.slice(inicio, inicio + this.porPagina);
+  }
+
+  protected onPageChange(event: CambioPaginaEvent): void {
+    this.paginaActual = event.pagina;
+    this.porPagina = event.porPagina;
+  }
 
   protected openEditarRegistro(item: AsistenciaSemana, dia: AsistenciaCelda): void {
     const blocked = dia.tipo === 'falta' || dia.tipo === 'permiso';
@@ -74,5 +93,6 @@ export class HorasDiaPageComponent {
     return classes[dia.tipo];
   }
 }
+
 
 

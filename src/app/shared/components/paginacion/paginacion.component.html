@@ -1,0 +1,66 @@
+﻿<div
+  class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+  [ngClass]="integradoEnTabla
+    ? 'border-t border-slate-200 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-950/25'
+    : 'rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900'"
+>
+  @if (mostrarInfo) {
+    <div class="text-xs text-slate-500 dark:text-slate-400">
+      @if (config.totalElementos > 0) {
+        Mostrando {{ inicioRegistros }} a {{ finRegistros }} de {{ config.totalElementos }} elementos
+      } @else {
+        No hay elementos
+      }
+    </div>
+  }
+
+  <div class="ml-auto flex flex-wrap items-center justify-end gap-3 sm:gap-4">
+    @if (mostrarSelector) {
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-500 dark:text-slate-400">Mostrar:</span>
+        <div class="relative">
+          <button
+            type="button"
+            class="flex h-8 min-w-[72px] items-center gap-2 rounded-lg border border-slate-300 bg-white pl-3 pr-2 text-xs text-slate-700 outline-none transition focus:border-[#22C55E] focus:ring-2 focus:ring-green-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+            (click)="toggleDropdown()"
+            (blur)="cerrarDropdown()"
+            [attr.aria-expanded]="dropdownAbierto"
+            aria-label="Cantidad de elementos por página"
+          >
+            <span class="flex-1 text-left">{{ config.porPagina }}</span>
+            <svg class="h-3.5 w-3.5 shrink-0 text-slate-500 transition-transform duration-200 dark:text-slate-300" [class.rotate-180]="dropdownAbierto" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7" />
+            </svg>
+          </button>
+
+          @if (dropdownAbierto) {
+            <div class="absolute bottom-full left-0 z-50 mb-1 min-w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-800">
+              @for (opcion of opcionesPorPagina; track opcion) {
+                <button
+                  type="button"
+                  class="w-full px-3 py-1.5 text-left text-xs text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                  [class.font-bold]="opcion === config.porPagina"
+                  [class.text-green-600]="opcion === config.porPagina"
+                  [class.dark:text-green-400]="opcion === config.porPagina"
+                  (mousedown)="seleccionarOpcion(opcion)"
+                >{{ opcion }}</button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (mostrarNavegacion && config.totalPaginas > 1) {
+      <div class="flex items-center gap-1">
+        <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-700" title="Página anterior" aria-label="Página anterior" [disabled]="!puedeRetroceder" (click)="paginaAnterior()">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 19-7-7 7-7" /></svg>
+        </button>
+        <span class="min-w-[112px] px-2 text-center text-xs text-slate-600 dark:text-slate-300">Página {{ config.paginaActual + 1 }} de {{ config.totalPaginas || 1 }}</span>
+        <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-700" title="Página siguiente" aria-label="Página siguiente" [disabled]="!puedeAvanzar" (click)="paginaSiguiente()">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7" /></svg>
+        </button>
+      </div>
+    }
+  </div>
+</div>
