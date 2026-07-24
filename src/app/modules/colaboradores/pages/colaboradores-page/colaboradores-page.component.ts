@@ -14,5 +14,5 @@ export class ColaboradoresPageComponent {
 
   protected readonly metrics = this.colaboradoresService.getMetrics();
   protected readonly colaboradores = this.colaboradoresService.getColaboradores();
-  protected expandedId = this.colaboradores[0]?.id ?? '';
+  protected expandedId = '';
 }
