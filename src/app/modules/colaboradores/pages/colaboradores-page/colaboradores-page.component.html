@@ -8,11 +8,11 @@
   </div>
 
   <div>
-    <app-colaboradores-filters (newColaborador)="openNewColaboradorModal()" />
+    <app-colaboradores-filters [colaboradores]="colaboradores" (filtersChange)="updateFilters($event)" (newColaborador)="openNewColaboradorModal()" />
   </div>
 
   <div>
-    <app-colaboradores-table [colaboradores]="colaboradores" [(expandedId)]="expandedId" (editColaborador)="editColaborador($event)" />
+    <app-colaboradores-table [colaboradores]="filteredColaboradores" [(expandedId)]="expandedId" (editColaborador)="editColaborador($event)" />
   </div>
 </section>
 
