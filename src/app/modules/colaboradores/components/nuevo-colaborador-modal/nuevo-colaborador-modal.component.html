@@ -19,7 +19,7 @@
               (click)="goToStep(index)"
             >
               <span
-                class="flex h-8 w-8 items-center justify-center rounded-full border-2 transition"
+                class="flex h-7 w-7 items-center justify-center rounded-full border-2 transition"
                 [class]="currentStep === index ? 'border-[#22C55E] bg-white text-[#22C55E] ring-4 ring-green-50 dark:bg-slate-900 dark:ring-green-500/10' : index < currentStep ? 'border-[#22C55E] bg-[#22C55E] text-white' : 'border-slate-300 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500'"
               >
                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path [attr.d]="step.icon" /></svg>
@@ -33,28 +33,48 @@
           @if (currentStep === 0) {
             <section formGroupName="personal" class="space-y-3">
               <div><h3 class="text-sm font-bold text-slate-950 dark:text-white">Información personal</h3><p class="text-xs text-slate-500 dark:text-slate-400">Datos de identificación, contacto y tallas.</p></div>
-              <div class="grid gap-2.5 md:grid-cols-2">
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Nombre</span><input formControlName="nombre" class="field-input" placeholder="Ej. Luis Alberto" /></label>
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Apellido paterno</span><input formControlName="apellidoPaterno" class="field-input" placeholder="Ej. Romero" /></label>
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Apellido materno</span><input formControlName="apellidoMaterno" class="field-input" placeholder="Ej. López" /></label>
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">DNI</span><input formControlName="dni" class="field-input" placeholder="8 dígitos" maxlength="8" /></label>
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Sexo</span><select formControlName="sexo" class="field-input"><option>Masculino</option><option>Femenino</option><option>No binario</option></select></label>
-
-                <div class="grid gap-2 sm:grid-cols-[1fr_auto]">
-                  <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Fecha de nacimiento</span><input formControlName="fechaNacimiento" type="date" class="field-input" /></label>
-                  <div class="space-y-1.5">
-                    <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Edad</span>
-                    <div class="flex h-9 min-w-24 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-200">{{ edadActual }}</div>
+              <div class="grid gap-2.5 md:grid-cols-[8.25rem_repeat(3,minmax(0,1fr))]">
+                <div class="min-w-0 space-y-1.5 md:row-span-2">
+                  <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Foto de perfil</span>
+                  <div class="flex min-h-[7.25rem] min-w-0 flex-col items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-600 transition focus-within:border-[#22C55E] focus-within:ring-2 focus-within:ring-green-500/20 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
+                    <div class="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                      @if (profileImagePreviewUrl) {
+                        <img class="h-full w-full object-cover" [src]="profileImagePreviewUrl" [alt]="personal.controls.nombre.value || 'Foto de perfil'" />
+                      } @else {
+                        <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8"/></svg>
+                      }
+                    </div>
+                    <input #profileImageInput type="file" class="hidden" accept="image/png,image/jpeg,image/jpg,image/webp" (change)="onProfileImageSelected($event)" />
+                    <div class="flex items-center justify-center gap-2">
+                      <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-green-200 text-[#22C55E] transition hover:bg-green-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/20 dark:border-green-500/30 dark:hover:bg-green-500/10" [attr.aria-label]="profileImagePreviewUrl ? 'Cambiar foto' : 'Agregar foto'" [title]="profileImagePreviewUrl ? 'Cambiar foto' : 'Agregar foto'" (click)="profileImageInput.click()">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                      </button>
+                      @if (profileImagePreviewUrl) {
+                        <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/20 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-rose-500/10 dark:hover:text-rose-400" aria-label="Quitar foto" title="Quitar foto" (click)="removeProfileImage()">
+                          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
+                      }
+                    </div>
                   </div>
                 </div>
-                <label class="space-y-1.5 md:col-span-2"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Dirección</span><input formControlName="direccion" class="field-input" placeholder="Av./Jr./Calle, distrito" /></label>
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Correo</span><input formControlName="correo" type="email" class="field-input" placeholder="correo@empresa.com" /></label>
-                                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Teléfono</span><input formControlName="telefono" class="field-input" placeholder="987 654 321" /></label>
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Estado civil</span><select formControlName="estadoCivil" class="field-input"><option>Soltero</option><option>Soltera</option><option>Casado</option><option>Casada</option></select></label>
-                <div class="grid grid-cols-3 gap-2">
-                  <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Camisa</span><select formControlName="camisa" class="field-input"><option>S</option><option>M</option><option>L</option><option>XL</option></select></label>
-                  <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pantalón</span><select formControlName="pantalon" class="field-input"><option>S</option><option>M</option><option>L</option><option>XL</option></select></label>
-                  <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Calzado</span><input formControlName="calzado" class="field-input" placeholder="42" /></label>
+                <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Nombre</span><input formControlName="nombre" class="field-input" placeholder="Luis Alberto" /></label>
+                <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Apellido paterno</span><input formControlName="apellidoPaterno" class="field-input" placeholder="Romero" /></label>
+                <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Apellido materno</span><input formControlName="apellidoMaterno" class="field-input" placeholder="López" /></label>
+                <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">DNI</span><input formControlName="dni" class="field-input" placeholder="8 dígitos" inputmode="numeric" maxlength="8" (input)="onlyDigits($event, personal.controls.dni, 8)" /> @if (fieldInvalid(personal.controls.dni)) { <p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">{{ fieldError(personal.controls.dni, 'DNI') }}</p> }</label>
+                <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Sexo</span><select formControlName="sexo" class="field-input"><option>Masculino</option><option>Femenino</option><option>No binario</option></select></label>
+                <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Fecha de nacimiento</span><input formControlName="fechaNacimiento" type="date" class="field-input" /></label>
+                <div class="min-w-0 space-y-1.5">
+                  <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Edad</span>
+                  <div class="flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-200">{{ edadActual }}</div>
+                </div>
+                <label class="min-w-0 space-y-1.5 md:col-span-2"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Dirección</span><input formControlName="direccion" class="field-input" placeholder="Av./Jr./Calle, distrito" /></label>
+                <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Estado civil</span><select formControlName="estadoCivil" class="field-input"><option>Soltero</option><option>Soltera</option><option>Casado</option><option>Casada</option></select></label>
+                <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Teléfono</span><input formControlName="telefono" class="field-input" placeholder="987654321" inputmode="numeric" maxlength="9" (input)="onlyDigits($event, personal.controls.telefono, 9)" /> @if (fieldInvalid(personal.controls.telefono)) { <p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">{{ fieldError(personal.controls.telefono, 'Teléfono') }}</p> }</label>
+                <label class="min-w-0 space-y-1.5 md:col-span-2"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Correo</span><input formControlName="correo" type="email" class="field-input" placeholder="correo@empresa.com" /> @if (fieldInvalid(personal.controls.correo)) { <p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">{{ fieldError(personal.controls.correo, 'Correo') }}</p> }</label>
+                <div class="grid min-w-0 grid-cols-3 gap-2">
+                  <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Camisa</span><select formControlName="camisa" class="field-input"><option>S</option><option>M</option><option>L</option><option>XL</option></select></label>
+                  <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pantalón</span><select formControlName="pantalon" class="field-input"><option>S</option><option>M</option><option>L</option><option>XL</option></select></label>
+                  <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Calzado</span><input formControlName="calzado" class="field-input" placeholder="42" /></label>
                 </div>
               </div>
             </section>
@@ -66,9 +86,9 @@
               <div class="grid gap-2.5 md:grid-cols-2">
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Cargo</span><select formControlName="cargo" class="field-input"><option value="">Seleccionar cargo</option> @for (cargo of cargoOptions; track cargo) { <option [value]="cargo">{{ cargo }}</option> }</select></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Fecha de ingreso</span><input formControlName="fechaIngreso" type="date" class="field-input" /></label>
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Tipo de contrato</span><select formControlName="tipoContrato" class="field-input"><option>Indeterminado</option><option>Plazo fijo</option><option>Temporal</option></select></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Tipo de contrato</span><select formControlName="tipoContrato" class="field-input">@for (tipoContrato of tipoContratoOptions; track tipoContrato) { <option [value]="tipoContrato">{{ tipoContrato }}</option> }</select></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Jornada</span><select formControlName="jornada" class="field-input"><option>Tiempo completo</option><option>Medio tiempo</option><option>Turno nocturno</option></select></label>
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Sueldo básico</span><input formControlName="sueldoBasico" class="field-input" placeholder="S/ 2,800.00" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Sueldo básico</span><input formControlName="sueldoBasico" class="field-input" placeholder="2800.00" inputmode="decimal" (input)="onlyMoney($event, laboral.controls.sueldoBasico)" /> @if (fieldInvalid(laboral.controls.sueldoBasico)) { <p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">{{ fieldError(laboral.controls.sueldoBasico, 'Sueldo básico') }}</p> }</label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Estado</span><select formControlName="estado" class="field-input"><option>Activo</option><option>Inactivo</option></select></label>
               </div>
             </section>
@@ -82,7 +102,7 @@
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Hijos</span><input formControlName="hijos" type="number" min="0" class="field-input" placeholder="0" /></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Lugar de nacimiento</span><input formControlName="lugarNacimiento" class="field-input" placeholder="Ciudad, región" /></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Tipo de sangre</span><select formControlName="tipoSangre" class="field-input"><option value="">Seleccionar</option><option>O+</option><option>O-</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option></select></label>
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">N° de cuenta bancaria</span><input formControlName="cuentaBancaria" class="field-input" placeholder="002-1234-567890123456" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">N° de cuenta bancaria</span><input formControlName="cuentaBancaria" class="field-input" placeholder="0021234567890123456" inputmode="numeric" maxlength="24" (input)="onlyDigits($event, adicional.controls.cuentaBancaria, 24)" /> @if (fieldInvalid(adicional.controls.cuentaBancaria)) { <p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">{{ fieldError(adicional.controls.cuentaBancaria, 'N° de cuenta bancaria') }}</p> }</label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">EPS / Seguro</span><select formControlName="epsSeguro" class="field-input"><option value="">Seleccionar seguro</option> @for (seguro of seguroOptions; track seguro) { <option [value]="seguro">{{ seguro }}</option> }</select></label>
                 <div class="space-y-2 md:col-span-2" formArrayName="contactosEmergencia">
                   <div class="flex items-center justify-between gap-3">
@@ -100,7 +120,7 @@
                     <div class="grid gap-2 rounded-lg border border-slate-200 bg-slate-50/60 p-2.5 dark:border-slate-700 dark:bg-slate-950/30 sm:grid-cols-[1fr_0.8fr_1fr_auto]" [formGroupName]="index">
                       <label class="space-y-1"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">Nombre del contacto</span><input formControlName="nombre" class="field-input" placeholder="Nombre y apellido" /></label>
                       <label class="space-y-1"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">Parentesco</span><select formControlName="parentesco" class="field-input"><option value="">Seleccionar</option> @for (parentesco of parentescoOptions; track parentesco) { <option [value]="parentesco">{{ parentesco }}</option> }</select></label>
-                      <label class="space-y-1"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">Teléfono de emergencia</span><input formControlName="telefono" class="field-input" placeholder="987 654 321" /></label>
+                      <label class="space-y-1"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">Teléfono de emergencia</span><input formControlName="telefono" class="field-input" placeholder="987654321" inputmode="numeric" maxlength="9" (input)="onlyDigits($event, contacto.get('telefono'), 9)" /> @if (fieldInvalid(contacto.get('telefono'))) { <p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">{{ fieldError(contacto.get('telefono'), 'Teléfono de emergencia') }}</p> }</label>
                       <button type="button" class="mt-4 inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400" title="Eliminar contacto" aria-label="Eliminar contacto" (click)="eliminarContactoEmergencia(index)">
                         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
                       </button>

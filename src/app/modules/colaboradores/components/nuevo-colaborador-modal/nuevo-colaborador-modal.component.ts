@@ -1,6 +1,6 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Colaborador, DocumentoColaborador } from '../../models/colaborador.model';
 
 type ModalStep = 0 | 1 | 2 | 3;
@@ -34,6 +34,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   ] as const;
   protected currentStep: ModalStep = 0;
   protected readonly cargoOptions = ['Técnico mecánico', 'Supervisora', 'Soldador', 'Operaria', 'Electricista', 'Administradora', 'Técnico de Mantenimiento', 'Analista de Recursos Humanos', 'Asistente administrativo'] as const;
+  public readonly tipoContratoOptions = ['Planilla - Indeterminado', 'Planilla - Plazo fijo', 'Planilla - Temporal', 'Servicio - Indeterminado', 'Servicio - Plazo fijo', 'Servicio - Temporal'] as const;
   protected readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'] as const;
   protected readonly seguroOptions = ['Rimac EPS', 'Pacífico EPS', 'SIS', 'EsSalud', 'Mapfre EPS', 'Sin seguro'] as const;
   protected readonly parentescoOptions = ['Madre', 'Padre', 'Hermano/a', 'Cónyuge', 'Pareja', 'Hijo/a', 'Tío/a', 'Primo/a', 'Amigo/a'] as const;
@@ -44,18 +45,32 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     { key: 'certificados', label: 'Certificados' }
   ];
   public readonly documentFiles: Partial<Record<DocumentKey, UploadedDocument>> = {};
+  public profileImagePreviewUrl = '';
+  private profileImageChanged = false;
+  private readonly defaultProfileImageUrl = 'https://i.pravatar.cc/96?img=5';
+  private readonly dniPattern = /^\d{8}$/;
+  private readonly phonePattern = /^9\d{2}\s?\d{3}\s?\d{3}$/;
+  private readonly moneyPattern = /^\d+(\.\d{1,2})?$/;
+  private readonly bankAccountPattern = /^\d{10,24}$/;
+  private readonly patternMessages: Record<string, string> = {
+    'DNI': 'Debe tener 8 dígitos.',
+    'Teléfono': 'Debe tener 9 dígitos y empezar con 9.',
+    'Sueldo básico': 'Ingresa solo números. Ej. 2800.00.',
+    'N° de cuenta bancaria': 'Debe tener entre 10 y 24 dígitos.',
+    'Teléfono de emergencia': 'Debe tener 9 dígitos y empezar con 9.'
+  };
 
   protected readonly form = this.formBuilder.group({
     personal: this.formBuilder.group({
       nombre: ['', Validators.required],
       apellidoPaterno: ['', Validators.required],
       apellidoMaterno: ['', Validators.required],
-      dni: ['', [Validators.required, Validators.minLength(8)]],
+      dni: ['', [Validators.required, Validators.pattern(this.dniPattern)]],
       sexo: ['Masculino', Validators.required],
       fechaNacimiento: ['', Validators.required],
       direccion: ['', Validators.required],
       correo: ['', [Validators.required, Validators.email]],
-      telefono: ['', Validators.required],
+      telefono: ['', [Validators.required, Validators.pattern(this.phonePattern)]],
       estadoCivil: ['Soltero', Validators.required],
       camisa: ['M', Validators.required],
       pantalon: ['L', Validators.required],
@@ -64,9 +79,9 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     laboral: this.formBuilder.group({
       cargo: ['', Validators.required],
       fechaIngreso: ['', Validators.required],
-      tipoContrato: ['Indeterminado', Validators.required],
+      tipoContrato: ['Planilla - Indeterminado', Validators.required],
       jornada: ['Tiempo completo', Validators.required],
-      sueldoBasico: ['', Validators.required],
+      sueldoBasico: ['', [Validators.required, Validators.pattern(this.moneyPattern)]],
       estado: ['Activo' as 'Activo' | 'Inactivo', Validators.required]
     }),
     adicional: this.formBuilder.group({
@@ -74,7 +89,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       hijos: ['0', Validators.required],
       lugarNacimiento: ['', Validators.required],
       tipoSangre: ['', Validators.required],
-      cuentaBancaria: ['', Validators.required],
+      cuentaBancaria: ['', [Validators.required, Validators.pattern(this.bankAccountPattern)]],
       epsSeguro: ['', Validators.required],
       contactosEmergencia: this.formBuilder.array<FormGroup>([])
     }),
@@ -119,16 +134,59 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   }
 
   public agregarContactoEmergencia(nombre = '', parentesco = '', telefono = ''): void {
-    this.contactosEmergencia.push(this.formBuilder.group({ nombre: [nombre], parentesco: [parentesco], telefono: [telefono] }));
+    this.contactosEmergencia.push(this.formBuilder.group({ nombre: [nombre], parentesco: [parentesco], telefono: [this.digitsOnly(telefono, 9), [Validators.required, Validators.pattern(this.phonePattern)]] }));
   }
 
   public eliminarContactoEmergencia(index: number): void {
     this.contactosEmergencia.removeAt(index);
   }
-  protected get personal() { return this.form.controls.personal; }
-  protected get laboral() { return this.form.controls.laboral; }
-  protected get adicional() { return this.form.controls.adicional; }
-  protected get documentos() { return this.form.controls.documentos; }
+
+  public onProfileImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+
+    if (!file) return;
+
+    this.revokeProfileImagePreview();
+    this.profileImagePreviewUrl = URL.createObjectURL(file);
+    this.profileImageChanged = true;
+    input.value = '';
+  }
+
+  public removeProfileImage(): void {
+    this.revokeProfileImagePreview();
+    this.profileImagePreviewUrl = '';
+    this.profileImageChanged = true;
+  }
+  public get personal() { return this.form.controls.personal; }
+  public get laboral() { return this.form.controls.laboral; }
+  public get adicional() { return this.form.controls.adicional; }
+  public get documentos() { return this.form.controls.documentos; }
+
+  public fieldInvalid(control: AbstractControl | null): boolean {
+    return !!control && control.invalid && (control.dirty || control.touched);
+  }
+
+  public fieldError(control: AbstractControl | null, label: string): string {
+    if (!control?.errors) return '';
+    if (control.hasError('required')) return `${label} es obligatorio.`;
+    if (control.hasError('email')) return 'Ingresa un correo válido.';
+    if (control.hasError('pattern')) return this.patternMessages[label] ?? 'Formato inválido.';
+    return 'Revisa este campo.';
+  }
+
+  public onlyDigits(event: Event, control: AbstractControl | null, maxLength?: number): void {
+    const input = event.target as HTMLInputElement;
+    const sanitized = input.value.replace(/\D/g, '').slice(0, maxLength);
+    this.syncSanitizedValue(input, control, sanitized);
+  }
+
+  public onlyMoney(event: Event, control: AbstractControl | null): void {
+    const input = event.target as HTMLInputElement;
+    const [integerPart, decimalPart = ''] = input.value.replace(/[^\d.]/g, '').split('.');
+    const sanitized = decimalPart ? `${integerPart}.${decimalPart.slice(0, 2)}` : integerPart;
+    this.syncSanitizedValue(input, control, sanitized);
+  }
 
   protected currentGroup() {
     return [this.personal, this.laboral, this.adicional, this.documentos][this.currentStep];
@@ -237,7 +295,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       .filter((contacto) => contacto.nombre || contacto.parentesco || contacto.telefono);
     this.saveColaborador.emit({
       id: this.colaborador?.id ?? `nuevo-${Date.now()}`,
-      imagen: this.colaborador?.imagen ?? 'https://i.pravatar.cc/96?img=5',
+      imagen: this.profileImageChanged ? (this.profileImagePreviewUrl || this.defaultProfileImageUrl) : (this.colaborador?.imagen ?? this.defaultProfileImageUrl),
       nombre: value.personal.nombre || '',
       apellido: [value.personal.apellidoPaterno, value.personal.apellidoMaterno].filter(Boolean).join(' '),
       apellidoPaterno: value.personal.apellidoPaterno || '',
@@ -288,6 +346,9 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
   private loadColaborador(colaborador: Colaborador): void {
     this.currentStep = 0;
+    this.revokeProfileImagePreview();
+    this.profileImagePreviewUrl = colaborador.imagen;
+    this.profileImageChanged = false;
     this.contactosEmergencia.clear();
     const contactos = colaborador.contactosEmergencia ?? (colaborador.telefonoEmergencia ? [{ nombre: '', parentesco: '', telefono: colaborador.telefonoEmergencia }] : []);
     contactos.forEach((contacto) => this.agregarContactoEmergencia(contacto.nombre, contacto.parentesco ?? '', contacto.telefono));
@@ -296,12 +357,12 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         nombre: colaborador.nombre,
         apellidoPaterno: colaborador.apellidoPaterno ?? colaborador.apellido.split(' ')[0] ?? '',
         apellidoMaterno: colaborador.apellidoMaterno ?? colaborador.apellido.split(' ').slice(1).join(' '),
-        dni: colaborador.dni,
+        dni: this.digitsOnly(colaborador.dni, 8),
         sexo: colaborador.sexo ?? 'Masculino',
         fechaNacimiento: this.dateToInput(colaborador.fechaNacimiento),
         direccion: colaborador.direccion,
         correo: colaborador.correo,
-        telefono: colaborador.telefono ?? '',
+        telefono: this.digitsOnly(colaborador.telefono ?? '', 9),
         estadoCivil: colaborador.estadoCivil,
         camisa: colaborador.tallas.camisa,
         pantalon: colaborador.tallas.pantalon,
@@ -320,7 +381,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         hijos: colaborador.hijos ?? '0',
         lugarNacimiento: colaborador.lugarNacimiento ?? '',
         tipoSangre: colaborador.tipoSangre ?? '',
-        cuentaBancaria: colaborador.cuentaBancaria,
+        cuentaBancaria: this.digitsOnly(colaborador.cuentaBancaria, 24),
         epsSeguro: colaborador.epsSeguro,
       },
       documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '' }
@@ -351,16 +412,36 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
   private reset(): void {
     this.currentStep = 0;
+    this.revokeProfileImagePreview();
+    this.profileImagePreviewUrl = '';
+    this.profileImageChanged = false;
     this.documentDefinitions.forEach(({ key }) => this.removeDocument(key));
     this.contactosEmergencia.clear();
     this.form.reset({
       personal: {
         nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', sexo: 'Masculino', fechaNacimiento: '', direccion: '', correo: '', telefono: '', estadoCivil: 'Soltero', camisa: 'M', pantalon: 'L', calzado: ''
       },
-      laboral: { cargo: '', fechaIngreso: '', tipoContrato: 'Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '', estado: 'Activo' },
+      laboral: { cargo: '', fechaIngreso: '', tipoContrato: 'Planilla - Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '', estado: 'Activo' },
       adicional: { gradoInstruccion: '', hijos: '0', lugarNacimiento: '', tipoSangre: '', cuentaBancaria: '', epsSeguro: '', contactosEmergencia: [] },
       documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '' }
     });
+  }
+
+  private digitsOnly(value: string, maxLength?: number): string {
+    return value.replace(/\D/g, '').slice(0, maxLength);
+  }
+
+  private syncSanitizedValue(input: HTMLInputElement, control: AbstractControl | null, value: string): void {
+    if (input.value === value) return;
+
+    input.value = value;
+    control?.setValue(value, { emitEvent: false });
+  }
+
+  private revokeProfileImagePreview(): void {
+    if (this.profileImagePreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(this.profileImagePreviewUrl);
+    }
   }
 
   private formatDate(value: string): string {
