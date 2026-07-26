@@ -1,10 +1,12 @@
 ﻿import { Component, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AsistenciaRegistroEdicion } from './editar-registro-horario-modal.model';
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
+import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
 
 @Component({
   selector: 'app-editar-registro-horario-modal',
-  imports: [FormsModule],
+  imports: [FormsModule, DatePickerComponent, SelectSearchableComponent],
   templateUrl: './editar-registro-horario-modal.component.html'
 })
 export class EditarRegistroHorarioModalComponent implements OnChanges {
@@ -56,6 +58,31 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
     }
     this.isTipoRegistroOpen = false;
   }
+
+  protected timePickerValue(value: string): string {
+    const normalized = String(value || '').trim();
+    if (!normalized || normalized === '-') return '';
+
+    const match12 = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (match12) {
+      let hours = Number(match12[1]);
+      const minutes = match12[2];
+      const period = match12[3].toUpperCase();
+      if (period === 'PM' && hours < 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+      return `${hours.toString().padStart(2, '0')}:${minutes}`;
+    }
+
+    const match24 = normalized.match(/^(\d{1,2}):(\d{2})$/);
+    if (match24) return `${match24[1].padStart(2, '0')}:${match24[2]}`;
+
+    return '';
+  }
+
+  protected setDraftTime(field: 'entrada' | 'salida' | 'entradaAlmuerzo' | 'salidaAlmuerzo', value: string): void {
+    if (!this.draft) return;
+    this.draft[field] = value || '-';
+  }
   protected save(): void {
     if (this.draft) this.saveChanges.emit(this.draft);
   }
@@ -65,6 +92,8 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
     if (this.isOpen) this.closeModal.emit();
   }
 }
+
+
 
 
 

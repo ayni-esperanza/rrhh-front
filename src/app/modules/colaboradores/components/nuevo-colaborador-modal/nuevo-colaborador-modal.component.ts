@@ -2,6 +2,8 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Colaborador, DocumentoColaborador } from '../../models/colaborador.model';
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
+import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
 
 type ModalStep = 0 | 1 | 2 | 3;
 type DocumentKey = 'dni' | 'curriculum' | 'antecedentes' | 'certificados';
@@ -14,7 +16,7 @@ interface UploadedDocument {
 
 @Component({
   selector: 'app-nuevo-colaborador-modal',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent, SelectSearchableComponent],
   templateUrl: './nuevo-colaborador-modal.component.html',
   styleUrl: './nuevo-colaborador-modal.component.css'
 })
@@ -33,11 +35,11 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     { label: 'Documentos', icon: 'M7 3h7l5 5v13H7a2 2 0 01-2-2V5a2 2 0 012-2zM14 3v6h5' }
   ] as const;
   protected currentStep: ModalStep = 0;
-  protected readonly cargoOptions = ['Técnico mecánico', 'Supervisora', 'Soldador', 'Operaria', 'Electricista', 'Administradora', 'Técnico de Mantenimiento', 'Analista de Recursos Humanos', 'Asistente administrativo'] as const;
-  public readonly tipoContratoOptions = ['Planilla - Indeterminado', 'Planilla - Plazo fijo', 'Planilla - Temporal', 'Servicio - Indeterminado', 'Servicio - Plazo fijo', 'Servicio - Temporal'] as const;
-  protected readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'] as const;
-  protected readonly seguroOptions = ['Rimac EPS', 'Pacífico EPS', 'SIS', 'EsSalud', 'Mapfre EPS', 'Sin seguro'] as const;
-  protected readonly parentescoOptions = ['Madre', 'Padre', 'Hermano/a', 'Cónyuge', 'Pareja', 'Hijo/a', 'Tío/a', 'Primo/a', 'Amigo/a'] as const;
+  protected readonly cargoOptions = ['Técnico mecánico', 'Supervisora', 'Soldador', 'Operaria', 'Electricista', 'Administradora', 'Técnico de Mantenimiento', 'Analista de Recursos Humanos', 'Asistente administrativo'];
+  public readonly tipoContratoOptions = ['Planilla - Indeterminado', 'Planilla - Plazo fijo', 'Planilla - Temporal', 'Servicio - Indeterminado', 'Servicio - Plazo fijo', 'Servicio - Temporal'];
+  protected readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'];
+  protected readonly seguroOptions = ['Rimac EPS', 'Pacífico EPS', 'SIS', 'EsSalud', 'Mapfre EPS', 'Sin seguro'];
+  protected readonly parentescoOptions = ['Madre', 'Padre', 'Hermano/a', 'Cónyuge', 'Pareja', 'Hijo/a', 'Tío/a', 'Primo/a', 'Amigo/a'];
   public readonly documentDefinitions: ReadonlyArray<{ key: DocumentKey; label: string }> = [
     { key: 'dni', label: 'DNI' },
     { key: 'curriculum', label: 'Curriculum' },
@@ -133,6 +135,13 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     return edad >= 0 ? `${edad} años` : 'Fecha futura';
   }
 
+
+  protected setControlDate(control: AbstractControl | null, value: string): void {
+    control?.setValue(value);
+    control?.markAsDirty();
+    control?.markAsTouched();
+    control?.updateValueAndValidity();
+  }
   public agregarContactoEmergencia(nombre = '', parentesco = '', telefono = ''): void {
     this.contactosEmergencia.push(this.formBuilder.group({ nombre: [nombre], parentesco: [parentesco], telefono: [this.digitsOnly(telefono, 9), [Validators.required, Validators.pattern(this.phonePattern)]] }));
   }
@@ -450,6 +459,9 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     return `${day}/${month}/${year}`;
   }
 }
+
+
+
 
 
 

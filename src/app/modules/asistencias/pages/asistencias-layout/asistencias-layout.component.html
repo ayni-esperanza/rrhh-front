@@ -44,9 +44,7 @@
       </div>
       <label class="space-y-1.5">
         <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Mes</span>
-        <select class="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200" [value]="filters.month" (change)="setMonth($any($event.target).value)">
-          @for (month of months; track month) { <option [value]="month">{{ month }}</option> }
-        </select>
+        <app-date-picker [value]="monthPickerValue" [monthOnly]="true" placeholder="Mes y año" inputClass="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs font-normal text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:placeholder:text-slate-400 dark:focus:ring-blue-500/20 cursor-pointer" (valueChange)="setMonthFromPicker($event)" />
       </label>
       <div class="space-y-1.5">
         <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Semana</span>
@@ -81,4 +79,3 @@
     @case ('lugar-trabajo') { <app-lugar-trabajo-page [filters]="filters" /> }
   }
 </section>
-

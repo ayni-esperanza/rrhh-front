@@ -1,5 +1,6 @@
 ﻿import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Colaborador } from '../../models/colaborador.model';
+import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
 
 export interface ColaboradoresFilterState {
   search: string;
@@ -18,6 +19,7 @@ export interface ColaboradoresFilterState {
 type FilterKey = keyof ColaboradoresFilterState;
 
 @Component({
+  imports: [SelectSearchableComponent],
   selector: 'app-colaboradores-filters',
   templateUrl: './colaboradores-filters.component.html'
 })
@@ -29,12 +31,12 @@ export class ColaboradoresFiltersComponent {
   public isFiltersOpen = false;
   public filters: ColaboradoresFilterState = this.emptyFilters();
 
-  public readonly estadoCivilOptions = ['Soltero', 'Soltera', 'Casado', 'Casada'] as const;
-  public readonly estadoOptions = ['Activo', 'Inactivo'] as const;
-  public readonly sexoOptions = ['Masculino', 'Femenino', 'No binario'] as const;
-  public readonly jornadaOptions = ['Tiempo completo', 'Medio tiempo', 'Turno nocturno'] as const;
-  public readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Tecnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'] as const;
-  public readonly tipoSangreOptions = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'] as const;
+  public readonly estadoCivilOptions = ['Soltero', 'Soltera', 'Casado', 'Casada'];
+  public readonly estadoOptions = ['Activo', 'Inactivo'];
+  public readonly sexoOptions = ['Masculino', 'Femenino', 'No binario'];
+  public readonly jornadaOptions = ['Tiempo completo', 'Medio tiempo', 'Turno nocturno'];
+  public readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Tecnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'];
+  public readonly tipoSangreOptions = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 
   public get cargoOptions(): string[] {
     return this.uniqueOptions('cargo');
@@ -94,3 +96,7 @@ export class ColaboradoresFiltersComponent {
     return Array.from(new Set(this.colaboradores.map((item) => item.tallas[key].trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   }
 }
+
+
+
+

@@ -31,6 +31,7 @@
     "@angular/router": "^20.1.0",
     "@swimlane/ngx-charts": "^24.0.0",
     "@tailwindcss/postcss": "^4.3.3",
+    "flatpickr": "^4.6.13",
     "flowbite": "^4.0.2",
     "postcss": "^8.5.19",
     "rxjs": "~7.8.0",

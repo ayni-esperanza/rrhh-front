@@ -4,20 +4,38 @@ import { AsistenciasService } from '../../services/asistencias.service';
 import { EntradaSalidaPageComponent } from '../entrada-salida-page/entrada-salida-page.component';
 import { HorasDiaPageComponent } from '../horas-dia-page/horas-dia-page.component';
 import { LugarTrabajoPageComponent } from '../lugar-trabajo-page/lugar-trabajo-page.component';
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 
 type AsistenciaTab = 'horas-dia' | 'entrada-salida' | 'lugar-trabajo';
 
 @Component({
   selector: 'app-asistencias-layout',
-  imports: [HorasDiaPageComponent, EntradaSalidaPageComponent, LugarTrabajoPageComponent],
+  imports: [HorasDiaPageComponent, EntradaSalidaPageComponent, LugarTrabajoPageComponent, DatePickerComponent],
   templateUrl: './asistencias-layout.component.html'
 })
 export class AsistenciasLayoutComponent {
   protected readonly metrics = inject(AsistenciasService).getMetrics();
-  protected readonly months = ['Mayo 2025'];
-  protected readonly weekLabels = ['Semana 1 (05 - 11 May)', 'Semana 2 (12 - 18 May)', 'Semana 3 (19 - 25 May)', 'Semana 4 (26 May - 01 Jun)'];
+  protected readonly monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  private readonly shortMonthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   protected activeTab: AsistenciaTab = 'horas-dia';
   protected filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
+
+
+  protected get monthPickerValue(): string {
+    const { year, monthIndex } = this.selectedMonthParts;
+    return `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+  }
+
+  protected get weekLabels(): string[] {
+    const { year, monthIndex } = this.selectedMonthParts;
+    const totalDays = new Date(year, monthIndex + 1, 0).getDate();
+
+    return Array.from({ length: 4 }, (_, index) => {
+      const startDay = index * 7 + 1;
+      const endDay = Math.min(startDay + 6, totalDays);
+      return `Semana ${index + 1} (${this.formatDay(startDay)} - ${this.formatDay(endDay)} ${this.shortMonthNames[monthIndex]})`;
+    });
+  }
 
   protected get weekLabel(): string {
     return this.weekLabels[this.filters.weekIndex] ?? this.weekLabels[0];
@@ -36,7 +54,13 @@ export class AsistenciasLayoutComponent {
   }
 
   protected setMonth(month: string): void {
-    this.filters = { ...this.filters, month };
+    this.filters = { ...this.filters, month, weekIndex: 0, dayIndex: 0, visibleWeekIndexes: [0, 1, 2, 3] };
+  }
+  protected setMonthFromPicker(value: string): void {
+    const [year, month] = String(value || '').split('-');
+    const monthIndex = Number(month) - 1;
+    if (!year || Number.isNaN(monthIndex) || monthIndex < 0 || monthIndex > 11) return;
+    this.setMonth(`${this.monthNames[monthIndex]} ${year}`);
   }
 
   protected toggleMonthWeek(index: number): void {
@@ -69,6 +93,21 @@ export class AsistenciasLayoutComponent {
     this.filters = { ...this.filters, weekIndex: Math.min(this.weekLabels.length - 1, this.filters.weekIndex + 1) };
   }
 
+
+  private get selectedMonthParts(): { year: number; monthIndex: number } {
+    const [monthName, yearText] = this.filters.month.split(' ');
+    const monthIndex = this.monthNames.findIndex((month) => month.toLowerCase() === monthName?.toLowerCase());
+    const year = Number(yearText);
+
+    return {
+      year: Number.isFinite(year) ? year : 2025,
+      monthIndex: monthIndex >= 0 ? monthIndex : 4
+    };
+  }
+
+  private formatDay(day: number): string {
+    return String(day).padStart(2, '0');
+  }
   protected rangeButtonClasses(range: AsistenciaFilters['range']): string {
     return this.filters.range === range
       ? 'border-green-200 bg-green-50 font-semibold text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300'
@@ -101,4 +140,11 @@ export class AsistenciasLayoutComponent {
     return tones[tone];
   }
 }
+
+
+
+
+
+
+
 
