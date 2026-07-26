@@ -1,7 +1,8 @@
 ﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
-import { Component, inject } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { EditarRegistroHorarioModalComponent } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.component';
 import { AsistenciaRegistroEdicion } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.model';
+import { AsistenciaFilters } from '../../models/asistencia.model';
 import { AsistenciasService } from '../../services/asistencias.service';
 
 type LugarTipo = 'principal' | 'norte' | 'sur' | 'remoto' | 'vacio';
@@ -19,7 +20,6 @@ interface LugarSemana {
   cargo: string;
   avatar: string;
   dias: LugarDia[];
-  total: string;
 }
 
 @Component({
@@ -39,21 +39,20 @@ interface LugarSemana {
       </header>
 
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[980px] text-left text-xs">
+        <table [class]="tableClasses">
           <thead class="bg-slate-50 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
             <tr>
-              
               <th class="px-3 py-3">Colaborador</th>
-              @for (dia of dias; track dia.dia) { <th class="px-3 py-3 text-center">{{ dia.dia }} {{ dia.fecha }}</th> }
-              <th class="px-3 py-3 text-center">Total dias<br />registrados<br /><span class="text-[10px] text-slate-500">Semana</span></th>
+              @for (dia of visibleDias; track dia.dia + dia.fecha) { <th class="px-3 py-3 text-center">{{ dia.dia }} {{ dia.fecha }}</th> }
+              <th class="px-3 py-3 text-center">Total dias<br />registrados<br /><span class="text-[10px] text-slate-500">{{ periodLabel }}</span></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
             @for (item of paginatedRegistros; track item.id) {
-              <tr class="cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/50" (click)="openEditarRegistro(item, item.dias[0])">
+              <tr class="cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/50" (click)="openEditarRegistro(item, visibleItemDias(item)[0])">
                 <td class="px-3 py-3"><div class="flex items-center gap-2"><img class="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" [src]="item.avatar" [alt]="item.colaborador" /><div class="min-w-0"><p class="font-bold text-slate-900 dark:text-white">{{ item.colaborador }}</p><p class="text-[11px] text-slate-500">{{ item.cargo }}</p></div></div></td>
-                @for (dia of item.dias; track dia.dia) { <td class="px-3 py-3 text-center" (click)="openEditarRegistro(item, dia); $event.stopPropagation()"><span class="inline-flex min-w-20 justify-center rounded-md px-2 py-1 font-semibold" [class]="badgeClasses(dia.tipo)">{{ dia.valor }}</span></td> }
-                <td class="px-3 py-3 text-center font-bold text-slate-900 dark:text-white">{{ item.total }}</td>
+                @for (dia of visibleItemDias(item); track dia.dia + dia.fecha) { <td class="px-3 py-3 text-center" (click)="openEditarRegistro(item, dia); $event.stopPropagation()"><span class="inline-flex min-w-20 justify-center rounded-md px-2 py-1 font-semibold" [class]="badgeClasses(dia.tipo)">{{ dia.valor }}</span></td> }
+                <td class="px-3 py-3 text-center font-bold text-slate-900 dark:text-white">{{ visibleTotal(item) }}</td>
               </tr>
             }
           </tbody>
@@ -66,24 +65,63 @@ interface LugarSemana {
   `
 })
 export class LugarTrabajoPageComponent {
-  private readonly colaboradores = inject(AsistenciasService).getSemana();
+  @Input() filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
+
+  private readonly colaboradores = inject(AsistenciasService).getMes();
 
   protected readonly dias = this.colaboradores[0]?.dias.map(({ dia, fecha }) => ({ dia, fecha })) ?? [];
   protected isEditModalOpen = false;
   protected selectedRegistro: AsistenciaRegistroEdicion | null = null;
-  protected readonly registros: LugarSemana[] = this.colaboradores.map((item, index) => ({ id: item.id, colaborador: item.colaborador, cargo: item.cargo, avatar: item.avatar, total: '5/5', dias: this.buildDias(index) }));
+  protected readonly registros: LugarSemana[] = this.colaboradores.map((item, index) => ({ id: item.id, colaborador: item.colaborador, cargo: item.cargo, avatar: item.avatar, dias: this.buildDias(index) }));
 
   protected paginaActual = 0;
   protected porPagina = 10;
 
   protected get paginationConfig(): PaginacionConfig {
-    const totalElementos = this.registros.length;
+    const totalElementos = this.filteredRegistros.length;
     return { paginaActual: this.paginaActual, porPagina: this.porPagina, totalElementos, totalPaginas: Math.max(1, Math.ceil(totalElementos / this.porPagina)) };
+  }
+
+  protected get tableClasses(): string {
+    const monthWidths: Record<number, string> = { 1: 'min-w-[980px]', 2: 'min-w-[1500px]', 3: 'min-w-[2050px]', 4: 'min-w-[2600px]' };
+    const visibleWeeks = Math.max(1, this.filters.visibleWeekIndexes.length);
+    const minWidth = this.filters.range === 'mes' ? monthWidths[visibleWeeks] : this.filters.range === 'dia' ? 'min-w-[680px]' : 'min-w-[980px]';
+    return `w-full ${minWidth} text-left text-xs`;
+  }
+
+  protected get periodLabel(): string {
+    return this.filters.range === 'mes' ? 'Mes' : this.filters.range === 'dia' ? 'Dia' : 'Semana';
+  }
+
+  protected get visibleWeekGroups(): Array<{ label: string; colspan: number }> {
+    if (this.filters.range === 'mes') {
+      return this.filters.visibleWeekIndexes.map((weekIndex) => ({ label: `Semana ${weekIndex + 1}`, colspan: 7 }));
+    }
+
+    return [{ label: this.periodLabel, colspan: this.visibleDias.length }];
+  }
+
+  protected get visibleDias(): Array<{ dia: string; fecha: string }> {
+    return this.sliceByRange(this.dias);
+  }
+
+  protected get filteredRegistros(): LugarSemana[] {
+    const search = this.normalize(this.filters.search);
+    return this.registros.filter((item) => !search || this.normalize(`${item.colaborador} ${item.cargo}`).includes(search));
   }
 
   protected get paginatedRegistros(): LugarSemana[] {
     const inicio = this.paginaActual * this.porPagina;
-    return this.registros.slice(inicio, inicio + this.porPagina);
+    return this.filteredRegistros.slice(inicio, inicio + this.porPagina);
+  }
+
+  protected visibleItemDias(item: LugarSemana): LugarDia[] {
+    return this.sliceByRange(item.dias);
+  }
+
+  protected visibleTotal(item: LugarSemana): string {
+    const registrados = this.visibleItemDias(item).filter((dia) => dia.tipo !== 'vacio').length;
+    return `${registrados}/${this.visibleItemDias(item).length}`;
   }
 
   protected onPageChange(event: CambioPaginaEvent): void {
@@ -126,19 +164,46 @@ export class LugarTrabajoPageComponent {
     return classes[tipo];
   }
 
+  private sliceByRange<T>(items: T[]): T[] {
+    if (this.filters.range === 'dia') {
+      const monthDayIndex = this.filters.weekIndex * 7 + this.filters.dayIndex;
+      return items.slice(monthDayIndex, monthDayIndex + 1);
+    }
+
+    if (this.filters.range === 'semana') {
+      const start = this.filters.weekIndex * 7;
+      return items.slice(start, start + 7);
+    }
+
+    return this.filters.visibleWeekIndexes.flatMap((weekIndex) => {
+      const start = weekIndex * 7;
+      return items.slice(start, start + 7);
+    });
+  }
+
+  private normalize(value: string): string {
+    return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
   private buildDias(index: number): LugarDia[] {
-    const rows: LugarDia[][] = [
-      [this.place('Lun', '05/05', 'Oficina Principal', 'principal'), this.place('Mar', '06/05', 'Oficina Principal', 'principal'), this.place('Mie', '07/05', 'Sucursal Norte', 'norte'), this.place('Jue', '08/05', 'Oficina Principal', 'principal'), this.place('Vie', '09/05', 'Remoto', 'remoto'), this.empty('Sab', '10/05'), this.empty('Dom', '11/05')],
-      [this.place('Lun', '05/05', 'Sucursal Sur', 'sur'), this.place('Mar', '06/05', 'Sucursal Sur', 'sur'), this.place('Mie', '07/05', 'Oficina Principal', 'principal'), this.place('Jue', '08/05', 'Sucursal Sur', 'sur'), this.place('Vie', '09/05', 'Sucursal Sur', 'sur'), this.empty('Sab', '10/05'), this.empty('Dom', '11/05')],
-      [this.place('Lun', '05/05', 'Oficina Principal', 'principal'), this.place('Mar', '06/05', 'Oficina Principal', 'principal'), this.place('Mie', '07/05', 'Oficina Principal', 'principal'), this.place('Jue', '08/05', 'Oficina Principal', 'principal'), this.place('Vie', '09/05', 'Sucursal Norte', 'norte'), this.empty('Sab', '10/05'), this.empty('Dom', '11/05')],
-      [this.place('Lun', '05/05', 'Sucursal Norte', 'norte'), this.place('Mar', '06/05', 'Sucursal Norte', 'norte'), this.place('Mie', '07/05', 'Remoto', 'remoto'), this.place('Jue', '08/05', 'Sucursal Norte', 'norte'), this.place('Vie', '09/05', 'Oficina Principal', 'principal'), this.empty('Sab', '10/05'), this.empty('Dom', '11/05')],
-      [this.place('Lun', '05/05', 'Oficina Principal', 'principal'), this.place('Mar', '06/05', 'Remoto', 'remoto'), this.place('Mie', '07/05', 'Oficina Principal', 'principal'), this.place('Jue', '08/05', 'Oficina Principal', 'principal'), this.place('Vie', '09/05', 'Sucursal Norte', 'norte'), this.empty('Sab', '10/05'), this.empty('Dom', '11/05')]
+    const places: Array<{ valor: string; tipo: LugarTipo }> = [
+      { valor: 'Oficina Principal', tipo: 'principal' },
+      { valor: 'Sucursal Norte', tipo: 'norte' },
+      { valor: 'Sucursal Sur', tipo: 'sur' },
+      { valor: 'Remoto', tipo: 'remoto' }
     ];
-    return rows[index] ?? rows[0];
+
+    return this.dias.map((dia, dayIndex) => {
+      if (dayIndex % 7 >= 5) {
+        return this.empty(dia.dia, dia.fecha);
+      }
+
+      const place = places[(index + dayIndex) % places.length];
+      return this.place(dia.dia, dia.fecha, place.valor, place.tipo);
+    });
   }
 
   private place(dia: string, fecha: string, valor: string, tipo: LugarTipo): LugarDia { return { dia, fecha, valor, tipo }; }
   private empty(dia: string, fecha: string): LugarDia { return { dia, fecha, valor: '-', tipo: 'vacio' }; }
 }
-
 

@@ -1,7 +1,8 @@
 ﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
-import { Component, inject } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { EditarRegistroHorarioModalComponent } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.component';
 import { AsistenciaRegistroEdicion } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.model';
+import { AsistenciaFilters } from '../../models/asistencia.model';
 import { AsistenciasService } from '../../services/asistencias.service';
 
 type Turno = 'atiempo' | 'tarde' | 'falta' | 'vacio';
@@ -20,7 +21,6 @@ interface EntradaSalidaSemana {
   cargo: string;
   avatar: string;
   dias: EntradaSalidaDia[];
-  total: string;
 }
 
 @Component({
@@ -38,22 +38,26 @@ interface EntradaSalidaSemana {
       </header>
 
       <div class="overflow-x-auto">
-        <table class="w-full min-w-[1080px] text-left text-xs">
+        <table [class]="tableClasses">
           <thead class="bg-slate-50 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
             <tr>
-              
-              <th class="px-3 py-3">Colaborador</th>
-              @for (dia of dias; track dia.dia) {
-                <th class="px-3 py-3 text-center" colspan="2"><span class="block">{{ dia.dia }} {{ dia.fecha }}</span><span class="grid grid-cols-2 pt-2 text-[10px] font-semibold text-slate-500"><span>Entrada</span><span>Salida</span></span></th>
+              <th class="px-3 py-2" rowspan="2">Colaborador</th>
+              @for (week of visibleWeekGroups; track week.label) {
+                <th class="border-l border-slate-200 px-3 py-2 text-center text-[10px] uppercase tracking-wide text-slate-500 dark:border-slate-700" [attr.colspan]="week.colspan">{{ week.label }}</th>
               }
-              <th class="px-3 py-3 text-center">Total horas<br /><span class="text-[10px] text-slate-500">Semana</span></th>
+              <th class="px-3 py-2 text-center" rowspan="2">Total horas<br /><span class="text-[10px] text-slate-500">{{ periodLabel }}</span></th>
+            </tr>
+            <tr>
+              @for (dia of visibleDias; track dia.dia + dia.fecha) {
+                <th class="px-3 py-2 text-center" colspan="2"><span class="block">{{ dia.dia }} {{ dia.fecha }}</span><span class="grid grid-cols-2 pt-2 text-[10px] font-semibold text-slate-500"><span>Entrada</span><span>Salida</span></span></th>
+              }
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
             @for (item of paginatedRegistros; track item.id) {
-              <tr class="cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/50" (click)="openEditarRegistro(item, item.dias[0])">
+              <tr class="cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/50" (click)="openEditarRegistro(item, visibleItemDias(item)[0])">
                 <td class="px-3 py-3"><div class="flex items-center gap-2"><img class="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" [src]="item.avatar" [alt]="item.colaborador" /><div class="min-w-0"><p class="font-bold text-slate-900 dark:text-white">{{ item.colaborador }}</p><p class="text-[11px] text-slate-500">{{ item.cargo }}</p></div></div></td>
-                @for (dia of item.dias; track dia.dia) {
+                @for (dia of visibleItemDias(item); track dia.dia + dia.fecha) {
                   @if (dia.turno === 'falta') {
                     <td class="px-2 py-3 text-center font-bold text-red-600" colspan="2" (click)="openEditarRegistro(item, dia); $event.stopPropagation()">- Falta</td>
                   } @else {
@@ -61,7 +65,7 @@ interface EntradaSalidaSemana {
                     <td class="px-2 py-3 text-center" (click)="openEditarRegistro(item, dia); $event.stopPropagation()"><span [class]="textClasses(dia.turno)">{{ dia.salida }}</span></td>
                   }
                 }
-                <td class="px-3 py-3 text-center font-bold text-slate-900 dark:text-white">{{ item.total }}</td>
+                <td class="px-3 py-3 text-center font-bold text-slate-900 dark:text-white">{{ visibleTotal(item) }}</td>
               </tr>
             }
           </tbody>
@@ -74,7 +78,9 @@ interface EntradaSalidaSemana {
   `
 })
 export class EntradaSalidaPageComponent {
-  private readonly colaboradores = inject(AsistenciasService).getSemana();
+  @Input() filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
+
+  private readonly colaboradores = inject(AsistenciasService).getMes();
 
   protected readonly dias = this.colaboradores[0]?.dias.map(({ dia, fecha }) => ({ dia, fecha })) ?? [];
   protected isEditModalOpen = false;
@@ -84,7 +90,6 @@ export class EntradaSalidaPageComponent {
     colaborador: item.colaborador,
     cargo: item.cargo,
     avatar: item.avatar,
-    total: ['43h 06m', '42h 47m', '34h 02m', '42h 19m', '42h 05m'][index] ?? item.total,
     dias: this.buildDias(index)
   }));
 
@@ -92,13 +97,50 @@ export class EntradaSalidaPageComponent {
   protected porPagina = 10;
 
   protected get paginationConfig(): PaginacionConfig {
-    const totalElementos = this.registros.length;
+    const totalElementos = this.filteredRegistros.length;
     return { paginaActual: this.paginaActual, porPagina: this.porPagina, totalElementos, totalPaginas: Math.max(1, Math.ceil(totalElementos / this.porPagina)) };
+  }
+
+  protected get tableClasses(): string {
+    const monthWidths: Record<number, string> = { 1: 'min-w-[1080px]', 2: 'min-w-[2100px]', 3: 'min-w-[3200px]', 4: 'min-w-[4300px]' };
+    const visibleWeeks = Math.max(1, this.filters.visibleWeekIndexes.length);
+    const minWidth = this.filters.range === 'mes' ? monthWidths[visibleWeeks] : this.filters.range === 'dia' ? 'min-w-[720px]' : 'min-w-[1080px]';
+    return `w-full ${minWidth} text-left text-xs`;
+  }
+
+  protected get periodLabel(): string {
+    return this.filters.range === 'mes' ? 'Mes' : this.filters.range === 'dia' ? 'Dia' : 'Semana';
+  }
+
+  protected get visibleWeekGroups(): Array<{ label: string; colspan: number }> {
+    if (this.filters.range === 'mes') {
+      return this.filters.visibleWeekIndexes.map((weekIndex) => ({ label: `Semana ${weekIndex + 1}`, colspan: 14 }));
+    }
+
+    return [{ label: this.periodLabel, colspan: this.visibleDias.length * 2 }];
+  }
+
+  protected get visibleDias(): Array<{ dia: string; fecha: string }> {
+    return this.sliceByRange(this.dias);
+  }
+
+  protected get filteredRegistros(): EntradaSalidaSemana[] {
+    const search = this.normalize(this.filters.search);
+    return this.registros.filter((item) => !search || this.normalize(`${item.colaborador} ${item.cargo}`).includes(search));
   }
 
   protected get paginatedRegistros(): EntradaSalidaSemana[] {
     const inicio = this.paginaActual * this.porPagina;
-    return this.registros.slice(inicio, inicio + this.porPagina);
+    return this.filteredRegistros.slice(inicio, inicio + this.porPagina);
+  }
+
+  protected visibleItemDias(item: EntradaSalidaSemana): EntradaSalidaDia[] {
+    return this.sliceByRange(item.dias);
+  }
+
+  protected visibleTotal(item: EntradaSalidaSemana): string {
+    const minutes = this.visibleItemDias(item).reduce((total, dia) => total + this.workedMinutes(dia), 0);
+    return this.formatMinutes(minutes);
   }
 
   protected onPageChange(event: CambioPaginaEvent): void {
@@ -117,7 +159,7 @@ export class EntradaSalidaPageComponent {
       salida: dia.salida === '-' ? '-' : `${dia.salida} PM`,
       entradaAlmuerzo: empty ? '-' : '01:00 PM',
       salidaAlmuerzo: empty ? '-' : '02:00 PM',
-      horasNormales: empty ? '-' : item.total,
+      horasNormales: empty ? '-' : this.visibleTotal(item),
       horasExtras: dia.turno === 'tarde' ? 'Tarde' : '-',
       tipoRegistro: dia.turno === 'tarde' ? 'Tarde' : dia.turno === 'falta' ? 'Falta' : 'Horas normales',
       estado: dia.turno === 'falta' ? 'Incompleto' : 'Completo',
@@ -140,20 +182,67 @@ export class EntradaSalidaPageComponent {
     return classes[turno];
   }
 
+  private sliceByRange<T>(items: T[]): T[] {
+    if (this.filters.range === 'dia') {
+      const monthDayIndex = this.filters.weekIndex * 7 + this.filters.dayIndex;
+      return items.slice(monthDayIndex, monthDayIndex + 1);
+    }
+
+    if (this.filters.range === 'semana') {
+      const start = this.filters.weekIndex * 7;
+      return items.slice(start, start + 7);
+    }
+
+    return this.filters.visibleWeekIndexes.flatMap((weekIndex) => {
+      const start = weekIndex * 7;
+      return items.slice(start, start + 7);
+    });
+  }
+
+  private workedMinutes(dia: EntradaSalidaDia): number {
+    if (dia.entrada === '-' || dia.salida === '-') {
+      return 0;
+    }
+
+    const [entradaHora, entradaMinuto] = dia.entrada.split(':').map(Number);
+    const [salidaHora, salidaMinuto] = dia.salida.split(':').map(Number);
+    return (salidaHora * 60 + salidaMinuto) - (entradaHora * 60 + entradaMinuto);
+  }
+
+  private formatMinutes(totalMinutes: number): string {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+
+  private normalize(value: string): string {
+    return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
   private buildDias(index: number): EntradaSalidaDia[] {
-    const rows: EntradaSalidaDia[][] = [
-      [this.day('Lun', '05/05', '07:45', '17:32'), this.day('Mar', '06/05', '07:55', '17:40'), this.day('Mie', '07/05', '07:50', '17:31'), this.day('Jue', '08/05', '07:35', '18:50'), this.day('Vie', '09/05', '07:45', '17:30'), this.empty('Sab', '10/05'), this.empty('Dom', '11/05')],
-      [this.day('Lun', '05/05', '08:12', '17:45', 'tarde'), this.day('Mar', '06/05', '08:05', '17:42'), this.day('Mie', '07/05', '08:10', '17:50', 'tarde'), this.day('Jue', '08/05', '08:02', '17:41'), this.day('Vie', '09/05', '08:08', '17:46', 'tarde'), this.empty('Sab', '10/05'), this.empty('Dom', '11/05')],
-      [this.day('Lun', '05/05', '07:40', '17:20'), this.day('Mar', '06/05', '07:42', '17:25'), this.missing('Mie', '07/05'), this.day('Jue', '08/05', '07:55', '17:30'), this.day('Vie', '09/05', '07:48', '17:22'), this.empty('Sab', '10/05'), this.empty('Dom', '11/05')],
-      [this.day('Lun', '05/05', '08:00', '17:30'), this.day('Mar', '06/05', '08:03', '17:31'), this.day('Mie', '07/05', '08:02', '17:28'), this.day('Jue', '08/05', '08:10', '17:42', 'tarde'), this.day('Vie', '09/05', '08:01', '17:29'), this.empty('Sab', '10/05'), this.empty('Dom', '11/05')],
-      [this.day('Lun', '05/05', '07:30', '17:20'), this.day('Mar', '06/05', '07:30', '17:25'), this.day('Mie', '07/05', '07:35', '17:20'), this.day('Jue', '08/05', '07:28', '17:18'), this.day('Vie', '09/05', '07:40', '17:30'), this.empty('Sab', '10/05'), this.empty('Dom', '11/05')]
-    ];
-    return rows[index] ?? rows[0];
+    const lateDays = [[1, 10, 23], [0, 2, 8, 17], [11, 22], [3, 16, 24], [4, 15, 25]];
+    const missingDays = [[6], [13, 27], [9], [20], [6]];
+
+    return this.dias.map((dia, dayIndex) => {
+      const dayOfWeek = dayIndex % 7;
+      if (missingDays[index]?.includes(dayIndex)) {
+        return this.missing(dia.dia, dia.fecha);
+      }
+
+      if (dayOfWeek >= 5) {
+        return this.empty(dia.dia, dia.fecha);
+      }
+
+      const isLate = lateDays[index]?.includes(dayIndex);
+      const entrada = isLate ? `08:${(5 + ((index + dayIndex) % 4) * 3).toString().padStart(2, '0')}` : `07:${(35 + ((index + dayIndex) % 5) * 4).toString().padStart(2, '0')}`;
+      const salidaHour = isLate ? 17 : 18;
+      const salidaMinute = isLate ? 35 + ((index + dayIndex) % 4) * 4 : 5 + ((index + dayIndex) % 5) * 6;
+      return this.day(dia.dia, dia.fecha, entrada, `${salidaHour}:${salidaMinute.toString().padStart(2, '0')}`, isLate ? 'tarde' : 'atiempo');
+    });
   }
 
   private day(dia: string, fecha: string, entrada: string, salida: string, turno: Turno = 'atiempo'): EntradaSalidaDia { return { dia, fecha, entrada, salida, turno }; }
   private empty(dia: string, fecha: string): EntradaSalidaDia { return { dia, fecha, entrada: '-', salida: '-', turno: 'vacio' }; }
   private missing(dia: string, fecha: string): EntradaSalidaDia { return { dia, fecha, entrada: '-', salida: '-', turno: 'falta' }; }
 }
-
 

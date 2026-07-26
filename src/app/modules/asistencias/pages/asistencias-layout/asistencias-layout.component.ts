@@ -1,5 +1,5 @@
 ﻿import { Component, inject } from '@angular/core';
-import { AsistenciaMetric } from '../../models/asistencia.model';
+import { AsistenciaFilters, AsistenciaMetric } from '../../models/asistencia.model';
 import { AsistenciasService } from '../../services/asistencias.service';
 import { EntradaSalidaPageComponent } from '../entrada-salida-page/entrada-salida-page.component';
 import { HorasDiaPageComponent } from '../horas-dia-page/horas-dia-page.component';
@@ -14,10 +14,65 @@ type AsistenciaTab = 'horas-dia' | 'entrada-salida' | 'lugar-trabajo';
 })
 export class AsistenciasLayoutComponent {
   protected readonly metrics = inject(AsistenciasService).getMetrics();
+  protected readonly months = ['Mayo 2025'];
+  protected readonly weekLabels = ['Semana 1 (05 - 11 May)', 'Semana 2 (12 - 18 May)', 'Semana 3 (19 - 25 May)', 'Semana 4 (26 May - 01 Jun)'];
   protected activeTab: AsistenciaTab = 'horas-dia';
+  protected filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
+
+  protected get weekLabel(): string {
+    return this.weekLabels[this.filters.weekIndex] ?? this.weekLabels[0];
+  }
 
   protected setActiveTab(tab: AsistenciaTab): void {
     this.activeTab = tab;
+  }
+
+  protected updateSearch(value: string): void {
+    this.filters = { ...this.filters, search: value };
+  }
+
+  protected setRange(range: AsistenciaFilters['range']): void {
+    this.filters = { ...this.filters, range };
+  }
+
+  protected setMonth(month: string): void {
+    this.filters = { ...this.filters, month };
+  }
+
+  protected toggleMonthWeek(index: number): void {
+    const selected = this.filters.visibleWeekIndexes;
+    if (selected.includes(index) && selected.length === 1) {
+      return;
+    }
+
+    const visibleWeekIndexes = selected.includes(index)
+      ? selected.filter((weekIndex) => weekIndex !== index)
+      : [...selected, index].sort((first, second) => first - second);
+
+    this.filters = { ...this.filters, visibleWeekIndexes };
+  }
+
+  protected showAllMonthWeeks(): void {
+    this.filters = { ...this.filters, visibleWeekIndexes: this.weekLabels.map((_, index) => index) };
+  }
+
+  protected monthWeekClasses(index: number): string {
+    return this.filters.visibleWeekIndexes.includes(index)
+      ? 'border-green-200 bg-green-50 font-semibold text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300'
+      : 'bg-white text-slate-500 dark:bg-slate-950 dark:text-slate-400';
+  }
+  protected previousWeek(): void {
+    this.filters = { ...this.filters, weekIndex: Math.max(0, this.filters.weekIndex - 1) };
+  }
+
+  protected nextWeek(): void {
+    this.filters = { ...this.filters, weekIndex: Math.min(this.weekLabels.length - 1, this.filters.weekIndex + 1) };
+  }
+
+  protected rangeButtonClasses(range: AsistenciaFilters['range']): string {
+    return this.filters.range === range
+      ? 'border-green-200 bg-green-50 font-semibold text-green-700 dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-300'
+      : 'bg-white text-slate-600 dark:bg-slate-950 dark:text-slate-300';
   }
 
   protected tabClasses(tab: AsistenciaTab): string {

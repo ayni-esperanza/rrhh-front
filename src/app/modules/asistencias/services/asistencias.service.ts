@@ -89,6 +89,91 @@ const SEMANA: AsistenciaSemana[] = [
   }
 ];
 
+const MONTH_DAYS = [
+  { dia: 'Lun', fecha: '05/05' }, { dia: 'Mar', fecha: '06/05' }, { dia: 'Mie', fecha: '07/05' }, { dia: 'Jue', fecha: '08/05' }, { dia: 'Vie', fecha: '09/05' }, { dia: 'Sab', fecha: '10/05' }, { dia: 'Dom', fecha: '11/05' },
+  { dia: 'Lun', fecha: '12/05' }, { dia: 'Mar', fecha: '13/05' }, { dia: 'Mie', fecha: '14/05' }, { dia: 'Jue', fecha: '15/05' }, { dia: 'Vie', fecha: '16/05' }, { dia: 'Sab', fecha: '17/05' }, { dia: 'Dom', fecha: '18/05' },
+  { dia: 'Lun', fecha: '19/05' }, { dia: 'Mar', fecha: '20/05' }, { dia: 'Mie', fecha: '21/05' }, { dia: 'Jue', fecha: '22/05' }, { dia: 'Vie', fecha: '23/05' }, { dia: 'Sab', fecha: '24/05' }, { dia: 'Dom', fecha: '25/05' },
+  { dia: 'Lun', fecha: '26/05' }, { dia: 'Mar', fecha: '27/05' }, { dia: 'Mie', fecha: '28/05' }, { dia: 'Jue', fecha: '29/05' }, { dia: 'Vie', fecha: '30/05' }, { dia: 'Sab', fecha: '31/05' }, { dia: 'Dom', fecha: '01/06' }
+];
+
+const EXTRA_DAYS = [
+  [3, 11, 18, 24],
+  [8, 17, 23],
+  [4, 15],
+  [10, 16, 25],
+  [1, 10, 18, 25]
+];
+
+const PERMISSION_DAYS = [
+  [5, 20],
+  [12],
+  [5, 15, 26],
+  [19],
+  [12, 20]
+];
+
+const MISSING_DAYS = [
+  [6],
+  [13, 27],
+  [9],
+  [20],
+  [6]
+];
+
+const MES: AsistenciaSemana[] = SEMANA.map((item, index) => {
+  const dias = createMonthCells(index);
+  return {
+    ...item,
+    dias,
+    total: formatMinutes(sumWorkedMinutes(dias)),
+    variacion: formatExtraMinutes(dias)
+  };
+});
+
+function createMonthCells(profileIndex: number) {
+  return MONTH_DAYS.map((day, dayIndex) => {
+    if (MISSING_DAYS[profileIndex]?.includes(dayIndex)) {
+      return { ...day, valor: '-', tipo: 'falta' as const };
+    }
+
+    if (PERMISSION_DAYS[profileIndex]?.includes(dayIndex) || dayIndex % 7 === 5) {
+      return { ...day, valor: '-', tipo: 'permiso' as const };
+    }
+
+    if (dayIndex % 7 === 6) {
+      return { ...day, valor: '-', tipo: 'falta' as const };
+    }
+
+    if (EXTRA_DAYS[profileIndex]?.includes(dayIndex)) {
+      const minutes = 545 + ((profileIndex + dayIndex) % 3) * 15;
+      return { ...day, valor: formatMinutes(minutes), tipo: 'extra' as const, detalle: `+${formatMinutes(minutes - 510)}` };
+    }
+
+    const minutes = 495 + ((profileIndex + dayIndex) % 4) * 10;
+    return { ...day, valor: formatMinutes(minutes), tipo: 'normal' as const };
+  });
+}
+
+function sumWorkedMinutes(dias: Array<{ valor: string; tipo: string }>): number {
+  return dias.reduce((total, dia) => dia.tipo === 'normal' || dia.tipo === 'extra' ? total + parseMinutes(dia.valor) : total, 0);
+}
+
+function formatExtraMinutes(dias: Array<{ tipo: string; detalle?: string }>): string {
+  const minutes = dias.reduce((total, dia) => total + parseMinutes(dia.detalle?.replace('+', '') ?? '0h'), 0);
+  return minutes ? `+${formatMinutes(minutes)}` : '-';
+}
+
+function parseMinutes(value: string): number {
+  const match = value.match(/(\d+)h(?:\s*(\d+)m)?/);
+  return match ? Number(match[1]) * 60 + Number(match[2] ?? 0) : 0;
+}
+
+function formatMinutes(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AsistenciasService {
   getMetrics(): AsistenciaMetric[] {
@@ -105,6 +190,10 @@ export class AsistenciasService {
     return SEMANA;
   }
 
+  getMes(): AsistenciaSemana[] {
+    return MES;
+  }
+
   getAsistencias(): AsistenciaDia[] {
     return SEMANA.map((item) => ({
       fecha: '2025-05-09',
@@ -118,3 +207,4 @@ export class AsistenciasService {
     }));
   }
 }
+

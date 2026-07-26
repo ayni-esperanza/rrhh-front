@@ -27,6 +27,15 @@ export interface AsistenciaSemana {
   variacion: string;
 }
 
+export interface AsistenciaFilters {
+  search: string;
+  range: 'dia' | 'semana' | 'mes';
+  month: string;
+  weekIndex: number;
+  dayIndex: number;
+  visibleWeekIndexes: number[];
+}
+
 export interface AsistenciaCelda {
   dia: string;
   fecha: string;
@@ -34,3 +43,4 @@ export interface AsistenciaCelda {
   tipo: 'normal' | 'extra' | 'permiso' | 'falta';
   detalle?: string;
 }
+
