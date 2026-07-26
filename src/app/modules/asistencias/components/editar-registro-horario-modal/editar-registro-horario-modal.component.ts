@@ -1,8 +1,9 @@
-﻿import { Component, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+﻿import { Component, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AsistenciaRegistroEdicion } from './editar-registro-horario-modal.model';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
+import { LugaresTrabajoService } from '../../services/lugares-trabajo.service';
 
 @Component({
   selector: 'app-editar-registro-horario-modal',
@@ -10,6 +11,8 @@ import { SelectSearchableComponent } from '../../../../shared/components/select-
   templateUrl: './editar-registro-horario-modal.component.html'
 })
 export class EditarRegistroHorarioModalComponent implements OnChanges {
+  private readonly lugaresTrabajoService = inject(LugaresTrabajoService);
+
   @Input() isOpen = false;
   @Input() registro: AsistenciaRegistroEdicion | null = null;
   @Output() closeModal = new EventEmitter<void>();
@@ -35,7 +38,9 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
   protected isTipoRegistroOpen = false;
 
   protected readonly estados = ['Completo', 'Incompleto', 'Pendiente', 'Observado'];
-  protected readonly lugares = ['Planta Principal - Linea de Produccion', 'Oficina Principal', 'Sucursal Norte', 'Sucursal Sur', 'Remoto', 'Sin registro'];
+  protected get lugares(): string[] {
+    return this.lugaresTrabajoService.getOpciones();
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['registro'] || changes['isOpen']) {

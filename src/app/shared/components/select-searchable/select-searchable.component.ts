@@ -181,6 +181,8 @@ export class SelectSearchableComponent implements ControlValueAccessor, OnChange
 
   seleccionar(value: unknown): void {
     this.value = value;
+    this.onChange(value);
+    this.onTouched();
     this.valueChange.emit(value);
     this.closeDropdown();
   }
