@@ -9,14 +9,32 @@ import { AsistenciasService } from '../../services/asistencias.service';
   selector: 'app-horas-dia-page',
   imports: [EditarRegistroHorarioModalComponent, PaginacionComponent],
   template: `
-    <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <section class="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <header class="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
         <div><h2 class="text-sm font-bold text-slate-950 dark:text-white">Horas trabajadas por dia</h2></div>
-        <div class="flex flex-wrap gap-3 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-          <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-blue-500"></span>Horas normales</span>
-          <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Horas extras</span>
-          <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-orange-500"></span>Permiso / Descanso</span>
-          <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-red-500"></span>Falta</span>
+        <div class="flex flex-wrap items-center justify-start gap-x-4 gap-y-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300 lg:justify-end">
+          <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-blue-500"></span>Horas normales</span>
+          <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>Horas extras</span>
+          <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-[#06245f]"></span>Permiso</span>
+          <span class="inline-flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-[#000000]"></span>Falta</span>
+          <span class="group relative">
+            <button class="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white" type="button" aria-label="Ver leyenda">
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </button>
+            <span class="absolute right-0 z-20 mt-2 hidden w-80 gap-2 rounded-lg border border-slate-200 bg-white p-3 text-[11px] font-semibold text-slate-700 shadow-xl group-hover:grid group-focus-within:grid dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 sm:grid-cols-2">
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#ff0000]"></span>Feriados</span>
+
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#00ff00]"></span>Vacaciones</span>
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#806000]"></span>Renuncia</span>
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#ffff00]"></span>Descanso medico</span>
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#7b3fa1]"></span>Mater/Pater</span>
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#13aee3]"></span>Proyecto temp.</span>
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#ffc000]"></span>Estudio</span>
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#ff00df]"></span>Descanso por h. extras</span>
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#00e5e5]"></span>Cumpleaños</span>
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-slate-400"></span>No esta en la emp.</span>
+            </span>
+          </span>
         </div>
       </header>
       <div class="overflow-x-auto">
@@ -39,7 +57,7 @@ import { AsistenciasService } from '../../services/asistencias.service';
       </div>
       <app-paginacion [config]="paginationConfig" [opcionesPorPagina]="[10, 25, 50]" (cambioPagina)="onPageChange($event)" />
     </section>
-    <app-editar-registro-horario-modal [isOpen]="isEditModalOpen" [registro]="selectedRegistro" (closeModal)="closeEditarRegistro()" (saveChanges)="closeEditarRegistro()" />
+    <app-editar-registro-horario-modal [isOpen]="isEditModalOpen" [registro]="selectedRegistro" (closeModal)="closeEditarRegistro()" (saveChanges)="saveEditarRegistro($event)" />
   `
 })
 export class HorasDiaPageComponent {
@@ -49,6 +67,7 @@ export class HorasDiaPageComponent {
   protected readonly dias = this.semana[0]?.dias ?? [];
   protected isEditModalOpen = false;
   protected selectedRegistro: AsistenciaRegistroEdicion | null = null;
+  protected editingContext: { itemId: number; dia: string; fecha: string } | null = null;
 
   protected paginaActual = 0;
   protected porPagina = 10;
@@ -96,7 +115,7 @@ export class HorasDiaPageComponent {
   }
 
   protected visibleTotal(item: AsistenciaSemana): string {
-    const minutes = this.visibleItemDias(item).reduce((total, dia) => dia.tipo === 'normal' || dia.tipo === 'extra' ? total + this.parseMinutes(dia.valor) : total, 0);
+    const minutes = this.visibleItemDias(item).reduce((total, dia) => this.isWorkedDay(dia) ? total + this.parseMinutes(dia.valor) : total, 0);
     return this.formatMinutes(minutes);
   }
 
@@ -111,7 +130,8 @@ export class HorasDiaPageComponent {
   }
 
   protected openEditarRegistro(item: AsistenciaSemana, dia: AsistenciaCelda): void {
-    const blocked = dia.tipo === 'falta' || dia.tipo === 'permiso';
+    const blocked = !this.isWorkedDay(dia);
+    this.editingContext = { itemId: item.id, dia: dia.dia, fecha: dia.fecha };
     this.selectedRegistro = {
       colaborador: item.colaborador,
       cargo: item.cargo,
@@ -123,20 +143,109 @@ export class HorasDiaPageComponent {
       salidaAlmuerzo: blocked ? '-' : '02:00 PM',
       horasNormales: blocked ? '-' : dia.valor,
       horasExtras: dia.detalle ?? '-',
-      tipoRegistro: dia.tipo === 'extra' ? 'Horas extras' : dia.tipo === 'permiso' ? 'Permiso / Descanso' : dia.tipo === 'falta' ? 'Falta' : 'Horas normales',
+      tipoRegistro: this.tipoRegistroLabel(dia),
       estado: dia.tipo === 'falta' ? 'Incompleto' : 'Completo',
       lugar: item.id % 2 === 0 ? 'Sucursal Sur' : 'Planta Principal - Linea de Produccion'
     };
     this.isEditModalOpen = true;
   }
 
-  protected closeEditarRegistro(): void { this.isEditModalOpen = false; }
+  protected saveEditarRegistro(registro: AsistenciaRegistroEdicion): void {
+    if (!this.editingContext) {
+      this.closeEditarRegistro();
+      return;
+    }
+
+    const item = this.semana.find((semanaItem) => semanaItem.id === this.editingContext?.itemId);
+    const dia = item?.dias.find((diaItem) => diaItem.dia === this.editingContext?.dia && diaItem.fecha === this.editingContext?.fecha);
+    if (dia) {
+      const updatedDia = this.diaFromRegistro(registro);
+      dia.tipo = updatedDia.tipo;
+      dia.valor = updatedDia.valor;
+      if (updatedDia.detalle) {
+        dia.detalle = updatedDia.detalle;
+      } else {
+        delete dia.detalle;
+      }
+    }
+
+    this.closeEditarRegistro();
+  }
+
+  protected closeEditarRegistro(): void {
+    this.isEditModalOpen = false;
+    this.editingContext = null;
+  }
 
   protected cellClasses(dia: AsistenciaCelda): string {
-    const classes = { normal: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300', extra: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300', permiso: 'bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-300', falta: 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-300' };
+    const classes = {
+      normal: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
+      extra: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+      feriado: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
+      permiso: 'bg-blue-50 text-blue-900 dark:bg-blue-500/10 dark:text-blue-300',
+
+      vacaciones: 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300',
+      renuncia: 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300',
+      falta: 'bg-slate-100 text-slate-950 dark:bg-slate-500/15 dark:text-slate-200',
+      'descanso-medico': 'bg-yellow-50 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-300',
+      'mater-pater': 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300',
+      'proyecto-temp': 'bg-cyan-50 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-300',
+      estudio: 'bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-300',
+      'descanso-extra': 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-300',
+      cumpleanos: 'bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-300',
+      'no-esta': 'bg-slate-100 text-slate-600 dark:bg-slate-500/10 dark:text-slate-300'
+    };
     return classes[dia.tipo];
   }
 
+  private isWorkedDay(dia: AsistenciaCelda): boolean {
+    return dia.tipo === 'normal' || dia.tipo === 'extra';
+  }
+
+  private tipoRegistroLabel(dia: AsistenciaCelda): string {
+    const labels = {
+      normal: 'Horas normales',
+      extra: 'Horas extras',
+      feriado: 'Feriados',
+      permiso: 'Permiso',
+
+      vacaciones: 'Vacaciones',
+      renuncia: 'Renuncia',
+      falta: 'Falta',
+      'descanso-medico': 'Descanso medico',
+      'mater-pater': 'Mater/Pater',
+      'proyecto-temp': 'Proyecto temp.',
+      estudio: 'Estudio',
+      'descanso-extra': 'Descanso por h. extras',
+      cumpleanos: 'Cumpleaños',
+      'no-esta': 'No esta en la emp.'
+    };
+    return labels[dia.tipo];
+  }
+
+  private diaFromRegistro(registro: AsistenciaRegistroEdicion): Pick<AsistenciaCelda, 'tipo' | 'valor' | 'detalle'> {
+    const normalHours = registro.horasNormales && registro.horasNormales !== '-' ? registro.horasNormales : '8h';
+    const extraDetail = registro.horasExtras && registro.horasExtras !== '-' && registro.horasExtras !== 'Tarde' ? registro.horasExtras : '+1h';
+    const types: Record<string, Pick<AsistenciaCelda, 'tipo' | 'valor' | 'detalle'>> = {
+      'Horas normales': { tipo: 'normal', valor: normalHours },
+      'Horas extras': { tipo: 'extra', valor: normalHours, detalle: extraDetail },
+
+      Feriados: { tipo: 'feriado', valor: 'Feriado' },
+      Permiso: { tipo: 'permiso', valor: 'Permiso' },
+      Vacaciones: { tipo: 'vacaciones', valor: 'Vacaciones' },
+      Renuncia: { tipo: 'renuncia', valor: 'Renuncia' },
+      Falta: { tipo: 'falta', valor: '-' },
+      'Descanso medico': { tipo: 'descanso-medico', valor: 'Desc. medico' },
+      'Mater/Pater': { tipo: 'mater-pater', valor: 'Mater/Pater' },
+      'Proyecto temp.': { tipo: 'proyecto-temp', valor: 'Proyecto' },
+      Estudio: { tipo: 'estudio', valor: 'Estudio' },
+      'Descanso por h. extras': { tipo: 'descanso-extra', valor: 'Desc. h. extras' },
+      'Cumpleaños': { tipo: 'cumpleanos', valor: 'Cumpleaños' },
+      'No esta en la emp.': { tipo: 'no-esta', valor: 'No esta' }
+    };
+
+    return types[registro.tipoRegistro] ?? { tipo: 'normal', valor: normalHours };
+  }
   private sliceByRange<T>(items: T[]): T[] {
     if (this.filters.range === 'dia') {
       const monthDayIndex = this.filters.weekIndex * 7 + this.filters.dayIndex;
@@ -169,4 +278,5 @@ export class HorasDiaPageComponent {
     return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
 }
+
 

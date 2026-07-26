@@ -120,6 +120,32 @@ const MISSING_DAYS = [
   [6]
 ];
 
+const SPECIAL_DAYS: Record<number, Record<number, { valor: string; tipo: AsistenciaSemana['dias'][number]['tipo']; detalle?: string }>> = {
+  0: {
+    5: { valor: 'Estudio', tipo: 'estudio' },
+    12: { valor: 'Vacaciones', tipo: 'vacaciones' },
+    20: { valor: 'Cumpleaños', tipo: 'cumpleanos' }
+  },
+  1: {
+    6: { valor: 'Feriado', tipo: 'feriado' },
+    13: { valor: 'Desc. medico', tipo: 'descanso-medico' },
+    24: { valor: 'Mater/Pater', tipo: 'mater-pater' }
+  },
+  2: {
+    9: { valor: 'Proyecto', tipo: 'proyecto-temp' },
+    15: { valor: 'Desc. h. extras', tipo: 'descanso-extra' },
+    26: { valor: 'Renuncia', tipo: 'renuncia' }
+  },
+  3: {
+    11: { valor: 'No esta', tipo: 'no-esta' },
+    19: { valor: 'Permiso', tipo: 'permiso' }
+  },
+  4: {
+    4: { valor: 'Desc. medico', tipo: 'descanso-medico' },
+    12: { valor: 'Vacaciones', tipo: 'vacaciones' },
+    20: { valor: 'Feriado', tipo: 'feriado' }
+  }
+};
 const MES: AsistenciaSemana[] = SEMANA.map((item, index) => {
   const dias = createMonthCells(index);
   return {
