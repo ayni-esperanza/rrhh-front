@@ -1,9 +1,10 @@
 ﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
-import { Component, Input, inject } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, ViewChild, inject } from '@angular/core';
 import { EditarRegistroHorarioModalComponent } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.component';
 import { AsistenciaRegistroEdicion } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.model';
 import { AsistenciaFilters } from '../../models/asistencia.model';
 import { AsistenciasService } from '../../services/asistencias.service';
+import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
 
 type Turno = 'atiempo' | 'tarde' | 'falta' | 'vacio';
 
@@ -25,7 +26,7 @@ interface EntradaSalidaSemana {
 
 @Component({
   selector: 'app-entrada-salida-page',
-  imports: [EditarRegistroHorarioModalComponent, PaginacionComponent],
+  imports: [EditarRegistroHorarioModalComponent, PaginacionComponent, SelectboxComponent],
   template: `
     <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <header class="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
@@ -38,9 +39,12 @@ interface EntradaSalidaSemana {
       </header>
 
       <div class="overflow-x-auto">
-        <table [class]="tableClasses">
+        <table #selectionTable [class]="tableClasses">
           <thead class="bg-slate-50 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
             <tr>
+              <th class="w-10 px-3 py-2" rowspan="2">
+                <app-selectbox [checked]="allPageRowsSelected" [indeterminate]="somePageRowsSelected" ariaLabel="Seleccionar todos los colaboradores de esta página" (checkedChange)="togglePageSelection($event)" />
+              </th>
               <th class="px-3 py-2" rowspan="2">Colaborador</th>
               @for (week of visibleWeekGroups; track week.label) {
                 <th class="border-l border-slate-200 px-3 py-2 text-center text-[10px] uppercase tracking-wide text-slate-500 dark:border-slate-700" [attr.colspan]="week.colspan">{{ week.label }}</th>
@@ -55,7 +59,8 @@ interface EntradaSalidaSemana {
           </thead>
           <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
             @for (item of paginatedRegistros; track item.id) {
-              <tr class="cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/50" (click)="openEditarRegistro(item, visibleItemDias(item)[0])">
+              <tr class="cursor-pointer select-none" [class]="isSelected(item.id) ? 'bg-blue-50/70 dark:bg-blue-500/10' : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/50'" (mousedown)="beginRowSelection($event, item.id)" (mouseenter)="extendRowSelection(item.id)" (click)="openEditarRegistro(item, visibleItemDias(item)[0])">
+                <td class="px-3 py-3" (click)="$event.stopPropagation()"><app-selectbox [checked]="isSelected(item.id)" [ariaLabel]="'Seleccionar a ' + item.colaborador" (checkedChange)="toggleRowSelection(item.id, $event)" /></td>
                 <td class="px-3 py-3"><div class="flex items-center gap-2"><img class="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" [src]="item.avatar" [alt]="item.colaborador" /><div class="min-w-0"><p class="font-bold text-slate-900 dark:text-white">{{ item.colaborador }}</p><p class="text-[11px] text-slate-500">{{ item.cargo }}</p></div></div></td>
                 @for (dia of visibleItemDias(item); track dia.dia + dia.fecha) {
                   @if (dia.turno === 'falta') {
@@ -95,6 +100,13 @@ export class EntradaSalidaPageComponent {
 
   protected paginaActual = 0;
   protected porPagina = 10;
+  protected selectedIds = new Set<number>();
+  private rowSelectionActive = false;
+  private ignoreNextRowAction = false;
+  private dragSelectionValue = false;
+  private dragStartId: number | null = null;
+
+  @ViewChild('selectionTable') private selectionTable?: ElementRef<HTMLTableElement>;
 
   protected get paginationConfig(): PaginacionConfig {
     const totalElementos = this.filteredRegistros.length;
@@ -149,6 +161,7 @@ export class EntradaSalidaPageComponent {
   }
 
   protected openEditarRegistro(item: EntradaSalidaSemana, dia: EntradaSalidaDia): void {
+    if (this.ignoreNextRowAction) return;
     const empty = dia.turno === 'falta' || dia.turno === 'vacio';
     this.selectedRegistro = {
       colaborador: item.colaborador,
@@ -172,6 +185,53 @@ export class EntradaSalidaPageComponent {
     this.isEditModalOpen = false;
   }
 
+  protected isSelected(itemId: number): boolean {
+    return this.selectedIds.has(itemId);
+  }
+
+  protected get allPageRowsSelected(): boolean {
+    return this.paginatedRegistros.length > 0 && this.paginatedRegistros.every(({ id }) => this.isSelected(id));
+  }
+
+  protected get somePageRowsSelected(): boolean {
+    return !this.allPageRowsSelected && this.paginatedRegistros.some(({ id }) => this.isSelected(id));
+  }
+
+  protected toggleRowSelection(itemId: number, isSelected: boolean): void {
+    if (isSelected) this.selectedIds.add(itemId);
+    else this.selectedIds.delete(itemId);
+  }
+
+  protected togglePageSelection(isSelected: boolean): void {
+    this.paginatedRegistros.forEach(({ id }) => this.toggleRowSelection(id, isSelected));
+  }
+
+  protected beginRowSelection(event: MouseEvent, itemId: number): void {
+    if (event.button !== 0 || this.isInteractiveTarget(event.target)) return;
+    this.rowSelectionActive = true;
+    this.dragStartId = itemId;
+    this.dragSelectionValue = !this.isSelected(itemId);
+  }
+
+  protected extendRowSelection(itemId: number): void {
+    if (!this.rowSelectionActive || this.dragStartId === null || itemId === this.dragStartId) return;
+    this.ignoreNextRowAction = true;
+    this.toggleRowSelection(this.dragStartId, this.dragSelectionValue);
+    this.toggleRowSelection(itemId, this.dragSelectionValue);
+  }
+
+  @HostListener('document:mouseup')
+  protected finishRowSelection(): void {
+    this.rowSelectionActive = false;
+    this.dragStartId = null;
+    window.setTimeout(() => this.ignoreNextRowAction = false, 0);
+  }
+
+  @HostListener('document:click', ['$event'])
+  protected clearSelectionOutsideTable(event: MouseEvent): void {
+    if (!this.selectionTable?.nativeElement.contains(event.target as Node)) this.selectedIds.clear();
+  }
+
   protected dotClasses(turno: Turno): string {
     const classes = { atiempo: 'bg-emerald-500', tarde: 'bg-orange-500', falta: 'bg-red-500', vacio: 'bg-slate-300' };
     return classes[turno];
@@ -180,6 +240,10 @@ export class EntradaSalidaPageComponent {
   protected textClasses(turno: Turno): string {
     const classes = { atiempo: 'text-slate-800 dark:text-slate-200', tarde: 'font-semibold text-orange-600 dark:text-orange-300', falta: 'font-semibold text-red-600 dark:text-red-300', vacio: 'text-slate-500' };
     return classes[turno];
+  }
+
+  private isInteractiveTarget(target: EventTarget | null): boolean {
+    return target instanceof Element && Boolean(target.closest('button, input, a, select, textarea, label, [data-no-row-selection]'));
   }
 
   private sliceByRange<T>(items: T[]): T[] {
