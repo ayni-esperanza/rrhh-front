@@ -34,8 +34,12 @@ interface LugarSemana {
         <div class="flex flex-wrap items-center gap-2">
           <h2 class="text-sm font-bold text-slate-950 dark:text-white">Lugar donde esta trabajando</h2>
           <div class="ml-0 flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-[11px] font-bold dark:border-slate-800 dark:bg-slate-950 sm:ml-2">
-            <button class="px-3 transition" type="button" [class]="vista === 'tabla' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-900'" (click)="setVista('tabla')">Tabla</button>
-            <button class="border-l border-slate-200 px-3 transition dark:border-slate-800" type="button" [class]="vista === 'activos' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-900'" (click)="setVista('activos')">Activos por lugar</button>
+            <button class="inline-flex h-8 w-9 items-center justify-center transition" type="button" aria-label="Vista de tabla" title="Vista de tabla" [class]="vista === 'tabla' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-900'" (click)="setVista('tabla')">
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            </button>
+            <button class="inline-flex h-8 w-9 items-center justify-center border-l border-slate-200 transition dark:border-slate-800" type="button" aria-label="Activos por lugar" title="Activos por lugar" [class]="vista === 'activos' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-900'" (click)="setVista('activos')">
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </button>
           </div>
         </div>
         <div class="flex flex-wrap items-center justify-start gap-3 text-[11px] font-semibold text-slate-600 dark:text-slate-300 lg:justify-end">
