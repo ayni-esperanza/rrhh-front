@@ -5,10 +5,11 @@ import { ColaboradoresTableComponent } from '../../components/colaboradores-tabl
 import { NuevoColaboradorModalComponent } from '../../components/nuevo-colaborador-modal/nuevo-colaborador-modal.component';
 import { Colaborador } from '../../models/colaborador.model';
 import { ColaboradoresService } from '../../services/colaboradores.service';
+import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-colaboradores-page',
-  imports: [ColaboradoresMetricsComponent, ColaboradoresFiltersComponent, ColaboradoresTableComponent, NuevoColaboradorModalComponent],
+  imports: [ColaboradoresMetricsComponent, ColaboradoresFiltersComponent, ColaboradoresTableComponent, NuevoColaboradorModalComponent, ConfirmDialogComponent],
   templateUrl: './colaboradores-page.component.html'
 })
 export class ColaboradoresPageComponent {
@@ -20,6 +21,8 @@ export class ColaboradoresPageComponent {
   protected expandedId = '';
   protected isNewColaboradorModalOpen = false;
   protected selectedColaborador: Colaborador | null = null;
+  protected selectedColaboradorIds: string[] = [];
+  protected pendingDeletionIds: string[] = [];
 
   protected get filteredColaboradores(): Colaborador[] {
     const search = this.normalize(this.filters.search);
@@ -75,6 +78,36 @@ export class ColaboradoresPageComponent {
       : this.colaboradores.map((item) => item.id === colaborador.id ? colaborador : item);
     this.expandedId = '';
     this.closeNewColaboradorModal();
+  }
+
+  protected updateSelectedColaboradores(ids: string[]): void {
+    this.selectedColaboradorIds = ids;
+  }
+
+  protected updateSelectedStatus(estado: Colaborador['estado']): void {
+    const selectedIds = new Set(this.selectedColaboradorIds);
+    this.colaboradores = this.colaboradores.map((colaborador) => selectedIds.has(colaborador.id) ? { ...colaborador, estado } : colaborador);
+  }
+
+  protected deleteSelectedColaboradores(): void {
+    this.pendingDeletionIds = [...this.selectedColaboradorIds];
+  }
+
+  protected deleteColaborador(id: string): void {
+    this.pendingDeletionIds = [id];
+  }
+
+  protected confirmDeletion(): void {
+    const ids = new Set(this.pendingDeletionIds);
+    this.colaboradores = this.colaboradores.filter((colaborador) => !ids.has(colaborador.id));
+    this.selectedColaboradorIds = this.selectedColaboradorIds.filter((id) => !ids.has(id));
+    this.pendingDeletionIds = [];
+    this.expandedId = '';
+    this.closeNewColaboradorModal();
+  }
+
+  protected cancelDeletion(): void {
+    this.pendingDeletionIds = [];
   }
 
   private matchesFilter(value: string, filter: string): boolean {

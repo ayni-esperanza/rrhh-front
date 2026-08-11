@@ -25,6 +25,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   @Input() colaborador: Colaborador | null = null;
   @Output() closeModal = new EventEmitter<void>();
   @Output() saveColaborador = new EventEmitter<Colaborador>();
+  @Output() deleteColaborador = new EventEmitter<string>();
 
   private readonly formBuilder = inject(FormBuilder);
   protected readonly maxRegistrosComplementarios = 3;
@@ -549,6 +550,11 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     if (this.profileImagePreviewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(this.profileImagePreviewUrl);
     }
+  }
+
+  protected requestDelete(): void {
+    if (!this.colaborador) return;
+    this.deleteColaborador.emit(this.colaborador.id);
   }
 
   private formatDate(value: string): string {
