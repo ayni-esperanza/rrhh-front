@@ -30,6 +30,9 @@
   lugarNacimiento?: string;
   tipoSangre?: string;
   cuentaBancaria: string;
+  cci?: string;
+  entidadBancaria?: string;
+  datosBancarios?: DatosBancarios[];
   epsSeguro: string;
   contactoEmergencia: string;
   documentos: DocumentoColaborador[];
@@ -39,6 +42,11 @@ export interface ContactoEmergencia {
   nombre: string;
   parentesco?: string;
   telefono: string;
+}
+export interface DatosBancarios {
+  cuentaBancaria: string;
+  cci: string;
+  entidadBancaria: string;
 }
 export interface DocumentoColaborador {
   nombre: string;

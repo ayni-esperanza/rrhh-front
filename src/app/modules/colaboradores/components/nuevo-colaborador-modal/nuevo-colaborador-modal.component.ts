@@ -1,7 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Colaborador, DocumentoColaborador } from '../../models/colaborador.model';
+import { Colaborador, DatosBancarios, DocumentoColaborador } from '../../models/colaborador.model';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
 
@@ -27,6 +27,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   @Output() saveColaborador = new EventEmitter<Colaborador>();
 
   private readonly formBuilder = inject(FormBuilder);
+  protected readonly maxRegistrosComplementarios = 3;
 
   protected readonly steps = [
     { label: 'Información personal', icon: 'M20 21a8 8 0 0 0-16 0M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8' },
@@ -39,6 +40,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   public readonly tipoContratoOptions = ['Planilla - Indeterminado', 'Planilla - Plazo fijo', 'Planilla - Temporal', 'Servicio - Indeterminado', 'Servicio - Plazo fijo', 'Servicio - Temporal'];
   protected readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'];
   protected readonly seguroOptions = ['Rimac EPS', 'Pacífico EPS', 'SIS', 'EsSalud', 'Mapfre EPS', 'Sin seguro'];
+  protected readonly entidadBancariaOptions = ['BCP', 'BBVA', 'Interbank', 'Scotiabank', 'Banco de la Nación', 'BanBif', 'Mibanco', 'Otro'];
   protected readonly parentescoOptions = ['Madre', 'Padre', 'Hermano/a', 'Cónyuge', 'Pareja', 'Hijo/a', 'Tío/a', 'Primo/a', 'Amigo/a'];
   public readonly documentDefinitions: ReadonlyArray<{ key: DocumentKey; label: string }> = [
     { key: 'dni', label: 'DNI' },
@@ -54,11 +56,13 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   private readonly phonePattern = /^9\d{2}\s?\d{3}\s?\d{3}$/;
   private readonly moneyPattern = /^\d+(\.\d{1,2})?$/;
   private readonly bankAccountPattern = /^\d{10,24}$/;
+  private readonly cciPattern = /^\d{20}$/;
   private readonly patternMessages: Record<string, string> = {
     'DNI': 'Debe tener 8 dígitos.',
     'Teléfono': 'Debe tener 9 dígitos y empezar con 9.',
     'Sueldo básico': 'Ingresa solo números. Ej. 2800.00.',
     'N° de cuenta bancaria': 'Debe tener entre 10 y 24 dígitos.',
+    'CCI': 'Debe tener 20 dígitos.',
     'Teléfono de emergencia': 'Debe tener 9 dígitos y empezar con 9.'
   };
 
@@ -91,8 +95,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       hijos: ['0', Validators.required],
       lugarNacimiento: ['', Validators.required],
       tipoSangre: ['', Validators.required],
-      cuentaBancaria: ['', [Validators.required, Validators.pattern(this.bankAccountPattern)]],
       epsSeguro: ['', Validators.required],
+      datosBancarios: this.formBuilder.array<FormGroup>([]),
       contactosEmergencia: this.formBuilder.array<FormGroup>([])
     }),
     documentos: this.formBuilder.group({
@@ -119,6 +123,9 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   public get contactosEmergencia() {
     return this.form.controls.adicional.controls.contactosEmergencia;
   }
+  public get datosBancarios() {
+    return this.form.controls.adicional.controls.datosBancarios;
+  }
 
   protected get edadActual(): string {
     const fechaNacimiento = this.personal.controls.fechaNacimiento.value;
@@ -143,11 +150,25 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     control?.updateValueAndValidity();
   }
   public agregarContactoEmergencia(nombre = '', parentesco = '', telefono = ''): void {
+    if (this.contactosEmergencia.length >= this.maxRegistrosComplementarios) return;
     this.contactosEmergencia.push(this.formBuilder.group({ nombre: [nombre], parentesco: [parentesco], telefono: [this.digitsOnly(telefono, 9), [Validators.required, Validators.pattern(this.phonePattern)]] }));
   }
 
   public eliminarContactoEmergencia(index: number): void {
     this.contactosEmergencia.removeAt(index);
+  }
+
+  public agregarDatosBancarios(cuentaBancaria = '', cci = '', entidadBancaria = ''): void {
+    if (this.datosBancarios.length >= this.maxRegistrosComplementarios) return;
+    this.datosBancarios.push(this.formBuilder.group({
+      cuentaBancaria: [this.digitsOnly(cuentaBancaria, 24), [Validators.required, Validators.pattern(this.bankAccountPattern)]],
+      cci: [this.digitsOnly(cci, 20), [Validators.required, Validators.pattern(this.cciPattern)]],
+      entidadBancaria: [entidadBancaria, Validators.required]
+    }));
+  }
+
+  public eliminarDatosBancarios(index: number): void {
+    this.datosBancarios.removeAt(index);
   }
 
   public onProfileImageSelected(event: Event): void {
@@ -302,6 +323,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     const contactosEmergencia = value.adicional.contactosEmergencia
       .map((contacto) => ({ nombre: contacto['nombre'] ?? '', parentesco: contacto['parentesco'] ?? '', telefono: contacto['telefono'] ?? '' }))
       .filter((contacto) => contacto.nombre || contacto.parentesco || contacto.telefono);
+    const datosBancarios: DatosBancarios[] = value.adicional.datosBancarios
+      .map((dato) => ({ cuentaBancaria: dato['cuentaBancaria'] ?? '', cci: dato['cci'] ?? '', entidadBancaria: dato['entidadBancaria'] ?? '' }));
     this.saveColaborador.emit({
       id: this.colaborador?.id ?? `nuevo-${Date.now()}`,
       imagen: this.profileImageChanged ? (this.profileImagePreviewUrl || this.defaultProfileImageUrl) : (this.colaborador?.imagen ?? this.defaultProfileImageUrl),
@@ -333,7 +356,10 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       gradoInstruccion: value.adicional.gradoInstruccion || '',
       lugarNacimiento: value.adicional.lugarNacimiento || '',
       tipoSangre: value.adicional.tipoSangre || '',
-      cuentaBancaria: value.adicional.cuentaBancaria || '',
+      cuentaBancaria: datosBancarios[0]?.cuentaBancaria ?? '',
+      cci: datosBancarios[0]?.cci ?? '',
+      entidadBancaria: datosBancarios[0]?.entidadBancaria ?? '',
+      datosBancarios,
       epsSeguro: value.adicional.epsSeguro || '',
       contactoEmergencia: contactosEmergencia[0] ? [contactosEmergencia[0].nombre, contactosEmergencia[0].parentesco, contactosEmergencia[0].telefono].filter(Boolean).join(' - ') : '',
       documentos: [
@@ -359,8 +385,11 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.profileImagePreviewUrl = colaborador.imagen;
     this.profileImageChanged = false;
     this.contactosEmergencia.clear();
+    this.datosBancarios.clear();
     const contactos = colaborador.contactosEmergencia ?? (colaborador.telefonoEmergencia ? [{ nombre: '', parentesco: '', telefono: colaborador.telefonoEmergencia }] : []);
     contactos.forEach((contacto) => this.agregarContactoEmergencia(contacto.nombre, contacto.parentesco ?? '', contacto.telefono));
+    const datosBancarios = colaborador.datosBancarios ?? (colaborador.cuentaBancaria ? [{ cuentaBancaria: colaborador.cuentaBancaria, cci: colaborador.cci ?? '', entidadBancaria: colaborador.entidadBancaria ?? '' }] : []);
+    datosBancarios.forEach((dato) => this.agregarDatosBancarios(dato.cuentaBancaria, dato.cci, dato.entidadBancaria));
     this.form.patchValue({
       personal: {
         nombre: colaborador.nombre,
@@ -390,7 +419,6 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         hijos: colaborador.hijos ?? '0',
         lugarNacimiento: colaborador.lugarNacimiento ?? '',
         tipoSangre: colaborador.tipoSangre ?? '',
-        cuentaBancaria: this.digitsOnly(colaborador.cuentaBancaria, 24),
         epsSeguro: colaborador.epsSeguro,
       },
       documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '' }
@@ -426,12 +454,13 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.profileImageChanged = false;
     this.documentDefinitions.forEach(({ key }) => this.removeDocument(key));
     this.contactosEmergencia.clear();
+    this.datosBancarios.clear();
     this.form.reset({
       personal: {
         nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', sexo: 'Masculino', fechaNacimiento: '', direccion: '', correo: '', telefono: '', estadoCivil: 'Soltero', camisa: 'M', pantalon: 'L', calzado: ''
       },
       laboral: { cargo: '', fechaIngreso: '', tipoContrato: 'Planilla - Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '', estado: 'Activo' },
-      adicional: { gradoInstruccion: '', hijos: '0', lugarNacimiento: '', tipoSangre: '', cuentaBancaria: '', epsSeguro: '', contactosEmergencia: [] },
+      adicional: { gradoInstruccion: '', hijos: '0', lugarNacimiento: '', tipoSangre: '', epsSeguro: '', datosBancarios: [], contactosEmergencia: [] },
       documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '' }
     });
   }
