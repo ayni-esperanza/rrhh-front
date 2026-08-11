@@ -82,9 +82,11 @@
 
           @if (currentStep === 1) {
             <section formGroupName="laboral" class="space-y-3">
-              <div><h3 class="text-sm font-bold text-slate-950 dark:text-white">Información laboral</h3><p class="text-xs text-slate-500 dark:text-slate-400">Puesto, contrato, jornada, estado y remuneración.</p></div>
+              <div><h3 class="text-sm font-bold text-slate-950 dark:text-white">Información laboral</h3><p class="text-xs text-slate-500 dark:text-slate-400">Puesto, área, formación, contrato, jornada, estado y remuneración.</p></div>
               <div class="grid gap-2.5 md:grid-cols-2">
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Cargo</span><app-select-searchable formControlName="cargo" [options]="cargoOptions" placeholder="Seleccionar cargo" searchPlaceholder="Buscar cargo..." buttonClass="field-input" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Área</span><app-select-searchable formControlName="area" [options]="areaOptions" placeholder="Seleccionar área" searchPlaceholder="Buscar área..." buttonClass="field-input" /></label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Grado de instrucción</span><app-select-searchable formControlName="gradoInstruccion" [options]="gradoInstruccionOptions" placeholder="Seleccionar grado" searchPlaceholder="Buscar grado..." buttonClass="field-input" /></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Fecha de ingreso</span><app-date-picker [value]="laboral.controls.fechaIngreso.value || ''" placeholder="dd/mm/aaaa" inputClass="field-input" [hasError]="fieldInvalid(laboral.controls.fechaIngreso)" (valueChange)="setControlDate(laboral.controls.fechaIngreso, $event)" /></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Tipo de contrato</span><app-select-searchable formControlName="tipoContrato" [options]="tipoContratoOptions" [allowEmpty]="false" searchPlaceholder="Buscar tipo..." buttonClass="field-input" /></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Jornada</span><app-select-searchable formControlName="jornada" [options]="['Tiempo completo', 'Medio tiempo', 'Turno nocturno']" [allowEmpty]="false" buttonClass="field-input" /></label>
@@ -98,7 +100,6 @@
             <section formGroupName="adicional" class="space-y-3">
               <div><h3 class="text-sm font-bold text-slate-950 dark:text-white">Información adicional</h3><p class="text-xs text-slate-500 dark:text-slate-400">Datos bancarios, seguro y contacto complementario.</p></div>
               <div class="grid gap-2.5 md:grid-cols-2">
-                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Grado de instrucción</span><app-select-searchable formControlName="gradoInstruccion" [options]="gradoInstruccionOptions" placeholder="Seleccionar grado" searchPlaceholder="Buscar grado..." buttonClass="field-input" /></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Hijos</span><input formControlName="hijos" type="number" min="0" class="field-input" placeholder="0" /></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Lugar de nacimiento</span><input formControlName="lugarNacimiento" class="field-input" placeholder="Ciudad, región" /></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Tipo de sangre</span><app-select-searchable formControlName="tipoSangre" [options]="['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']" placeholder="Seleccionar" buttonClass="field-input" /></label>

@@ -37,6 +37,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   ] as const;
   protected currentStep: ModalStep = 0;
   protected readonly cargoOptions = ['Técnico mecánico', 'Supervisora', 'Soldador', 'Operaria', 'Electricista', 'Administradora', 'Técnico de Mantenimiento', 'Analista de Recursos Humanos', 'Asistente administrativo'];
+  protected readonly areaOptions = ['Administración', 'Recursos Humanos', 'Operaciones', 'Producción', 'Mantenimiento', 'Logística', 'Seguridad y Salud en el Trabajo', 'Finanzas', 'Comercial'];
   public readonly tipoContratoOptions = ['Planilla - Indeterminado', 'Planilla - Plazo fijo', 'Planilla - Temporal', 'Servicio - Indeterminado', 'Servicio - Plazo fijo', 'Servicio - Temporal'];
   protected readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'];
   protected readonly seguroOptions = ['Rimac EPS', 'Pacífico EPS', 'SIS', 'EsSalud', 'Mapfre EPS', 'Sin seguro'];
@@ -84,6 +85,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     }),
     laboral: this.formBuilder.group({
       cargo: ['', Validators.required],
+      area: ['', Validators.required],
+      gradoInstruccion: ['', Validators.required],
       fechaIngreso: ['', Validators.required],
       tipoContrato: ['Planilla - Indeterminado', Validators.required],
       jornada: ['Tiempo completo', Validators.required],
@@ -91,7 +94,6 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       estado: ['Activo' as 'Activo' | 'Inactivo', Validators.required]
     }),
     adicional: this.formBuilder.group({
-      gradoInstruccion: ['', Validators.required],
       hijos: ['0', Validators.required],
       lugarNacimiento: ['', Validators.required],
       tipoSangre: ['', Validators.required],
@@ -336,6 +338,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       sexo: (value.personal.sexo || 'Masculino') as Colaborador['sexo'],
       hijos: value.adicional.hijos || '0',
       cargo: value.laboral.cargo || '',
+      area: value.laboral.area || '',
       telefono: value.personal.telefono || '',
       telefonoEmergencia: contactosEmergencia[0]?.telefono ?? '',
       contactosEmergencia,
@@ -353,7 +356,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       tipoContrato: value.laboral.tipoContrato || '',
       jornada: value.laboral.jornada || '',
       sueldoBasico: value.laboral.sueldoBasico || '',
-      gradoInstruccion: value.adicional.gradoInstruccion || '',
+      gradoInstruccion: value.laboral.gradoInstruccion || '',
       lugarNacimiento: value.adicional.lugarNacimiento || '',
       tipoSangre: value.adicional.tipoSangre || '',
       cuentaBancaria: datosBancarios[0]?.cuentaBancaria ?? '',
@@ -408,6 +411,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       },
       laboral: {
         cargo: colaborador.cargo,
+        area: colaborador.area ?? '',
+        gradoInstruccion: colaborador.gradoInstruccion,
         fechaIngreso: this.dateToInput(colaborador.fechaIngreso),
         tipoContrato: colaborador.tipoContrato,
         jornada: colaborador.jornada,
@@ -415,7 +420,6 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         estado: colaborador.estado
       },
       adicional: {
-        gradoInstruccion: colaborador.gradoInstruccion,
         hijos: colaborador.hijos ?? '0',
         lugarNacimiento: colaborador.lugarNacimiento ?? '',
         tipoSangre: colaborador.tipoSangre ?? '',
@@ -459,8 +463,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       personal: {
         nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', sexo: 'Masculino', fechaNacimiento: '', direccion: '', correo: '', telefono: '', estadoCivil: 'Soltero', camisa: 'M', pantalon: 'L', calzado: ''
       },
-      laboral: { cargo: '', fechaIngreso: '', tipoContrato: 'Planilla - Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '', estado: 'Activo' },
-      adicional: { gradoInstruccion: '', hijos: '0', lugarNacimiento: '', tipoSangre: '', epsSeguro: '', datosBancarios: [], contactosEmergencia: [] },
+      laboral: { cargo: '', area: '', gradoInstruccion: '', fechaIngreso: '', tipoContrato: 'Planilla - Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '', estado: 'Activo' },
+      adicional: { hijos: '0', lugarNacimiento: '', tipoSangre: '', epsSeguro: '', datosBancarios: [], contactosEmergencia: [] },
       documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '' }
     });
   }

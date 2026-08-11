@@ -9,6 +9,7 @@
   sexo?: 'Masculino' | 'Femenino' | 'No binario';
   hijos?: string;
   cargo: string;
+  area?: string;
   telefono?: string;
   telefonoEmergencia: string;
   contactosEmergencia?: ContactoEmergencia[];
