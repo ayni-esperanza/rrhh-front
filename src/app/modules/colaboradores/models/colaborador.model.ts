@@ -52,6 +52,7 @@ export interface DatosBancarios {
 export interface DocumentoColaborador {
   nombre: string;
   estado: 'Vigente' | 'Por vencer' | 'Vencido';
+  fechaVencimiento?: string;
 }
 
 export interface ColaboradorMetric {

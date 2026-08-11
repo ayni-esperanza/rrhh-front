@@ -34,6 +34,8 @@ export class ColaboradoresPageComponent {
 
       return matchesSearch
         && this.matchesFilter(colaborador.cargo, this.filters.cargo)
+        && this.matchesFilter(colaborador.area ?? '', this.filters.area)
+        && (!this.filters.documento || colaborador.documentos.some((documento) => documento.nombre === this.filters.documento))
         && this.matchesFilter(colaborador.estadoCivil, this.filters.estadoCivil)
         && this.matchesFilter(colaborador.estado, this.filters.estado)
         && this.matchesFilter(colaborador.sexo ?? '', this.filters.sexo)
@@ -87,6 +89,8 @@ export class ColaboradoresPageComponent {
     return {
       search: '',
       cargo: '',
+      area: '',
+      documento: '',
       estadoCivil: '',
       estado: '',
       sexo: '',

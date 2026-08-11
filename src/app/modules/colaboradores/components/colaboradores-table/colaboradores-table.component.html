@@ -15,8 +15,8 @@
           <th class="px-3 py-3">Apellido</th>
           <th class="px-3 py-3">DNI</th>
           <th class="px-3 py-3">Cargo</th>
-          <th class="px-3 py-3">Telefono de emergencia</th>
-          <th class="px-3 py-3">Estado civil</th>
+          <th class="px-3 py-3">Teléfono</th>
+          <th class="px-3 py-3">Área</th>
           <th class="px-3 py-3">Tallas</th>
           <th class="px-3 py-3">Estado</th>
           <th class="px-3 py-3 text-center">(click para ver mas)</th>
@@ -39,8 +39,8 @@
             <td class="px-3 py-2">{{ colaborador.apellido }}</td>
             <td class="px-3 py-2">{{ colaborador.dni }}</td>
             <td class="px-3 py-2">{{ colaborador.cargo }}</td>
-            <td class="px-3 py-2">{{ colaborador.telefonoEmergencia }}</td>
-            <td class="px-3 py-2">{{ colaborador.estadoCivil }}</td>
+            <td class="px-3 py-2">{{ colaborador.telefono || '—' }}</td>
+            <td class="px-3 py-2">{{ colaborador.area || '—' }}</td>
             <td class="px-3 py-2 leading-4">
               <div>M: Camisa</div>
               <div>L: Pantalon</div>
@@ -65,11 +65,26 @@
                   </section>
                   <section class="space-y-2 border-slate-200 dark:border-slate-800 xl:border-r xl:pr-4">
                     <h3 class="flex items-center gap-2 text-[11px] font-bold text-slate-900 dark:text-white"><span class="h-2 w-2 rounded-sm bg-blue-600"></span> Informacion laboral</h3>
-                    <div class="space-y-2 text-[11px]"><p><span class="block font-semibold text-slate-500">Fecha de ingreso</span>{{ colaborador.fechaIngreso }}</p><p><span class="block font-semibold text-slate-500">Tipo de contrato</span>{{ colaborador.tipoContrato }}</p><p><span class="block font-semibold text-slate-500">Jornada</span>{{ colaborador.jornada }}</p><p><span class="block font-semibold text-slate-500">Sueldo basico</span>{{ colaborador.sueldoBasico }}</p></div>
+                    <div class="space-y-2 text-[11px]"><p><span class="block font-semibold text-slate-500">Área</span>{{ colaborador.area || '—' }}</p><p><span class="block font-semibold text-slate-500">Grado de instrucción</span>{{ colaborador.gradoInstruccion }}</p><p><span class="block font-semibold text-slate-500">Fecha de ingreso</span>{{ colaborador.fechaIngreso }}</p><p><span class="block font-semibold text-slate-500">Tipo de contrato</span>{{ colaborador.tipoContrato }}</p><p><span class="block font-semibold text-slate-500">Jornada</span>{{ colaborador.jornada }}</p><p><span class="block font-semibold text-slate-500">Sueldo básico</span>{{ colaborador.sueldoBasico }}</p></div>
                   </section>
                   <section class="space-y-2 border-slate-200 dark:border-slate-800 xl:border-r xl:pr-4">
                     <h3 class="flex items-center gap-2 text-[11px] font-bold text-slate-900 dark:text-white"><span class="text-blue-600">i</span> Informacion adicional</h3>
-                    <div class="space-y-2 text-[11px]"><p><span class="block font-semibold text-slate-500">Grado de instruccion</span>{{ colaborador.gradoInstruccion }}</p><p><span class="block font-semibold text-slate-500">N de cuenta bancaria</span>{{ colaborador.cuentaBancaria }}</p><p><span class="block font-semibold text-slate-500">EPS / Seguro</span>{{ colaborador.epsSeguro }}</p><p><span class="block font-semibold text-slate-500">Contacto de emergencia</span>{{ colaborador.contactoEmergencia }}</p></div>
+                    <div class="space-y-2 text-[11px]">
+                      <p><span class="block font-semibold text-slate-500">Hijos</span>{{ colaborador.hijos || '0' }}</p>
+                      <p><span class="block font-semibold text-slate-500">Lugar de nacimiento</span>{{ colaborador.lugarNacimiento || '—' }}</p>
+                      <p><span class="block font-semibold text-slate-500">Tipo de sangre</span>{{ colaborador.tipoSangre || '—' }}</p>
+                      <p><span class="block font-semibold text-slate-500">EPS / Seguro</span>{{ colaborador.epsSeguro }}</p>
+                      <div><span class="block font-semibold text-slate-500">Datos bancarios</span>
+                        @if (colaborador.datosBancarios?.length) {
+                          <div class="mt-1 space-y-1.5">@for (dato of colaborador.datosBancarios; track $index) {<div class="rounded border border-slate-200 p-1.5 dark:border-slate-700"><p>{{ dato.entidadBancaria }}</p><p>Cuenta: {{ dato.cuentaBancaria }}</p><p>CCI: {{ dato.cci }}</p></div>}</div>
+                        } @else { <p>{{ colaborador.cuentaBancaria || '—' }}</p> }
+                      </div>
+                      <div><span class="block font-semibold text-slate-500">Contactos de emergencia</span>
+                        @if (colaborador.contactosEmergencia?.length) {
+                          <div class="mt-1 space-y-1">@for (contacto of colaborador.contactosEmergencia; track $index) {<p>{{ formatContactoEmergencia(contacto.nombre, contacto.parentesco, contacto.telefono) }}</p>}</div>
+                        } @else { <p>{{ colaborador.contactoEmergencia || '—' }}</p> }
+                      </div>
+                    </div>
                   </section>
                   <section class="space-y-2">
                     <h3 class="flex items-center gap-2 text-[11px] font-bold text-slate-900 dark:text-white"><span class="h-2 w-2 rounded-sm bg-blue-600"></span> Documentos</h3>
@@ -77,7 +92,7 @@
                       @for (documento of colaborador.documentos; track documento.nombre) {
                         <div class="flex items-center justify-between gap-4 text-[11px]">
                           <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>{{ documento.nombre }}</span>
-                          <span class="text-emerald-600 dark:text-emerald-300">{{ documento.estado }}</span>
+                          <span [class]="estadoDocumentoClase(documento)">{{ estadoDocumento(documento) }}</span>
                         </div>
                       }
                     </div>

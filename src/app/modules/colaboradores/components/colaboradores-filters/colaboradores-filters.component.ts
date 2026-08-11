@@ -5,6 +5,8 @@ import { SelectSearchableComponent } from '../../../../shared/components/select-
 export interface ColaboradoresFilterState {
   search: string;
   cargo: string;
+  area: string;
+  documento: string;
   estadoCivil: string;
   estado: string;
   sexo: string;
@@ -41,6 +43,12 @@ export class ColaboradoresFiltersComponent {
   public get cargoOptions(): string[] {
     return this.uniqueOptions('cargo');
   }
+  public get areaOptions(): string[] {
+    return this.uniqueOptions('area');
+  }
+  public get documentoOptions(): string[] {
+    return Array.from(new Set(this.colaboradores.flatMap((item) => item.documentos.map((document) => document.nombre)).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  }
 
   public get camisaOptions(): string[] {
     return this.uniqueTallaOptions('camisa');
@@ -76,6 +84,8 @@ export class ColaboradoresFiltersComponent {
     return {
       search: '',
       cargo: '',
+      area: '',
+      documento: '',
       estadoCivil: '',
       estado: '',
       sexo: '',

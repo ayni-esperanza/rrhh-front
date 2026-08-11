@@ -1,7 +1,7 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild } from '@angular/core';
 import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
-import { Colaborador } from '../../models/colaborador.model';
+import { Colaborador, DocumentoColaborador } from '../../models/colaborador.model';
 
 @Component({
   imports: [PaginacionComponent, SelectboxComponent],
@@ -100,6 +100,28 @@ export class ColaboradoresTableComponent {
   protected onRowClick(colaborador: Colaborador): void {
     if (this.ignoreNextRowAction) return;
     this.editColaborador.emit(colaborador);
+  }
+
+  protected formatContactoEmergencia(nombre: string, parentesco?: string, telefono?: string): string {
+    return [nombre, parentesco, telefono].filter(Boolean).join(' · ');
+  }
+
+  protected estadoDocumento(documento: DocumentoColaborador): DocumentoColaborador['estado'] {
+    if (!documento.fechaVencimiento) return documento.estado;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiration = new Date(`${documento.fechaVencimiento}T00:00:00`);
+    const daysRemaining = Math.ceil((expiration.getTime() - today.getTime()) / 86400000);
+
+    if (daysRemaining < 0) return 'Vencido';
+    if (daysRemaining <= 30) return 'Por vencer';
+    return 'Vigente';
+  }
+
+  protected estadoDocumentoClase(documento: DocumentoColaborador): string {
+    const status = this.estadoDocumento(documento);
+    return status === 'Vencido' ? 'text-rose-600 dark:text-rose-300' : status === 'Por vencer' ? 'text-amber-600 dark:text-amber-300' : 'text-emerald-600 dark:text-emerald-300';
   }
 
   @HostListener('document:mouseup')

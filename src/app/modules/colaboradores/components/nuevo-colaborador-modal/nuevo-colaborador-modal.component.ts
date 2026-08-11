@@ -36,6 +36,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     { label: 'Documentos', icon: 'M7 3h7l5 5v13H7a2 2 0 01-2-2V5a2 2 0 012-2zM14 3v6h5' }
   ] as const;
   protected currentStep: ModalStep = 0;
+  protected showStepErrors = false;
   protected readonly cargoOptions = ['Técnico mecánico', 'Supervisora', 'Soldador', 'Operaria', 'Electricista', 'Administradora', 'Técnico de Mantenimiento', 'Analista de Recursos Humanos', 'Asistente administrativo'];
   protected readonly areaOptions = ['Administración', 'Recursos Humanos', 'Operaciones', 'Producción', 'Mantenimiento', 'Logística', 'Seguridad y Salud en el Trabajo', 'Finanzas', 'Comercial'];
   public readonly tipoContratoOptions = ['Planilla - Indeterminado', 'Planilla - Plazo fijo', 'Planilla - Temporal', 'Servicio - Indeterminado', 'Servicio - Plazo fijo', 'Servicio - Temporal'];
@@ -49,7 +50,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     { key: 'antecedentes', label: 'Antecedentes' },
     { key: 'certificados', label: 'Certificados' }
   ];
-  public readonly documentFiles: Partial<Record<DocumentKey, UploadedDocument>> = {};
+  public readonly documentFiles: Partial<Record<string, UploadedDocument>> = {};
   public profileImagePreviewUrl = '';
   private profileImageChanged = false;
   private readonly defaultProfileImageUrl = 'https://i.pravatar.cc/96?img=5';
@@ -105,7 +106,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       dni: ['', Validators.required],
       curriculum: ['', Validators.required],
       antecedentes: ['', Validators.required],
-      certificados: ['', Validators.required]
+      certificados: ['', Validators.required],
+      personalizados: this.formBuilder.array<FormGroup>([])
     })
   });
   public ngOnChanges(changes: SimpleChanges): void {
@@ -194,6 +196,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   public get laboral() { return this.form.controls.laboral; }
   public get adicional() { return this.form.controls.adicional; }
   public get documentos() { return this.form.controls.documentos; }
+  public get documentosPersonalizados() { return this.documentos.controls.personalizados; }
 
   public fieldInvalid(control: AbstractControl | null): boolean {
     return !!control && control.invalid && (control.dirty || control.touched);
@@ -220,6 +223,38 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.syncSanitizedValue(input, control, sanitized);
   }
 
+  protected invalidFieldsCurrentStep(): string {
+    const fieldsByStep: ReadonlyArray<ReadonlyArray<{ label: string; control: AbstractControl }>> = [
+      [
+        { label: 'Nombre', control: this.personal.controls.nombre }, { label: 'Apellido paterno', control: this.personal.controls.apellidoPaterno }, { label: 'Apellido materno', control: this.personal.controls.apellidoMaterno }, { label: 'DNI', control: this.personal.controls.dni }, { label: 'Sexo', control: this.personal.controls.sexo }, { label: 'Fecha de nacimiento', control: this.personal.controls.fechaNacimiento }, { label: 'Dirección', control: this.personal.controls.direccion }, { label: 'Correo', control: this.personal.controls.correo }, { label: 'Teléfono', control: this.personal.controls.telefono }, { label: 'Estado civil', control: this.personal.controls.estadoCivil }, { label: 'Camisa', control: this.personal.controls.camisa }, { label: 'Pantalón', control: this.personal.controls.pantalon }, { label: 'Calzado', control: this.personal.controls.calzado }
+      ],
+      [
+        { label: 'Cargo', control: this.laboral.controls.cargo }, { label: 'Área', control: this.laboral.controls.area }, { label: 'Grado de instrucción', control: this.laboral.controls.gradoInstruccion }, { label: 'Fecha de ingreso', control: this.laboral.controls.fechaIngreso }, { label: 'Tipo de contrato', control: this.laboral.controls.tipoContrato }, { label: 'Jornada', control: this.laboral.controls.jornada }, { label: 'Sueldo básico', control: this.laboral.controls.sueldoBasico }, { label: 'Estado', control: this.laboral.controls.estado }
+      ],
+      [
+        { label: 'Hijos', control: this.adicional.controls.hijos }, { label: 'Lugar de nacimiento', control: this.adicional.controls.lugarNacimiento }, { label: 'Tipo de sangre', control: this.adicional.controls.tipoSangre }, { label: 'EPS / Seguro', control: this.adicional.controls.epsSeguro }
+      ],
+      this.documentDefinitions.map((document) => ({ label: `Fecha de vencimiento de ${document.label}`, control: this.documentos.controls[document.key] }))
+    ];
+    const labels = fieldsByStep[this.currentStep].filter(({ control }) => control.invalid).map(({ label }) => label);
+
+    if (this.currentStep === 2) {
+      this.datosBancarios.controls.forEach((control, index) => {
+        if (control.invalid) labels.push(`datos bancarios ${index + 1}`);
+      });
+      this.contactosEmergencia.controls.forEach((control, index) => {
+        if (control.invalid) labels.push(`contacto de emergencia ${index + 1}`);
+      });
+    }
+    if (this.currentStep === 3) {
+      this.documentosPersonalizados.controls.forEach((control, index) => {
+        if (control.invalid) labels.push(`documento personalizado ${index + 1}`);
+      });
+    }
+
+    return labels.join(', ');
+  }
+
   protected currentGroup() {
     return [this.personal, this.laboral, this.adicional, this.documentos][this.currentStep];
   }
@@ -228,7 +263,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.currentStep = step as ModalStep;
   }
 
-  public onFileSelected(event: Event, key: DocumentKey): void {
+  public onFileSelected(event: Event, key: string, control?: AbstractControl | null): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
 
@@ -236,15 +271,17 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
     this.removeDocument(key);
     this.documentFiles[key] = { file, url: URL.createObjectURL(file) };
+    control?.setValue(file.name);
+    control?.markAsTouched();
     input.value = '';
   }
 
-  public viewDocument(key: DocumentKey): void {
+  public viewDocument(key: string): void {
     const document = this.documentFiles[key];
     if (document) window.open(document.url, '_blank', 'noopener,noreferrer');
   }
 
-  public downloadDocument(key: DocumentKey): void {
+  public downloadDocument(key: string): void {
     const document = this.documentFiles[key];
     if (!document) return;
 
@@ -254,12 +291,27 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     anchor.click();
   }
 
-  public removeDocument(key: DocumentKey): void {
+  public removeDocument(key: string): void {
     const document = this.documentFiles[key];
     if (!document) return;
 
     URL.revokeObjectURL(document.url);
     delete this.documentFiles[key];
+  }
+
+  public agregarDocumentoPersonalizado(nombre = '', fechaVencimiento = '', archivo = ''): void {
+    this.documentosPersonalizados.push(this.formBuilder.group({
+      id: [`personalizado-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`],
+      nombre: [nombre, Validators.required],
+      fechaVencimiento: [fechaVencimiento, Validators.required],
+      archivo: [archivo, Validators.required]
+    }));
+  }
+
+  public eliminarDocumentoPersonalizado(index: number): void {
+    const document = this.documentosPersonalizados.at(index);
+    this.removeDocument(document.controls['id'].value ?? '');
+    this.documentosPersonalizados.removeAt(index);
   }
 
   public documentStatus(key: DocumentKey): DocumentStatus | 'Sin fecha' {
@@ -269,6 +321,11 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       return this.colaborador?.documentos.find((item) => item.nombre === label)?.estado ?? 'Sin fecha';
     }
 
+    return this.documentStatusByExpiration(expirationDate);
+  }
+
+  public documentStatusByExpiration(expirationDate: string): DocumentStatus | 'Sin fecha' {
+    if (!expirationDate) return 'Sin fecha';
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expiration = new Date(`${expirationDate}T00:00:00`);
@@ -297,17 +354,20 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   protected nextStep(): void {
     const group = this.currentGroup();
     group.markAllAsTouched();
+    this.showStepErrors = true;
 
     if (group.invalid) {
       return;
     }
 
+    this.showStepErrors = false;
     if (this.currentStep < 3) {
       this.currentStep = (this.currentStep + 1) as ModalStep;
     }
   }
 
   protected previousStep(): void {
+    this.showStepErrors = false;
     if (this.currentStep > 0) {
       this.currentStep = (this.currentStep - 1) as ModalStep;
     }
@@ -366,10 +426,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       epsSeguro: value.adicional.epsSeguro || '',
       contactoEmergencia: contactosEmergencia[0] ? [contactosEmergencia[0].nombre, contactosEmergencia[0].parentesco, contactosEmergencia[0].telefono].filter(Boolean).join(' - ') : '',
       documentos: [
-        { nombre: 'DNI', estado: this.documentStatus('dni') as DocumentStatus },
-        { nombre: 'Curriculum', estado: this.documentStatus('curriculum') as DocumentStatus },
-        { nombre: 'Antecedentes', estado: this.documentStatus('antecedentes') as DocumentStatus },
-        { nombre: 'Certificados', estado: this.documentStatus('certificados') as DocumentStatus }
+        ...this.documentDefinitions.map((document) => ({ nombre: document.label, estado: this.documentStatus(document.key) as DocumentStatus, fechaVencimiento: value.documentos[document.key] || undefined })),
+        ...value.documentos.personalizados.map((document) => ({ nombre: document['nombre'] ?? '', estado: this.documentStatusByExpiration(document['fechaVencimiento'] ?? '') as DocumentStatus, fechaVencimiento: document['fechaVencimiento'] ?? undefined }))
       ]
     });
 
@@ -389,10 +447,15 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.profileImageChanged = false;
     this.contactosEmergencia.clear();
     this.datosBancarios.clear();
+    this.documentosPersonalizados.clear();
     const contactos = colaborador.contactosEmergencia ?? (colaborador.telefonoEmergencia ? [{ nombre: '', parentesco: '', telefono: colaborador.telefonoEmergencia }] : []);
     contactos.forEach((contacto) => this.agregarContactoEmergencia(contacto.nombre, contacto.parentesco ?? '', contacto.telefono));
     const datosBancarios = colaborador.datosBancarios ?? (colaborador.cuentaBancaria ? [{ cuentaBancaria: colaborador.cuentaBancaria, cci: colaborador.cci ?? '', entidadBancaria: colaborador.entidadBancaria ?? '' }] : []);
     datosBancarios.forEach((dato) => this.agregarDatosBancarios(dato.cuentaBancaria, dato.cci, dato.entidadBancaria));
+    const predefinedDocumentNames = new Set(this.documentDefinitions.map((document) => document.label));
+    colaborador.documentos
+      .filter((document) => !predefinedDocumentNames.has(document.nombre))
+      .forEach((document) => this.agregarDocumentoPersonalizado(document.nombre, this.dateToInput(document.fechaVencimiento ?? ''), document.nombre));
     this.form.patchValue({
       personal: {
         nombre: colaborador.nombre,
@@ -403,7 +466,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         fechaNacimiento: this.dateToInput(colaborador.fechaNacimiento),
         direccion: colaborador.direccion,
         correo: colaborador.correo,
-        telefono: this.digitsOnly(colaborador.telefono ?? '', 9),
+        telefono: this.digitsOnly(colaborador.telefono ?? colaborador.telefonoEmergencia, 9),
         estadoCivil: colaborador.estadoCivil,
         camisa: colaborador.tallas.camisa,
         pantalon: colaborador.tallas.pantalon,
@@ -453,10 +516,12 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
   private reset(): void {
     this.currentStep = 0;
+    this.showStepErrors = false;
     this.revokeProfileImagePreview();
     this.profileImagePreviewUrl = '';
     this.profileImageChanged = false;
     this.documentDefinitions.forEach(({ key }) => this.removeDocument(key));
+    this.documentosPersonalizados.clear();
     this.contactosEmergencia.clear();
     this.datosBancarios.clear();
     this.form.reset({
@@ -465,7 +530,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       },
       laboral: { cargo: '', area: '', gradoInstruccion: '', fechaIngreso: '', tipoContrato: 'Planilla - Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '', estado: 'Activo' },
       adicional: { hijos: '0', lugarNacimiento: '', tipoSangre: '', epsSeguro: '', datosBancarios: [], contactosEmergencia: [] },
-      documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '' }
+      documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '', personalizados: [] }
     });
   }
 
