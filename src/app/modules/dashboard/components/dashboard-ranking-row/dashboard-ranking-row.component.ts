@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Color, NgxChartsModule, ScaleType } from '@swimlane/ngx-charts';
 
 @Component({
   selector: 'app-dashboard-ranking-row',
-  imports: [NgxChartsModule],
+  imports: [NgxChartsModule, RouterLink],
   templateUrl: './dashboard-ranking-row.component.html'
 })
 export class DashboardRankingRowComponent {
