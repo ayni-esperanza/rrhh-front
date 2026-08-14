@@ -85,6 +85,18 @@ export class DatePickerComponent implements AfterViewInit, OnChanges, OnDestroy 
   private readonly isBrowser: boolean;
   private readonly calendarIconDataUri = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280' stroke-width='1.8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z'/%3E%3C/svg%3E\")";
   private readonly clockIconDataUri = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M12 7v5l3 2'/%3E%3C/svg%3E\")";
+  private repositionFrame: number | null = null;
+  private readonly handleDocumentScroll = (event: Event): void => {
+    if (!this.fp?.isOpen || !this.isBrowser) return;
+    const target = event.target;
+    if (target instanceof Node && this.fp.calendarContainer?.contains(target)) return;
+
+    if (this.repositionFrame !== null) cancelAnimationFrame(this.repositionFrame);
+    this.repositionFrame = requestAnimationFrame(() => {
+      this.fp?._positionCalendar?.();
+      this.repositionFrame = null;
+    });
+  };
 
   constructor(
     @Inject(PLATFORM_ID) platformId: object,
@@ -139,6 +151,7 @@ export class DatePickerComponent implements AfterViewInit, OnChanges, OnDestroy 
       this.fp = instance;
       this.fp.calendarContainer?.classList.add('ayni-date-picker-compact');
       this.actualizarAparienciaInput();
+      document.addEventListener('scroll', this.handleDocumentScroll, true);
     }).catch((error: unknown) => {
       if (!this.destroyed) console.error('No se pudo inicializar el selector de fecha.', error);
     });
@@ -272,6 +285,8 @@ export class DatePickerComponent implements AfterViewInit, OnChanges, OnDestroy 
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    if (this.isBrowser) document.removeEventListener('scroll', this.handleDocumentScroll, true);
+    if (this.repositionFrame !== null) cancelAnimationFrame(this.repositionFrame);
 
     const instance = this.fp;
     this.fp = undefined;

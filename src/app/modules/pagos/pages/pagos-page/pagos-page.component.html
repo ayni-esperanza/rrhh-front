@@ -4,6 +4,6 @@
   </header>
 
   <app-pagos-metrics [metrics]="metrics" />
-  <app-pagos-filters />
-  <app-pagos-table [pagos]="pagos" />
+  <app-pagos-filters [pagos]="pagos" (filtersChange)="updateFilters($event)" />
+  <app-pagos-table [pagos]="filteredPagos" [periodLabel]="periodLabel" />
 </section>

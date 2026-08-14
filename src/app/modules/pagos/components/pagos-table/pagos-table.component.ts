@@ -1,5 +1,5 @@
 ﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnChanges } from '@angular/core';
 import { PagoColaborador, PagoMes } from '../../models/pago.model';
 import { DetallePagoModalComponent } from '../detalle-pago-modal/detalle-pago-modal.component';
 
@@ -8,8 +8,9 @@ import { DetallePagoModalComponent } from '../detalle-pago-modal/detalle-pago-mo
   imports: [DetallePagoModalComponent, PaginacionComponent],
   templateUrl: './pagos-table.component.html'
 })
-export class PagosTableComponent {
+export class PagosTableComponent implements OnChanges {
   @Input({ required: true }) pagos: PagoColaborador[] = [];
+  @Input() periodLabel = '';
   protected expandedId: number | null = null;
   protected selectedPago: PagoColaborador | null = null;
   protected isDetalleOpen = false;
@@ -17,6 +18,11 @@ export class PagosTableComponent {
   protected togglePago(id: number): void { this.expandedId = this.expandedId === id ? null : id; }
   protected openDetalle(pago: PagoColaborador): void { this.selectedPago = pago; this.isDetalleOpen = true; }
   protected closeDetalle(): void { this.isDetalleOpen = false; }
+
+  ngOnChanges(): void {
+    const lastPage = Math.max(0, Math.ceil(this.pagos.length / this.porPagina) - 1);
+    this.paginaActual = Math.min(this.paginaActual, lastPage);
+  }
 
   protected estadoClasses(estado: PagoMes['estado']): string {
     const classes = { Pagado: 'text-emerald-600 dark:text-emerald-300', Abonado: 'text-orange-600 dark:text-orange-300', Pendiente: 'text-red-600 dark:text-red-300' };

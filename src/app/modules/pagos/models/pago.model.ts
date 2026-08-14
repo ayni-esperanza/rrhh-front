@@ -10,6 +10,7 @@ export interface PagoColaborador {
   id: number;
   nombre: string;
   cargo: string;
+  area: string;
   avatar: string;
   montoMensual: string;
   fechaPago: string;

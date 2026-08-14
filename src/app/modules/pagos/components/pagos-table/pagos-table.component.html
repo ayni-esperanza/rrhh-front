@@ -1,6 +1,6 @@
 ﻿<section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
   <header class="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-    <h2 class="text-sm font-bold text-slate-950 dark:text-white">Historial de pagos <span class="font-semibold text-slate-500">(Mayo 2025)</span></h2>
+    <h2 class="text-sm font-bold text-slate-950 dark:text-white">Historial de pagos <span class="font-semibold text-slate-500">({{ periodLabel }})</span></h2>
     <div class="flex flex-wrap gap-3 text-[11px] font-semibold text-slate-600 dark:text-slate-300"><span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Pagado</span><span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-orange-500"></span>Abonado</span><span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-red-500"></span>Pendiente</span></div>
   </header>
   <div class="overflow-x-auto">
@@ -40,6 +40,8 @@
               </td>
             </tr>
           }
+        } @empty {
+          <tr><td colspan="16" class="px-4 py-12 text-center"><p class="font-semibold text-slate-700 dark:text-slate-200">No se encontraron pagos</p><p class="mt-1 text-[11px] text-slate-500">Prueba ajustando la búsqueda, las fechas o los filtros.</p></td></tr>
         }
       </tbody>
     </table>
