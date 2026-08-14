@@ -3,7 +3,13 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, EventEmitter, forwardRef, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 
-export type SelectSearchableOption = string | number | { value: unknown; label: string };
+export interface SelectSearchableRichOption {
+  value: unknown;
+  label: string;
+  color?: string;
+}
+
+export type SelectSearchableOption = string | number | SelectSearchableRichOption;
 
 @Component({
   selector: 'app-select-searchable',
@@ -26,7 +32,10 @@ export type SelectSearchableOption = string | number | { value: unknown; label: 
         [disabled]="disabled"
         (click)="toggleDropdown()"
         [class]="buttonBaseClass + ' ' + resolvedButtonClass">
-        <span class="block min-w-0 flex-1 truncate pr-6" [ngClass]="selectedLabel ? '' : 'text-gray-500 dark:text-gray-300'">{{ selectedLabel || placeholder }}</span>
+        <span class="flex min-w-0 flex-1 items-center gap-2 pr-6" [ngClass]="selectedLabel ? '' : 'text-gray-500 dark:text-gray-300'">
+          <span *ngIf="selectedColor" class="h-2.5 w-2.5 shrink-0 rounded-full border border-black/15 shadow-sm dark:border-white/25" [style.backgroundColor]="selectedColor"></span>
+          <span class="min-w-0 truncate">{{ selectedLabel || placeholder }}</span>
+        </span>
         <svg
           class="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 shrink-0 text-gray-500 transition-transform duration-200 dark:text-gray-300"
           [ngClass]="{ 'rotate-180': isOpen }"
@@ -77,6 +86,7 @@ export type SelectSearchableOption = string | number | { value: unknown; label: 
               type="button"
               (click)="seleccionar(getOptionValue(option))"
               class="flex w-full items-center px-2 py-1 text-left text-[11px] leading-4 text-gray-700 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-700">
+              <span *ngIf="getOptionColor(option)" class="mr-2 h-2.5 w-2.5 shrink-0 rounded-full border border-black/15 shadow-sm dark:border-white/25" [style.backgroundColor]="getOptionColor(option)"></span>
               <span class="truncate">{{ getOptionLabel(option) }}</span>
             </button>
 
@@ -157,6 +167,12 @@ export class SelectSearchableComponent implements ControlValueAccessor, OnChange
     return match !== undefined ? this.getOptionLabel(match) : String(this.value || '');
   }
 
+  get selectedColor(): string {
+    if (this.value === null || this.value === undefined || this.valuesEqual(this.value, this.emptyValue)) return '';
+    const match = this.options.find((option) => this.valuesEqual(this.getOptionValue(option), this.value));
+    return match === undefined ? '' : this.getOptionColor(match);
+  }
+
   toggleDropdown(): void {
     if (this.disabled) return;
 
@@ -215,6 +231,10 @@ export class SelectSearchableComponent implements ControlValueAccessor, OnChange
 
   getOptionValue(option: SelectSearchableOption): unknown {
     return typeof option === 'object' && option !== null ? (option.value ?? null) : option;
+  }
+
+  getOptionColor(option: SelectSearchableOption): string {
+    return typeof option === 'object' && option !== null ? String(option.color ?? '') : '';
   }
 
   readonly trackByOption = (_index: number, option: SelectSearchableOption): string => {
