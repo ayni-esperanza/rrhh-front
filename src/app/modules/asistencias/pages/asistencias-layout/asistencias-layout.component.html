@@ -2,6 +2,10 @@
   <header class="flex min-h-9 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <h1 class="text-xl font-bold text-slate-950 dark:text-white">Asistencias</h1>
     <div class="flex flex-wrap items-center gap-2">
+      <button class="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white" type="button" title="Configurar pagos especiales" (click)="openHorasExtrasConfig()">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3V9.6h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.15.37.4.7.72.94.3.23.68.36 1.07.37H21v4h-.09A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+        Pagos especiales · HE +{{ incrementoHorasExtras }}%
+      </button>
       <button class="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white" type="button">
         <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.2 6.5"/><path d="M3 12A9 9 0 0 1 18.2 5.5"/><path d="M18 2v4h-4"/><path d="M6 22v-4h4"/></svg>
         Sincronizar con huelleros
@@ -79,3 +83,56 @@
     @case ('lugar-trabajo') { <app-lugar-trabajo-page [filters]="filters" /> }
   }
 </section>
+
+@if (isHorasExtrasConfigOpen) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="horas-extras-config-title" (click)="closeHorasExtrasConfig()">
+    <section class="max-h-[calc(100vh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-2xl dark:bg-slate-900" (click)="$event.stopPropagation()">
+      <header class="flex items-start justify-between gap-3">
+        <div>
+          <h2 id="horas-extras-config-title" class="text-base font-bold text-slate-950 dark:text-white">Pagos especiales de asistencia</h2>
+          <p class="mt-1 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">Configura cómo se calcularán las horas extras y los feriados trabajados.</p>
+        </div>
+        <button class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white" type="button" aria-label="Cerrar configuración" (click)="closeHorasExtrasConfig()"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      </header>
+
+      <div class="mt-5 space-y-3">
+        <h3 class="text-xs font-bold text-slate-900 dark:text-white">Horas extras</h3>
+        <label class="block space-y-1.5">
+          <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Incremento por hora extra</span>
+          <span class="relative block"><input class="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-sm font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:focus:ring-blue-500/20" type="number" min="0" max="500" step="1" [(ngModel)]="incrementoHorasExtrasDraft" /><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">%</span></span>
+        </label>
+        <div class="rounded-lg bg-blue-50 p-3 text-[11px] text-blue-800 dark:bg-blue-500/10 dark:text-blue-200">Si la hora regular vale S/ 10.00, cada hora extra se pagará a <strong>{{ pagoHoraExtraEjemplo }}</strong>.</div>
+      </div>
+
+      <div class="mt-5 space-y-3 border-t border-slate-200 pt-5 dark:border-slate-800">
+        <div><h3 class="text-xs font-bold text-slate-900 dark:text-white">Feriado trabajado</h3><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Elige si se calcula desde la remuneración total o mediante un monto independiente.</p></div>
+        <label class="block space-y-1.5">
+          <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Método de cálculo</span>
+          <select class="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:focus:ring-blue-500/20" [ngModel]="feriadoTipoDraft" (ngModelChange)="setFeriadoTipo($event)">
+            <option value="porcentaje">Porcentaje adicional sobre el pago diario</option>
+            <option value="multiplicador">Multiplicador del pago diario</option>
+            <option value="monto-fijo">Monto fijo independiente por día</option>
+          </select>
+        </label>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block space-y-1.5">
+            <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">@if (feriadoTipoDraft === 'porcentaje') { Porcentaje adicional } @else if (feriadoTipoDraft === 'multiplicador') { Multiplicador } @else { Pago fijo por día }</span>
+            <span class="relative block"><input class="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 pr-12 text-sm font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:focus:ring-blue-500/20" type="number" min="0" [max]="feriadoTipoDraft === 'monto-fijo' ? 100000 : 500" [step]="feriadoTipoDraft === 'multiplicador' ? 0.1 : 1" [(ngModel)]="feriadoValorDraft" /><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-500">@if (feriadoTipoDraft === 'porcentaje') { % } @else if (feriadoTipoDraft === 'multiplicador') { veces } @else { S/ }</span></span>
+          </label>
+          @if (feriadoTipoDraft !== 'monto-fijo') {
+            <label class="block space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Divisor de remuneración</span><span class="relative block"><input class="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 pr-12 text-sm font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:focus:ring-blue-500/20" type="number" min="1" max="31" step="1" [(ngModel)]="feriadoDiasBaseDraft" /><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-500">días</span></span></label>
+            <label class="block space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Horas de la jornada</span><span class="relative block"><input class="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 pr-12 text-sm font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:focus:ring-blue-500/20" type="number" min="1" max="24" step="0.5" [(ngModel)]="feriadoHorasJornadaDraft" /><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-500">horas</span></span></label>
+          }
+        </div>
+
+        <div class="rounded-lg bg-amber-50 p-3 text-[11px] text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">Con una remuneración total de S/ 1,500.00, el feriado trabajado se pagará a <strong>{{ pagoFeriadoEjemplo }}</strong>.</div>
+      </div>
+
+      <footer class="mt-5 flex justify-end gap-2">
+        <button class="h-9 rounded-lg border border-slate-200 px-4 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800" type="button" (click)="closeHorasExtrasConfig()">Cancelar</button>
+        <button class="h-9 rounded-lg bg-[#22C55E] px-4 text-[11px] font-bold text-white shadow-sm transition hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50" type="button" [disabled]="!configuracionPagosValida" (click)="saveHorasExtrasConfig()">Guardar configuración</button>
+      </footer>
+    </section>
+  </div>
+}

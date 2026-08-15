@@ -6,6 +6,7 @@ import { AsistenciaCelda, AsistenciaFilters, AsistenciaSemana } from '../../mode
 import { AsistenciasService } from '../../services/asistencias.service';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
+import { ConfiguracionHorasExtrasService } from '../../services/configuracion-horas-extras.service';
 
 @Component({
   selector: 'app-horas-dia-page',
@@ -25,6 +26,7 @@ import { SelectSearchableComponent } from '../../../../shared/components/select-
             </button>
             <span class="absolute right-0 z-20 mt-2 hidden w-80 gap-2 rounded-lg border border-slate-200 bg-white p-3 text-[11px] font-semibold text-slate-700 shadow-xl group-hover:grid group-focus-within:grid dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 sm:grid-cols-2">
               <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#ff0000]"></span>Feriados</span>
+              <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-emerald-400"></span>Feriado trabajado</span>
 
               <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#00ff00]"></span>Vacaciones</span>
               <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full bg-[#806000]"></span>Renuncia</span>
@@ -45,6 +47,9 @@ import { SelectSearchableComponent } from '../../../../shared/components/select-
           <label class="w-full space-y-1 sm:w-56"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">Tipo de registro</span><app-select-searchable [value]="bulkTipoRegistro" [options]="tipoRegistroOptions" placeholder="Seleccionar tipo" [allowEmpty]="false" buttonClass="h-9 w-full rounded-md border border-blue-200 bg-white px-3 text-[11px] font-bold text-slate-700 dark:border-blue-500/30 dark:bg-slate-950 dark:text-slate-200" (valueChange)="setBulkTipoRegistro($any($event))" /></label>
           @if (bulkTipoRegistro === 'Horas extras') {
             <label class="w-full space-y-1 sm:w-44"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">Cantidad de horas extras</span><app-select-searchable [value]="bulkHorasExtras" [options]="horasExtrasOptions" placeholder="Seleccionar cantidad" [allowEmpty]="false" buttonClass="h-9 w-full rounded-md border border-emerald-200 bg-white px-3 text-[11px] font-bold text-emerald-700 dark:border-emerald-500/30 dark:bg-slate-950 dark:text-emerald-300" (valueChange)="bulkHorasExtras = $any($event)" /></label>
+          }
+          @if (bulkTipoRegistro === 'Feriados') {
+            <label class="flex h-9 cursor-pointer items-center gap-2 self-end rounded-md border border-red-200 bg-white px-3 text-[11px] font-bold text-red-700 dark:border-red-500/30 dark:bg-slate-950 dark:text-red-300"><app-selectbox [checked]="bulkFeriadoTrabajado" ariaLabel="Marcar como feriado trabajado" (checkedChange)="bulkFeriadoTrabajado = $event" />Feriado trabajado</label>
           }
           <button class="h-9 rounded-md bg-blue-600 px-4 text-[11px] font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50" type="button" [disabled]="!bulkTipoRegistro || (bulkTipoRegistro === 'Horas extras' && !bulkHorasExtras)" (click)="applyBulkTipoRegistro()">Aplicar</button>
           <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-blue-200 bg-white text-slate-600 transition hover:text-rose-600 dark:border-blue-500/30 dark:bg-slate-950 dark:text-slate-300" type="button" aria-label="Cancelar selección" title="Cancelar selección" (click)="selectedIds.clear()"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
@@ -78,6 +83,7 @@ export class HorasDiaPageComponent {
   @Input() filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
 
   protected readonly semana = inject(AsistenciasService).getMes();
+  private readonly configuracionPagosService = inject(ConfiguracionHorasExtrasService);
   protected readonly dias = this.semana[0]?.dias ?? [];
   protected isEditModalOpen = false;
   protected selectedRegistro: AsistenciaRegistroEdicion | null = null;
@@ -88,6 +94,7 @@ export class HorasDiaPageComponent {
   protected selectedIds = new Set<number>();
   protected bulkTipoRegistro = '';
   protected bulkHorasExtras = '';
+  protected bulkFeriadoTrabajado = false;
   protected readonly tipoRegistroOptions = ['Horas normales', 'Horas extras', 'Feriados', 'Permiso', 'Vacaciones', 'Renuncia', 'Falta', 'Descanso medico', 'Mater/Pater', 'Proyecto temp.', 'Estudio', 'Descanso por h. extras', 'Cumpleaños', 'No esta en la emp.'];
   protected readonly horasExtrasOptions = ['+30m', '+1h', '+1h 30m', '+2h', '+2h 30m', '+3h', '+4h'];
   private rowSelectionActive = false;
@@ -166,8 +173,9 @@ export class HorasDiaPageComponent {
       entradaAlmuerzo: blocked ? '-' : '01:00 PM',
       salidaAlmuerzo: blocked ? '-' : '02:00 PM',
       horasNormales: blocked ? '-' : dia.valor,
-      horasExtras: dia.detalle ?? '-',
+      horasExtras: dia.tipo === 'extra' ? dia.detalle ?? '-' : '-',
       tipoRegistro: this.tipoRegistroLabel(dia),
+      feriadoTrabajado: dia.tipo === 'feriado-trabajado',
       estado: dia.tipo === 'falta' ? 'Incompleto' : 'Completo',
       lugar: item.id % 2 === 0 ? 'Sucursal Sur' : 'Planta Principal - Linea de Produccion'
     };
@@ -225,13 +233,15 @@ export class HorasDiaPageComponent {
   protected setBulkTipoRegistro(value: string): void {
     this.bulkTipoRegistro = value;
     if (value !== 'Horas extras') this.bulkHorasExtras = '';
+    if (value !== 'Feriados') this.bulkFeriadoTrabajado = false;
   }
 
   protected applyBulkTipoRegistro(): void {
     if (!this.bulkTipoRegistro || (this.bulkTipoRegistro === 'Horas extras' && !this.bulkHorasExtras)) return;
     this.semana.filter(({ id }) => this.selectedIds.has(id)).forEach((item) => {
       this.visibleItemDias(item).forEach((dia) => {
-        const updatedDia = this.diaFromRegistro({ tipoRegistro: this.bulkTipoRegistro, horasExtras: this.bulkHorasExtras, entrada: '08:00', salida: '17:15' } as AsistenciaRegistroEdicion);
+        const horasRegistradas = this.isWorkedDay(dia) ? dia.valor : '8h';
+        const updatedDia = this.diaFromRegistro({ tipoRegistro: this.bulkTipoRegistro, feriadoTrabajado: this.bulkFeriadoTrabajado, horasNormales: horasRegistradas, horasExtras: this.bulkHorasExtras, entrada: '08:00', salida: '17:15' } as AsistenciaRegistroEdicion);
         dia.tipo = updatedDia.tipo;
         dia.valor = updatedDia.valor;
         if (updatedDia.detalle) dia.detalle = updatedDia.detalle;
@@ -241,6 +251,7 @@ export class HorasDiaPageComponent {
     this.selectedIds.clear();
     this.bulkTipoRegistro = '';
     this.bulkHorasExtras = '';
+    this.bulkFeriadoTrabajado = false;
   }
 
   protected beginRowSelection(event: MouseEvent, itemId: number): void {
@@ -269,6 +280,7 @@ export class HorasDiaPageComponent {
       normal: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300',
       extra: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
       feriado: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300',
+      'feriado-trabajado': 'bg-red-50 text-red-700 ring-1 ring-inset ring-emerald-400 dark:bg-red-500/10 dark:text-red-300',
       permiso: 'bg-blue-50 text-blue-900 dark:bg-blue-500/10 dark:text-blue-300',
 
       vacaciones: 'bg-green-50 text-green-700 dark:bg-green-500/10 dark:text-green-300',
@@ -290,7 +302,7 @@ export class HorasDiaPageComponent {
   }
 
   private isWorkedDay(dia: AsistenciaCelda): boolean {
-    return dia.tipo === 'normal' || dia.tipo === 'extra';
+    return dia.tipo === 'normal' || dia.tipo === 'extra' || dia.tipo === 'feriado-trabajado';
   }
 
   private tipoRegistroLabel(dia: AsistenciaCelda): string {
@@ -298,6 +310,7 @@ export class HorasDiaPageComponent {
       normal: 'Horas normales',
       extra: 'Horas extras',
       feriado: 'Feriados',
+      'feriado-trabajado': 'Feriados',
       permiso: 'Permiso',
 
       vacaciones: 'Vacaciones',
@@ -317,6 +330,9 @@ export class HorasDiaPageComponent {
   private diaFromRegistro(registro: AsistenciaRegistroEdicion): Pick<AsistenciaCelda, 'tipo' | 'valor' | 'detalle'> {
     const normalHours = registro.horasNormales && registro.horasNormales !== '-' ? registro.horasNormales : '8h';
     const extraDetail = registro.horasExtras && registro.horasExtras !== '-' && registro.horasExtras !== 'Tarde' ? registro.horasExtras : '+1h';
+    if (registro.tipoRegistro === 'Feriados' && registro.feriadoTrabajado) {
+      return { tipo: 'feriado-trabajado', valor: normalHours, detalle: this.configuracionPagosService.getEtiquetaPagoFeriado() };
+    }
     const types: Record<string, Pick<AsistenciaCelda, 'tipo' | 'valor' | 'detalle'>> = {
       'Horas normales': { tipo: 'normal', valor: normalHours },
       'Horas extras': { tipo: 'extra', valor: normalHours, detalle: extraDetail },

@@ -1,24 +1,37 @@
 ﻿import { Component, inject } from '@angular/core';
 import { AsistenciaFilters, AsistenciaMetric } from '../../models/asistencia.model';
+import { HostListener } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { AsistenciasService } from '../../services/asistencias.service';
 import { EntradaSalidaPageComponent } from '../entrada-salida-page/entrada-salida-page.component';
 import { HorasDiaPageComponent } from '../horas-dia-page/horas-dia-page.component';
 import { LugarTrabajoPageComponent } from '../lugar-trabajo-page/lugar-trabajo-page.component';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
+import { ConfiguracionFeriadoTrabajado, ConfiguracionHorasExtrasService, TipoPagoFeriado } from '../../services/configuracion-horas-extras.service';
 
 type AsistenciaTab = 'horas-dia' | 'entrada-salida' | 'lugar-trabajo';
 
 @Component({
   selector: 'app-asistencias-layout',
-  imports: [HorasDiaPageComponent, EntradaSalidaPageComponent, LugarTrabajoPageComponent, DatePickerComponent],
+  imports: [HorasDiaPageComponent, EntradaSalidaPageComponent, LugarTrabajoPageComponent, DatePickerComponent, FormsModule],
   templateUrl: './asistencias-layout.component.html'
 })
 export class AsistenciasLayoutComponent {
+  private readonly configuracionHorasExtrasService = inject(ConfiguracionHorasExtrasService);
+  private readonly configuracionInicial = this.configuracionHorasExtrasService.getConfiguracion();
   protected readonly metrics = inject(AsistenciasService).getMetrics();
   protected readonly monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   private readonly shortMonthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   protected activeTab: AsistenciaTab = 'horas-dia';
   protected filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
+  protected isHorasExtrasConfigOpen = false;
+  protected incrementoHorasExtras = this.configuracionInicial.incrementoPorcentual;
+  protected incrementoHorasExtrasDraft = this.incrementoHorasExtras;
+  protected configuracionFeriado = { ...this.configuracionInicial.feriado };
+  protected feriadoTipoDraft: TipoPagoFeriado = this.configuracionFeriado.tipo;
+  protected feriadoValorDraft = this.configuracionFeriado.valor;
+  protected feriadoDiasBaseDraft = this.configuracionFeriado.diasBase;
+  protected feriadoHorasJornadaDraft = this.configuracionFeriado.horasJornada;
 
 
   protected get monthPickerValue(): string {
@@ -43,6 +56,64 @@ export class AsistenciasLayoutComponent {
 
   protected setActiveTab(tab: AsistenciaTab): void {
     this.activeTab = tab;
+  }
+
+  protected openHorasExtrasConfig(): void {
+    this.incrementoHorasExtrasDraft = this.incrementoHorasExtras;
+    this.feriadoTipoDraft = this.configuracionFeriado.tipo;
+    this.feriadoValorDraft = this.configuracionFeriado.valor;
+    this.feriadoDiasBaseDraft = this.configuracionFeriado.diasBase;
+    this.feriadoHorasJornadaDraft = this.configuracionFeriado.horasJornada;
+    this.isHorasExtrasConfigOpen = true;
+  }
+
+  protected closeHorasExtrasConfig(): void {
+    this.isHorasExtrasConfigOpen = false;
+  }
+
+  protected saveHorasExtrasConfig(): void {
+    if (!this.configuracionPagosValida) return;
+    const saved = this.configuracionHorasExtrasService.saveConfiguracion(this.incrementoHorasExtrasDraft, this.feriadoDraft);
+    this.incrementoHorasExtras = saved.incrementoPorcentual;
+    this.configuracionFeriado = { ...saved.feriado };
+    this.closeHorasExtrasConfig();
+  }
+
+  protected setFeriadoTipo(tipo: string): void {
+    this.feriadoTipoDraft = tipo as TipoPagoFeriado;
+    this.feriadoValorDraft = tipo === 'multiplicador' ? 2 : tipo === 'porcentaje' ? 100 : 100;
+  }
+
+  protected get feriadoDraft(): ConfiguracionFeriadoTrabajado {
+    return { tipo: this.feriadoTipoDraft, valor: Number(this.feriadoValorDraft), diasBase: Number(this.feriadoDiasBaseDraft), horasJornada: Number(this.feriadoHorasJornadaDraft) };
+  }
+
+  protected get configuracionPagosValida(): boolean {
+    const extra = Number(this.incrementoHorasExtrasDraft);
+    const valorFeriado = Number(this.feriadoValorDraft);
+    const diasBase = Number(this.feriadoDiasBaseDraft);
+    const horasJornada = Number(this.feriadoHorasJornadaDraft);
+    return Number.isFinite(extra) && extra >= 0 && extra <= 500
+      && Number.isFinite(valorFeriado) && valorFeriado >= 0 && valorFeriado <= (this.feriadoTipoDraft === 'monto-fijo' ? 100000 : 500)
+      && Number.isFinite(diasBase) && diasBase >= 1 && diasBase <= 31
+      && Number.isFinite(horasJornada) && horasJornada >= 1 && horasJornada <= 24;
+  }
+
+  protected get pagoHoraExtraEjemplo(): string {
+    return this.configuracionHorasExtrasService
+      .calcularPagoHoraExtra(10, Number(this.incrementoHorasExtrasDraft) || 0)
+      .toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 });
+  }
+
+  protected get pagoFeriadoEjemplo(): string {
+    return this.configuracionHorasExtrasService
+      .calcularPagoFeriadoPorHoras(1500, this.feriadoHorasJornadaDraft, this.feriadoDraft)
+      .toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 });
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeConfigOnEscape(): void {
+    if (this.isHorasExtrasConfigOpen) this.closeHorasExtrasConfig();
   }
 
   protected updateSearch(value: string): void {

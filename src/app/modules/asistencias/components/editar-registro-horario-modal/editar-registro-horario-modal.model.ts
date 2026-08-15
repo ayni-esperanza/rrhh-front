@@ -10,6 +10,7 @@
   horasNormales: string;
   horasExtras: string;
   tipoRegistro: string;
+  feriadoTrabajado?: boolean;
   estado: string;
   lugar: string;
 }

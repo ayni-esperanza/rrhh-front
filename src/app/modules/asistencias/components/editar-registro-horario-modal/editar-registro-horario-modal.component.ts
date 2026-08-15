@@ -4,14 +4,17 @@ import { AsistenciaRegistroEdicion } from './editar-registro-horario-modal.model
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
 import { LugaresTrabajoService } from '../../services/lugares-trabajo.service';
+import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
+import { ConfiguracionHorasExtrasService } from '../../services/configuracion-horas-extras.service';
 
 @Component({
   selector: 'app-editar-registro-horario-modal',
-  imports: [FormsModule, DatePickerComponent, SelectSearchableComponent],
+  imports: [FormsModule, DatePickerComponent, SelectSearchableComponent, SelectboxComponent],
   templateUrl: './editar-registro-horario-modal.component.html'
 })
 export class EditarRegistroHorarioModalComponent implements OnChanges {
   private readonly lugaresTrabajoService = inject(LugaresTrabajoService);
+  private readonly configuracionPagosService = inject(ConfiguracionHorasExtrasService);
 
   @Input() isOpen = false;
   @Input() registro: AsistenciaRegistroEdicion | null = null;
@@ -71,6 +74,23 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
   protected setDraftTime(field: 'entrada' | 'salida' | 'entradaAlmuerzo' | 'salidaAlmuerzo', value: string): void {
     if (!this.draft) return;
     this.draft[field] = value || '-';
+    this.updateWorkedHours();
+  }
+
+  protected setTipoRegistro(tipoRegistro: string): void {
+    if (!this.draft) return;
+    this.draft.tipoRegistro = tipoRegistro;
+    if (tipoRegistro !== 'Feriados') this.draft.feriadoTrabajado = false;
+  }
+
+  protected setFeriadoTrabajado(checked: boolean): void {
+    if (!this.draft) return;
+    this.draft.feriadoTrabajado = checked;
+    if (checked) this.updateWorkedHours();
+  }
+
+  protected get reglaPagoFeriado(): string {
+    return this.configuracionPagosService.getEtiquetaPagoFeriado();
   }
   protected save(): void {
     if (this.draft) this.saveChanges.emit(this.draft);
@@ -78,6 +98,31 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
 
   protected isExtraDuration(value: string): boolean {
     return this.horasExtrasOptions.includes(value);
+  }
+
+  private updateWorkedHours(): void {
+    if (!this.draft) return;
+    const entrada = this.toMinutes(this.draft.entrada);
+    const salida = this.toMinutes(this.draft.salida);
+    if (entrada === null || salida === null || salida <= entrada) {
+      this.draft.horasNormales = '-';
+      return;
+    }
+
+    const almuerzoEntrada = this.toMinutes(this.draft.entradaAlmuerzo);
+    const almuerzoSalida = this.toMinutes(this.draft.salidaAlmuerzo);
+    const descanso = almuerzoEntrada !== null && almuerzoSalida !== null && almuerzoSalida > almuerzoEntrada ? almuerzoSalida - almuerzoEntrada : 0;
+    const total = Math.max(0, salida - entrada - descanso);
+    const hours = Math.floor(total / 60);
+    const minutes = total % 60;
+    this.draft.horasNormales = minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+
+  private toMinutes(value: string): number | null {
+    const normalized = this.timePickerValue(value);
+    if (!normalized) return null;
+    const [hours, minutes] = normalized.split(':').map(Number);
+    return hours * 60 + minutes;
   }
 
   @HostListener('document:keydown.escape')
