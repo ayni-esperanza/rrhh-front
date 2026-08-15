@@ -1,5 +1,5 @@
 ﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { Usuario } from '../../models/usuario.model';
 
 @Component({
@@ -7,8 +7,14 @@ import { Usuario } from '../../models/usuario.model';
   selector: 'app-usuarios-table',
   templateUrl: './usuarios-table.component.html'
 })
-export class UsuariosTableComponent {
+export class UsuariosTableComponent implements OnChanges {
   @Input({ required: true }) usuarios: Usuario[] = [];
+  @Output() editUsuario = new EventEmitter<Usuario>();
+
+  ngOnChanges(): void {
+    const lastPage = Math.max(0, Math.ceil(this.usuarios.length / this.porPagina) - 1);
+    this.paginaActual = Math.min(this.paginaActual, lastPage);
+  }
 
   protected rolLabel(rol: Usuario['rol']): string {
     const labels: Record<Usuario['rol'], string> = { admin: 'Administrador', rrhh: 'RR.HH.', supervisor: 'Supervisor', colaborador: 'Colaborador' };

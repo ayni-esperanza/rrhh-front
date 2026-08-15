@@ -4,6 +4,12 @@
   </header>
 
   <app-usuarios-metrics [usuarios]="usuarios" />
-  <app-usuarios-filters />
-  <app-usuarios-table [usuarios]="usuarios" />
+  <app-usuarios-filters (filtersChange)="updateFilters($event)" (newUsuario)="openNewUsuario()" />
+  <app-usuarios-table [usuarios]="filteredUsuarios" (editUsuario)="editUsuario($event)" />
 </section>
+
+<app-usuario-modal [isOpen]="isUsuarioModalOpen" [usuario]="selectedUsuario" [existingEmails]="unavailableEmails" (closeModal)="closeUsuarioModal()" (saveUsuario)="saveUsuario($event)" (deleteUsuario)="requestDelete($event)" />
+
+<app-usuario-credentials-modal [isOpen]="createdCredentials !== null" [correo]="createdCredentials?.correo ?? ''" [password]="createdCredentials?.password ?? ''" (closeModal)="closeCredentialsModal()" />
+
+<app-confirm-dialog [isOpen]="pendingDeletion !== null" title="Eliminar usuario" [message]="'¿Confirmas la eliminación de ' + (pendingDeletion?.nombre ?? 'este usuario') + '? Esta acción no se puede deshacer.'" confirmLabel="Eliminar" (cancel)="cancelDeletion()" (confirm)="confirmDeletion()" />
