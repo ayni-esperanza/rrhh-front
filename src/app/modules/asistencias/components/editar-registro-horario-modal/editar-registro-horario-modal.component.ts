@@ -37,6 +37,7 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
   ];
 
   protected readonly estados = ['Completo', 'Incompleto', 'Pendiente', 'Observado'];
+  protected readonly horasExtrasOptions = ['+30m', '+1h', '+1h 30m', '+2h', '+2h 30m', '+3h', '+4h'];
   protected get lugares(): string[] {
     return this.lugaresTrabajoService.getOpciones();
   }
@@ -73,6 +74,10 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
   }
   protected save(): void {
     if (this.draft) this.saveChanges.emit(this.draft);
+  }
+
+  protected isExtraDuration(value: string): boolean {
+    return this.horasExtrasOptions.includes(value);
   }
 
   @HostListener('document:keydown.escape')

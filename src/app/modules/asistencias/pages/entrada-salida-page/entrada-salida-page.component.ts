@@ -1,10 +1,11 @@
 ﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
-import { Component, ElementRef, HostListener, Input, ViewChild, inject } from '@angular/core';
+import { Component, HostListener, Input, inject } from '@angular/core';
 import { EditarRegistroHorarioModalComponent } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.component';
 import { AsistenciaRegistroEdicion } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.model';
 import { AsistenciaFilters } from '../../models/asistencia.model';
 import { AsistenciasService } from '../../services/asistencias.service';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
+import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 
 type Turno = 'atiempo' | 'tarde' | 'falta' | 'vacio';
 
@@ -26,7 +27,7 @@ interface EntradaSalidaSemana {
 
 @Component({
   selector: 'app-entrada-salida-page',
-  imports: [EditarRegistroHorarioModalComponent, PaginacionComponent, SelectboxComponent],
+  imports: [EditarRegistroHorarioModalComponent, PaginacionComponent, SelectboxComponent, DatePickerComponent],
   template: `
     <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <header class="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
@@ -37,6 +38,16 @@ interface EntradaSalidaSemana {
           <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-red-500"></span>Falta</span>
         </div>
       </header>
+
+      @if (selectedIds.size) {
+        <div class="flex flex-wrap items-end gap-3 border-b border-blue-200 bg-blue-50/70 px-4 py-3 dark:border-blue-500/30 dark:bg-blue-500/10">
+          <p class="mr-auto self-center text-[11px] font-bold text-blue-800 dark:text-blue-200">{{ selectedIds.size }} colaboradores seleccionados</p>
+          <label class="w-36 space-y-1"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">Hora de entrada</span><app-date-picker [value]="bulkEntrada" [timeOnly]="true" placeholder="hh:mm" inputClass="h-9 w-full rounded-md border border-blue-200 bg-white px-3 text-[11px] font-bold text-slate-700 dark:border-blue-500/30 dark:bg-slate-950 dark:text-slate-200 cursor-pointer" (valueChange)="bulkEntrada = $event" /></label>
+          <label class="w-36 space-y-1"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">Hora de salida</span><app-date-picker [value]="bulkSalida" [timeOnly]="true" placeholder="hh:mm" inputClass="h-9 w-full rounded-md border border-blue-200 bg-white px-3 text-[11px] font-bold text-slate-700 dark:border-blue-500/30 dark:bg-slate-950 dark:text-slate-200 cursor-pointer" (valueChange)="bulkSalida = $event" /></label>
+          <button class="h-9 rounded-md bg-blue-600 px-4 text-[11px] font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50" type="button" [disabled]="!bulkEntrada && !bulkSalida" (click)="applyBulkTimes()">Aplicar</button>
+          <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-blue-200 bg-white text-slate-600 transition hover:text-rose-600 dark:border-blue-500/30 dark:bg-slate-950 dark:text-slate-300" type="button" aria-label="Cancelar selección" title="Cancelar selección" (click)="selectedIds.clear()"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+        </div>
+      }
 
       <div class="overflow-x-auto">
         <table #selectionTable [class]="tableClasses">
@@ -101,12 +112,12 @@ export class EntradaSalidaPageComponent {
   protected paginaActual = 0;
   protected porPagina = 10;
   protected selectedIds = new Set<number>();
+  protected bulkEntrada = '';
+  protected bulkSalida = '';
   private rowSelectionActive = false;
   private ignoreNextRowAction = false;
   private dragSelectionValue = false;
   private dragStartId: number | null = null;
-
-  @ViewChild('selectionTable') private selectionTable?: ElementRef<HTMLTableElement>;
 
   protected get paginationConfig(): PaginacionConfig {
     const totalElementos = this.filteredRegistros.length;
@@ -206,6 +217,20 @@ export class EntradaSalidaPageComponent {
     this.paginatedRegistros.forEach(({ id }) => this.toggleRowSelection(id, isSelected));
   }
 
+  protected applyBulkTimes(): void {
+    if (!this.bulkEntrada && !this.bulkSalida) return;
+    this.registros.filter(({ id }) => this.selectedIds.has(id)).forEach((item) => {
+      this.visibleItemDias(item).forEach((dia) => {
+        if (this.bulkEntrada) dia.entrada = this.bulkEntrada;
+        if (this.bulkSalida) dia.salida = this.bulkSalida;
+        dia.turno = dia.entrada === '-' || dia.salida === '-' ? 'vacio' : this.isLateTime(dia.entrada) ? 'tarde' : 'atiempo';
+      });
+    });
+    this.selectedIds.clear();
+    this.bulkEntrada = '';
+    this.bulkSalida = '';
+  }
+
   protected beginRowSelection(event: MouseEvent, itemId: number): void {
     if (event.button !== 0 || this.isInteractiveTarget(event.target)) return;
     this.rowSelectionActive = true;
@@ -227,11 +252,6 @@ export class EntradaSalidaPageComponent {
     window.setTimeout(() => this.ignoreNextRowAction = false, 0);
   }
 
-  @HostListener('document:click', ['$event'])
-  protected clearSelectionOutsideTable(event: MouseEvent): void {
-    if (!this.selectionTable?.nativeElement.contains(event.target as Node)) this.selectedIds.clear();
-  }
-
   protected dotClasses(turno: Turno): string {
     const classes = { atiempo: 'bg-emerald-500', tarde: 'bg-orange-500', falta: 'bg-red-500', vacio: 'bg-slate-300' };
     return classes[turno];
@@ -240,6 +260,11 @@ export class EntradaSalidaPageComponent {
   protected textClasses(turno: Turno): string {
     const classes = { atiempo: 'text-slate-800 dark:text-slate-200', tarde: 'font-semibold text-orange-600 dark:text-orange-300', falta: 'font-semibold text-red-600 dark:text-red-300', vacio: 'text-slate-500' };
     return classes[turno];
+  }
+
+  private isLateTime(value: string): boolean {
+    const [hours, minutes] = value.split(':').map(Number);
+    return Number.isFinite(hours) && (hours > 8 || (hours === 8 && minutes > 0));
   }
 
   private isInteractiveTarget(target: EventTarget | null): boolean {

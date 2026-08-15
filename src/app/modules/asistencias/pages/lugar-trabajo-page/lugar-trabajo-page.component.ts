@@ -1,5 +1,5 @@
 ﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
-import { Component, ElementRef, HostListener, Input, ViewChild, inject } from '@angular/core';
+import { Component, HostListener, Input, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { EditarRegistroHorarioModalComponent } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.component';
 import { AsistenciaRegistroEdicion } from '../../components/editar-registro-horario-modal/editar-registro-horario-modal.model';
@@ -7,6 +7,7 @@ import { AsistenciaFilters } from '../../models/asistencia.model';
 import { AsistenciasService } from '../../services/asistencias.service';
 import { LugarTrabajo, LugaresTrabajoService } from '../../services/lugares-trabajo.service';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
+import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
 
 type LugarVista = 'tabla' | 'activos';
 
@@ -27,7 +28,7 @@ interface LugarSemana {
 
 @Component({
   selector: 'app-lugar-trabajo-page',
-  imports: [EditarRegistroHorarioModalComponent, FormsModule, PaginacionComponent, SelectboxComponent],
+  imports: [EditarRegistroHorarioModalComponent, FormsModule, PaginacionComponent, SelectboxComponent, SelectSearchableComponent],
   template: `
     <section class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <header class="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between">
@@ -65,6 +66,14 @@ interface LugarSemana {
       </header>
 
       @if (vista === 'tabla') {
+        @if (selectedIds.size) {
+          <div class="flex flex-wrap items-end gap-3 border-b border-blue-200 bg-blue-50/70 px-4 py-3 dark:border-blue-500/30 dark:bg-blue-500/10">
+            <p class="mr-auto self-center text-[11px] font-bold text-blue-800 dark:text-blue-200">{{ selectedIds.size }} colaboradores seleccionados</p>
+            <label class="w-full space-y-1 sm:w-64"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">Lugar de trabajo</span><app-select-searchable [value]="bulkLugar" [options]="lugarOptions" placeholder="Seleccionar lugar" [allowEmpty]="false" searchPlaceholder="Buscar lugar..." buttonClass="h-9 w-full rounded-md border border-blue-200 bg-white px-3 text-[11px] font-bold text-slate-700 dark:border-blue-500/30 dark:bg-slate-950 dark:text-slate-200" (valueChange)="bulkLugar = $any($event)" /></label>
+            <button class="h-9 rounded-md bg-blue-600 px-4 text-[11px] font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50" type="button" [disabled]="!bulkLugar" (click)="applyBulkLugar()">Aplicar</button>
+            <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-blue-200 bg-white text-slate-600 transition hover:text-rose-600 dark:border-blue-500/30 dark:bg-slate-950 dark:text-slate-300" type="button" aria-label="Cancelar selección" title="Cancelar selección" (click)="selectedIds.clear()"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+          </div>
+        }
         <div class="overflow-x-auto">
           <table #selectionTable [class]="tableClasses">
             <thead class="bg-slate-50 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
@@ -212,12 +221,11 @@ export class LugarTrabajoPageComponent {
   protected paginaActual = 0;
   protected porPagina = 10;
   protected selectedIds = new Set<number>();
+  protected bulkLugar = '';
   private rowSelectionActive = false;
   private ignoreNextRowAction = false;
   private dragSelectionValue = false;
   private dragStartId: number | null = null;
-
-  @ViewChild('selectionTable') private selectionTable?: ElementRef<HTMLTableElement>;
 
   protected get paginationConfig(): PaginacionConfig {
     const totalElementos = this.filteredRegistros.length;
@@ -237,6 +245,10 @@ export class LugarTrabajoPageComponent {
 
   protected get lugares(): LugarTrabajo[] {
     return this.lugaresService.getLugares();
+  }
+
+  protected get lugarOptions(): string[] {
+    return this.lugaresService.getOpciones();
   }
 
   protected get visibleLegend(): LugarTrabajo[] {
@@ -383,6 +395,19 @@ export class LugarTrabajoPageComponent {
     this.paginatedRegistros.forEach(({ id }) => this.toggleRowSelection(id, isSelected));
   }
 
+  protected applyBulkLugar(): void {
+    if (!this.bulkLugar) return;
+    const lugar = this.lugaresService.findByName(this.bulkLugar);
+    this.registros.filter(({ id }) => this.selectedIds.has(id)).forEach((item) => {
+      this.visibleItemDias(item).forEach((dia) => {
+        dia.valor = lugar.locked ? '-' : lugar.nombre;
+        dia.lugarId = lugar.id;
+      });
+    });
+    this.selectedIds.clear();
+    this.bulkLugar = '';
+  }
+
   protected beginRowSelection(event: MouseEvent, itemId: number): void {
     if (event.button !== 0 || this.isInteractiveTarget(event.target)) return;
     this.rowSelectionActive = true;
@@ -402,11 +427,6 @@ export class LugarTrabajoPageComponent {
     this.rowSelectionActive = false;
     this.dragStartId = null;
     window.setTimeout(() => this.ignoreNextRowAction = false, 0);
-  }
-
-  @HostListener('document:click', ['$event'])
-  protected clearSelectionOutsideTable(event: MouseEvent): void {
-    if (!this.selectionTable?.nativeElement.contains(event.target as Node)) this.selectedIds.clear();
   }
 
   protected openGestionLugares(): void {
