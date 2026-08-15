@@ -50,7 +50,7 @@ export class PagosFiltersComponent implements OnChanges {
   }
 
   protected get filterButtonClasses(): string {
-    const base = 'relative inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold transition';
+    const base = 'relative inline-flex h-9 w-9 items-center justify-center rounded-md border transition';
     return this.isFiltersOpen || this.hasAdvancedFilters
       ? `${base} border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-500/50 dark:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/25`
       : `${base} border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white`;
