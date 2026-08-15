@@ -66,7 +66,7 @@ import { ConfiguracionHorasExtrasService } from '../../services/configuracion-ho
                 <td class="px-3 py-3" (click)="$event.stopPropagation()"><app-selectbox [checked]="isSelected(item.id)" [ariaLabel]="'Seleccionar a ' + item.colaborador" (checkedChange)="toggleRowSelection(item.id, $event)" /></td>
                 <td class="px-3 py-3"><div class="flex items-center gap-2"><img class="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" [src]="item.avatar" [alt]="item.colaborador" /><div class="min-w-0"><p class="font-bold text-slate-900 dark:text-white">{{ item.colaborador }}</p><p class="text-[11px] text-slate-500">{{ item.cargo }}</p></div></div></td>
                 @for (dia of visibleItemDias(item); track dia.dia + dia.fecha) {
-                  <td class="px-3 py-3 text-center" (click)="openEditarRegistro(item, dia); $event.stopPropagation()"><span class="inline-flex min-w-16 flex-col items-center rounded-md px-2 py-1 font-semibold" [class]="cellClasses(dia)"><span>{{ dia.valor }}</span>@if (dia.detalle) { <span class="text-[10px]">{{ dia.detalle }}</span> }</span></td>
+                  <td class="px-3 py-3 text-center" (click)="openEditarRegistro(item, dia); $event.stopPropagation()"><span class="inline-flex min-w-16 flex-col items-center rounded-md px-2 py-1 font-semibold" [class]="cellClasses(dia)"><span>{{ dia.valor }}</span>@if (dia.detalle) { <span class="text-[10px]">{{ dia.detalle }}</span> }@if (dia.pagoDetalle) { <span class="mt-0.5 text-[9px] opacity-80">{{ dia.pagoDetalle }}</span> }</span></td>
                 }
                 <td class="px-3 py-3 text-center font-bold text-slate-900 dark:text-white"><span class="block">{{ visibleTotal(item) }}</span><span class="text-[10px] text-emerald-600 dark:text-emerald-300">{{ visibleVariation(item) }}</span></td>
               </tr>
@@ -176,6 +176,9 @@ export class HorasDiaPageComponent {
       horasExtras: dia.tipo === 'extra' ? dia.detalle ?? '-' : '-',
       tipoRegistro: this.tipoRegistroLabel(dia),
       feriadoTrabajado: dia.tipo === 'feriado-trabajado',
+      usarPagoPersonalizado: Boolean(dia.pagoPersonalizado),
+      pagoPersonalizadoTipo: dia.pagoPersonalizado?.tipo,
+      pagoPersonalizadoValor: dia.pagoPersonalizado?.valor,
       estado: dia.tipo === 'falta' ? 'Incompleto' : 'Completo',
       lugar: item.id % 2 === 0 ? 'Sucursal Sur' : 'Planta Principal - Linea de Produccion'
     };
@@ -199,6 +202,10 @@ export class HorasDiaPageComponent {
       } else {
         delete dia.detalle;
       }
+      if (updatedDia.pagoDetalle) dia.pagoDetalle = updatedDia.pagoDetalle;
+      else delete dia.pagoDetalle;
+      if (updatedDia.pagoPersonalizado) dia.pagoPersonalizado = updatedDia.pagoPersonalizado;
+      else delete dia.pagoPersonalizado;
     }
 
     this.closeEditarRegistro();
@@ -246,6 +253,9 @@ export class HorasDiaPageComponent {
         dia.valor = updatedDia.valor;
         if (updatedDia.detalle) dia.detalle = updatedDia.detalle;
         else delete dia.detalle;
+        if (updatedDia.pagoDetalle) dia.pagoDetalle = updatedDia.pagoDetalle;
+        else delete dia.pagoDetalle;
+        delete dia.pagoPersonalizado;
       });
     });
     this.selectedIds.clear();
@@ -327,15 +337,21 @@ export class HorasDiaPageComponent {
     return labels[dia.tipo];
   }
 
-  private diaFromRegistro(registro: AsistenciaRegistroEdicion): Pick<AsistenciaCelda, 'tipo' | 'valor' | 'detalle'> {
+  private diaFromRegistro(registro: AsistenciaRegistroEdicion): Pick<AsistenciaCelda, 'tipo' | 'valor' | 'detalle' | 'pagoDetalle' | 'pagoPersonalizado'> {
     const normalHours = registro.horasNormales && registro.horasNormales !== '-' ? registro.horasNormales : '8h';
     const extraDetail = registro.horasExtras && registro.horasExtras !== '-' && registro.horasExtras !== 'Tarde' ? registro.horasExtras : '+1h';
+    const pagoPersonalizado = registro.usarPagoPersonalizado && registro.pagoPersonalizadoTipo && Number.isFinite(Number(registro.pagoPersonalizadoValor))
+      ? { tipo: registro.pagoPersonalizadoTipo, valor: Number(registro.pagoPersonalizadoValor) }
+      : undefined;
     if (registro.tipoRegistro === 'Feriados' && registro.feriadoTrabajado) {
-      return { tipo: 'feriado-trabajado', valor: normalHours, detalle: this.configuracionPagosService.getEtiquetaPagoFeriado() };
+      const global = this.configuracionPagosService.getConfiguracion().feriado;
+      const configuracion = pagoPersonalizado ? { ...global, ...pagoPersonalizado } : global;
+      return { tipo: 'feriado-trabajado', valor: normalHours, pagoDetalle: this.configuracionPagosService.getEtiquetaPagoFeriado(configuracion), pagoPersonalizado };
     }
-    const types: Record<string, Pick<AsistenciaCelda, 'tipo' | 'valor' | 'detalle'>> = {
+    const incrementoExtra = pagoPersonalizado?.valor ?? this.configuracionPagosService.getConfiguracion().incrementoPorcentual;
+    const types: Record<string, Pick<AsistenciaCelda, 'tipo' | 'valor' | 'detalle' | 'pagoDetalle' | 'pagoPersonalizado'>> = {
       'Horas normales': { tipo: 'normal', valor: normalHours },
-      'Horas extras': { tipo: 'extra', valor: normalHours, detalle: extraDetail },
+      'Horas extras': { tipo: 'extra', valor: normalHours, detalle: extraDetail, pagoDetalle: `Hora extra · +${incrementoExtra}%`, pagoPersonalizado },
 
       Feriados: { tipo: 'feriado', valor: 'Feriado' },
       Permiso: { tipo: 'permiso', valor: 'Permiso' },

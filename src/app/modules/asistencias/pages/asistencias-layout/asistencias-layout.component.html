@@ -85,8 +85,8 @@
 </section>
 
 @if (isHorasExtrasConfigOpen) {
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="horas-extras-config-title" (click)="closeHorasExtrasConfig()">
-    <section class="max-h-[calc(100vh-1.5rem)] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-2xl dark:bg-slate-900" (click)="$event.stopPropagation()">
+  <div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/40 p-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="horas-extras-config-title" (click)="closeHorasExtrasConfig()">
+    <section class="my-auto w-full max-w-2xl overflow-visible rounded-xl bg-white p-5 shadow-2xl dark:bg-slate-900" (click)="$event.stopPropagation()">
       <header class="flex items-start justify-between gap-3">
         <div>
           <h2 id="horas-extras-config-title" class="text-base font-bold text-slate-950 dark:text-white">Pagos especiales de asistencia</h2>
@@ -96,16 +96,15 @@
       </header>
 
       <div class="mt-5 space-y-3">
-        <h3 class="text-xs font-bold text-slate-900 dark:text-white">Horas extras</h3>
+        <h3 class="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">Horas extras <span class="group relative"><button class="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-800" type="button" aria-label="Ejemplo de pago por hora extra"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg></button><span class="pointer-events-none absolute bottom-7 left-1/2 z-30 hidden w-72 -translate-x-1/2 rounded-lg bg-slate-950 p-2 text-[10px] font-medium leading-relaxed text-white shadow-xl group-hover:block">Si la hora regular vale S/ 10.00, cada hora extra se pagará a <strong>{{ pagoHoraExtraEjemplo }}</strong>.</span></span></h3>
         <label class="block space-y-1.5">
           <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Incremento por hora extra</span>
           <span class="relative block"><input class="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 pr-10 text-sm font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:focus:ring-blue-500/20" type="number" min="0" max="500" step="1" [(ngModel)]="incrementoHorasExtrasDraft" /><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">%</span></span>
         </label>
-        <div class="rounded-lg bg-blue-50 p-3 text-[11px] text-blue-800 dark:bg-blue-500/10 dark:text-blue-200">Si la hora regular vale S/ 10.00, cada hora extra se pagará a <strong>{{ pagoHoraExtraEjemplo }}</strong>.</div>
       </div>
 
       <div class="mt-5 space-y-3 border-t border-slate-200 pt-5 dark:border-slate-800">
-        <div><h3 class="text-xs font-bold text-slate-900 dark:text-white">Feriado trabajado</h3><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">Elige si se calcula desde la remuneración total o mediante un monto independiente.</p></div>
+        <div><h3 class="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">Feriado trabajado <span class="group relative"><button class="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-amber-600 dark:hover:bg-slate-800" type="button" aria-label="Información del cálculo de feriado"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg></button><span class="pointer-events-none absolute bottom-7 left-1/2 z-30 hidden w-80 -translate-x-1/2 rounded-lg bg-slate-950 p-2 text-[10px] font-medium leading-relaxed text-white shadow-xl group-hover:block">Elige si se calcula desde la remuneración total o mediante un monto independiente. Con S/ 1,500.00, el feriado se pagará a <strong>{{ pagoFeriadoEjemplo }}</strong>.</span></span></h3></div>
         <label class="block space-y-1.5">
           <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Método de cálculo</span>
           <select class="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-bold text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:focus:ring-blue-500/20" [ngModel]="feriadoTipoDraft" (ngModelChange)="setFeriadoTipo($event)">
@@ -115,7 +114,7 @@
           </select>
         </label>
 
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div class="grid gap-3 sm:grid-cols-3">
           <label class="block space-y-1.5">
             <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">@if (feriadoTipoDraft === 'porcentaje') { Porcentaje adicional } @else if (feriadoTipoDraft === 'multiplicador') { Multiplicador } @else { Pago fijo por día }</span>
             <span class="relative block"><input class="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 pr-12 text-sm font-bold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:focus:ring-blue-500/20" type="number" min="0" [max]="feriadoTipoDraft === 'monto-fijo' ? 100000 : 500" [step]="feriadoTipoDraft === 'multiplicador' ? 0.1 : 1" [(ngModel)]="feriadoValorDraft" /><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-500">@if (feriadoTipoDraft === 'porcentaje') { % } @else if (feriadoTipoDraft === 'multiplicador') { veces } @else { S/ }</span></span>
@@ -126,7 +125,6 @@
           }
         </div>
 
-        <div class="rounded-lg bg-amber-50 p-3 text-[11px] text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">Con una remuneración total de S/ 1,500.00, el feriado trabajado se pagará a <strong>{{ pagoFeriadoEjemplo }}</strong>.</div>
       </div>
 
       <footer class="mt-5 flex justify-end gap-2">

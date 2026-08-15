@@ -11,6 +11,9 @@
   horasExtras: string;
   tipoRegistro: string;
   feriadoTrabajado?: boolean;
+  usarPagoPersonalizado?: boolean;
+  pagoPersonalizadoTipo?: 'porcentaje' | 'multiplicador' | 'monto-fijo';
+  pagoPersonalizadoValor?: number;
   estado: string;
   lugar: string;
 }

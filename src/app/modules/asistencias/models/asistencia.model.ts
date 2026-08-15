@@ -42,6 +42,11 @@ export interface AsistenciaCelda {
   valor: string;
   tipo: 'normal' | 'extra' | 'permiso' | 'falta' | 'feriado' | 'feriado-trabajado' | 'vacaciones' | 'renuncia' | 'descanso-medico' | 'mater-pater' | 'proyecto-temp' | 'estudio' | 'descanso-extra' | 'cumpleanos' | 'no-esta';
   detalle?: string;
+  pagoDetalle?: string;
+  pagoPersonalizado?: {
+    tipo: 'porcentaje' | 'multiplicador' | 'monto-fijo';
+    valor: number;
+  };
 }
 
 

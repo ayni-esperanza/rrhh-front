@@ -41,6 +41,11 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
 
   protected readonly estados = ['Completo', 'Incompleto', 'Pendiente', 'Observado'];
   protected readonly horasExtrasOptions = ['+30m', '+1h', '+1h 30m', '+2h', '+2h 30m', '+3h', '+4h'];
+  protected readonly pagoPersonalizadoTipoOptions = [
+    { value: 'porcentaje', label: 'Porcentaje adicional' },
+    { value: 'multiplicador', label: 'Multiplicador' },
+    { value: 'monto-fijo', label: 'Monto fijo por día' }
+  ];
   protected get lugares(): string[] {
     return this.lugaresTrabajoService.getOpciones();
   }
@@ -81,16 +86,62 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
     if (!this.draft) return;
     this.draft.tipoRegistro = tipoRegistro;
     if (tipoRegistro !== 'Feriados') this.draft.feriadoTrabajado = false;
+    this.draft.usarPagoPersonalizado = false;
   }
 
   protected setFeriadoTrabajado(checked: boolean): void {
     if (!this.draft) return;
     this.draft.feriadoTrabajado = checked;
+    if (!checked) this.draft.usarPagoPersonalizado = false;
     if (checked) this.updateWorkedHours();
   }
 
   protected get reglaPagoFeriado(): string {
     return this.configuracionPagosService.getEtiquetaPagoFeriado();
+  }
+
+  protected setPagoPersonalizado(checked: boolean): void {
+    if (!this.draft) return;
+    this.draft.usarPagoPersonalizado = checked;
+    if (!checked) return;
+    const config = this.configuracionPagosService.getConfiguracion();
+    if (this.draft.tipoRegistro === 'Horas extras') {
+      this.draft.pagoPersonalizadoTipo = 'porcentaje';
+      this.draft.pagoPersonalizadoValor = config.incrementoPorcentual;
+    } else {
+      this.draft.pagoPersonalizadoTipo = config.feriado.tipo;
+      this.draft.pagoPersonalizadoValor = config.feriado.valor;
+    }
+  }
+
+  protected setPagoPersonalizadoTipo(tipo: string): void {
+    if (!this.draft) return;
+    this.draft.pagoPersonalizadoTipo = tipo as 'porcentaje' | 'multiplicador' | 'monto-fijo';
+    this.draft.pagoPersonalizadoValor = tipo === 'multiplicador' ? 2 : 100;
+  }
+
+  protected get reglaPagoRegistro(): string {
+    if (!this.draft) return '';
+    if (!this.draft.usarPagoPersonalizado) {
+      return this.draft.tipoRegistro === 'Horas extras'
+        ? `Configuración general: +${this.configuracionPagosService.getConfiguracion().incrementoPorcentual}% por hora`
+        : `Configuración general: ${this.reglaPagoFeriado}`;
+    }
+    const value = Number(this.draft.pagoPersonalizadoValor) || 0;
+    if (this.draft.tipoRegistro === 'Horas extras' || this.draft.pagoPersonalizadoTipo === 'porcentaje') return `Pago personalizado: +${value}%`;
+    if (this.draft.pagoPersonalizadoTipo === 'multiplicador') return `Pago personalizado: x${value}`;
+    return `Pago personalizado: S/ ${value.toFixed(2)} por día`;
+  }
+
+  protected get pagoPersonalizadoValido(): boolean {
+    if (!this.draft?.usarPagoPersonalizado) return true;
+    const value = Number(this.draft.pagoPersonalizadoValor);
+    return Boolean(this.draft.pagoPersonalizadoTipo) && Number.isFinite(value) && value >= 0;
+  }
+
+  protected get pagoPersonalizadoCardClasses(): string {
+    const base = 'rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-500/30 dark:bg-amber-500/10';
+    return this.draft?.tipoRegistro === 'Horas extras' ? `${base} md:col-span-2` : base;
   }
   protected save(): void {
     if (this.draft) this.saveChanges.emit(this.draft);
