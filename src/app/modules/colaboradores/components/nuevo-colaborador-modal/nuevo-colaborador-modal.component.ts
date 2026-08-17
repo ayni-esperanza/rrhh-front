@@ -530,8 +530,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       this.stepAnimation?.cancel();
       this.stepAnimation = stage.animate(
         [
-          { opacity: 0, transform: `translateX(${direction * 16}px)` },
-          { opacity: 1, transform: 'translateX(0)' }
+          { transform: `translateX(${direction * 16}px)` },
+          { transform: 'translateX(0)' }
         ],
         { duration: 260, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
       );

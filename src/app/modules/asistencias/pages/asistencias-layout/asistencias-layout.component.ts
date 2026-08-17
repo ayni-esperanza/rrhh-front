@@ -68,8 +68,8 @@ export class AsistenciasLayoutComponent {
       this.tabAnimation?.cancel();
       this.tabAnimation = stage.animate(
         [
-          { opacity: 0, transform: 'translateY(4px)' },
-          { opacity: 1, transform: 'translateY(0)' }
+          { transform: 'translateY(6px)' },
+          { transform: 'translateY(0)' }
         ],
         { duration: 200, easing: 'ease-out' }
       );
