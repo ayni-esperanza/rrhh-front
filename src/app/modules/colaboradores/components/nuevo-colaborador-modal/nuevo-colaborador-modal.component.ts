@@ -3,6 +3,7 @@ import { Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleCh
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Colaborador, DatosBancarios, DocumentoColaborador } from '../../models/colaborador.model';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
+import { PdfViewerModalComponent } from '../../../../shared/components/pdf-viewer-modal/pdf-viewer-modal.component';
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
 
 type ModalStep = 0 | 1 | 2 | 3;
@@ -16,7 +17,7 @@ interface UploadedDocument {
 
 @Component({
   selector: 'app-nuevo-colaborador-modal',
-  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent, SelectSearchableComponent],
+  imports: [CommonModule, ReactiveFormsModule, DatePickerComponent, PdfViewerModalComponent, SelectSearchableComponent],
   templateUrl: './nuevo-colaborador-modal.component.html',
   styleUrl: './nuevo-colaborador-modal.component.css'
 })
@@ -54,6 +55,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     { key: 'certificados', label: 'Certificados' }
   ];
   public readonly documentFiles: Partial<Record<string, UploadedDocument>> = {};
+  protected pdfViewerDocument: UploadedDocument | null = null;
   public profileImagePreviewUrl = '';
   private profileImageChanged = false;
   private readonly defaultProfileImageUrl = 'https://i.pravatar.cc/96?img=5';
@@ -281,7 +283,18 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
   public viewDocument(key: string): void {
     const document = this.documentFiles[key];
-    if (document) window.open(document.url, '_blank', 'noopener,noreferrer');
+    if (!document) return;
+
+    if (document.file.type === 'application/pdf' || document.file.name.toLowerCase().endsWith('.pdf')) {
+      this.pdfViewerDocument = document;
+      return;
+    }
+
+    window.open(document.url, '_blank', 'noopener,noreferrer');
+  }
+
+  protected closePdfViewer(): void {
+    this.pdfViewerDocument = null;
   }
 
   public downloadDocument(key: string): void {
@@ -298,6 +311,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     const document = this.documentFiles[key];
     if (!document) return;
 
+    if (this.pdfViewerDocument === document) this.closePdfViewer();
     URL.revokeObjectURL(document.url);
     delete this.documentFiles[key];
   }

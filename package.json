@@ -33,6 +33,7 @@
     "@tailwindcss/postcss": "^4.3.3",
     "flatpickr": "^4.6.13",
     "flowbite": "^4.0.2",
+    "pdfjs-dist": "4.10.38",
     "postcss": "^8.5.19",
     "rxjs": "~7.8.0",
     "tailwindcss": "^4.3.3",
