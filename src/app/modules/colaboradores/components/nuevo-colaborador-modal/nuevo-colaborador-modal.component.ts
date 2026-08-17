@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Colaborador, DatosBancarios, DocumentoColaborador } from '../../models/colaborador.model';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
@@ -21,6 +21,8 @@ interface UploadedDocument {
   styleUrl: './nuevo-colaborador-modal.component.css'
 })
 export class NuevoColaboradorModalComponent implements OnChanges {
+  @ViewChild('stepStage') private stepStage?: ElementRef<HTMLElement>;
+  private stepAnimation?: Animation;
   @Input() isOpen = false;
   @Input() colaborador: Colaborador | null = null;
   @Output() closeModal = new EventEmitter<void>();
@@ -261,7 +263,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   }
 
   protected goToStep(step: number): void {
-    this.currentStep = step as ModalStep;
+    this.changeStep(step as ModalStep);
   }
 
   public onFileSelected(event: Event, key: string, control?: AbstractControl | null): void {
@@ -363,14 +365,14 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
     this.showStepErrors = false;
     if (this.currentStep < 3) {
-      this.currentStep = (this.currentStep + 1) as ModalStep;
+      this.changeStep((this.currentStep + 1) as ModalStep);
     }
   }
 
   protected previousStep(): void {
     this.showStepErrors = false;
     if (this.currentStep > 0) {
-      this.currentStep = (this.currentStep - 1) as ModalStep;
+      this.changeStep((this.currentStep - 1) as ModalStep);
     }
   }
 
@@ -378,7 +380,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.form.markAllAsTouched();
 
     if (this.form.invalid) {
-      this.currentStep = this.firstInvalidStep();
+      this.changeStep(this.firstInvalidStep());
       return;
     }
 
@@ -513,6 +515,27 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     const groups = [this.personal, this.laboral, this.adicional, this.documentos];
     const index = groups.findIndex((group) => group.invalid);
     return (index === -1 ? 0 : index) as ModalStep;
+  }
+
+  private changeStep(step: ModalStep): void {
+    if (step === this.currentStep) return;
+
+    const direction = step > this.currentStep ? 1 : -1;
+    this.currentStep = step;
+
+    requestAnimationFrame(() => {
+      const stage = this.stepStage?.nativeElement;
+      if (!stage) return;
+
+      this.stepAnimation?.cancel();
+      this.stepAnimation = stage.animate(
+        [
+          { opacity: 0, transform: `translateX(${direction * 16}px)` },
+          { opacity: 1, transform: 'translateX(0)' }
+        ],
+        { duration: 260, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+      );
+    });
   }
 
   private reset(): void {
