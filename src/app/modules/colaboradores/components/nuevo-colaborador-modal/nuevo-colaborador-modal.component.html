@@ -1,5 +1,5 @@
 ﻿@if (isOpen) {
-  <div class="modal-shell fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-[2px] sm:p-5" role="dialog" aria-modal="true" aria-labelledby="nuevo-colaborador-title" (click)="close()">
+  <div animate.enter="ayni-modal-enter" animate.leave="ayni-modal-leave" class="modal-shell fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-[2px] sm:p-5" role="dialog" aria-modal="true" aria-labelledby="nuevo-colaborador-title" (click)="close()">
     <section class="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-white/10 bg-white shadow-[0_24px_80px_-24px_rgba(15,23,42,0.55)] dark:border-slate-700/80 dark:bg-slate-900 sm:max-h-[calc(100dvh-2.5rem)]" (click)="$event.stopPropagation()">
       <header class="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
         <h2 id="nuevo-colaborador-title" class="text-lg font-bold text-slate-950 dark:text-white">{{ isEditing ? 'Editar colaborador' : 'Nuevo colaborador' }}</h2>

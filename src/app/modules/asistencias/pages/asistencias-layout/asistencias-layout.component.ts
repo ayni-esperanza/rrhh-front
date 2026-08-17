@@ -1,6 +1,7 @@
 ﻿import { Component, inject } from '@angular/core';
 import { AsistenciaFilters, AsistenciaMetric } from '../../models/asistencia.model';
 import { HostListener } from '@angular/core';
+import { ElementRef, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AsistenciasService } from '../../services/asistencias.service';
 import { EntradaSalidaPageComponent } from '../entrada-salida-page/entrada-salida-page.component';
@@ -17,7 +18,9 @@ type AsistenciaTab = 'horas-dia' | 'entrada-salida' | 'lugar-trabajo';
   templateUrl: './asistencias-layout.component.html'
 })
 export class AsistenciasLayoutComponent {
+  @ViewChild('tabStage') private tabStage?: ElementRef<HTMLElement>;
   private readonly configuracionHorasExtrasService = inject(ConfiguracionHorasExtrasService);
+  private tabAnimation?: Animation;
   private readonly configuracionInicial = this.configuracionHorasExtrasService.getConfiguracion();
   protected readonly metrics = inject(AsistenciasService).getMetrics();
   protected readonly monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -55,7 +58,22 @@ export class AsistenciasLayoutComponent {
   }
 
   protected setActiveTab(tab: AsistenciaTab): void {
+    if (tab === this.activeTab) return;
     this.activeTab = tab;
+
+    requestAnimationFrame(() => {
+      const stage = this.tabStage?.nativeElement;
+      if (!stage) return;
+
+      this.tabAnimation?.cancel();
+      this.tabAnimation = stage.animate(
+        [
+          { opacity: 0, transform: 'translateY(4px)' },
+          { opacity: 1, transform: 'translateY(0)' }
+        ],
+        { duration: 200, easing: 'ease-out' }
+      );
+    });
   }
 
   protected openHorasExtrasConfig(): void {

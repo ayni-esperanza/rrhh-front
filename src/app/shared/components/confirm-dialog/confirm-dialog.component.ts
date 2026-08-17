@@ -5,7 +5,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   standalone: true,
   template: `
     @if (isOpen) {
-      <div class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" [attr.aria-labelledby]="titleId" (click)="cancel.emit()">
+      <div animate.enter="ayni-modal-enter" animate.leave="ayni-modal-leave" class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" [attr.aria-labelledby]="titleId" (click)="cancel.emit()">
         <section class="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl dark:bg-slate-900" (click)="$event.stopPropagation()">
           <h2 [id]="titleId" class="text-base font-bold text-slate-950 dark:text-white">{{ title }}</h2>
           <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ message }}</p>

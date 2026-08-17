@@ -2,6 +2,8 @@
   <app-sidebar />
 
   <main cdkScrollable class="h-dvh min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-24 [scrollbar-gutter:stable] md:p-6">
-    <router-outlet />
+    <div #routeStage class="min-w-0">
+      <router-outlet (activate)="animateRouteChange()" />
+    </div>
   </main>
 </div>

@@ -52,7 +52,3 @@
   from { transform: translateX(-110%); }
   to { transform: translateX(110%); }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .payment-range-active::after { animation: none; }
-}

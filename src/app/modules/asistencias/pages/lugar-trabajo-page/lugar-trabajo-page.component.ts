@@ -158,7 +158,7 @@ interface LugarSemana {
     <app-editar-registro-horario-modal [isOpen]="isEditModalOpen" [registro]="selectedRegistro" (closeModal)="closeEditarRegistro()" (saveChanges)="saveEditarRegistro($event)" />
 
     @if (isGestionOpen) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-2 backdrop-blur-sm" role="dialog" aria-modal="true" (click)="closeGestionLugares()">
+      <div animate.enter="ayni-modal-enter" animate.leave="ayni-modal-leave" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-2 backdrop-blur-sm" role="dialog" aria-modal="true" (click)="closeGestionLugares()">
         <section class="w-full max-w-xl rounded-xl bg-white p-4 shadow-2xl dark:bg-slate-900" (click)="$event.stopPropagation()">
           <header class="flex items-start justify-between gap-3">
             <div>

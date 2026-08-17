@@ -11,6 +11,58 @@
 /* Configuracion de dark mode con selector de clase para Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
 
+@keyframes ayni-modal-backdrop-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ayni-modal-content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ayni-modal-backdrop-leave {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes ayni-modal-content-leave {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(18px) scale(0.95);
+  }
+}
+
+/* Todos los dialogos del sistema comparten entrada de fondo y panel. */
+.ayni-modal-enter {
+  animation: ayni-modal-backdrop-enter 260ms ease-out both;
+}
+
+.ayni-modal-enter > :first-child {
+  transform-origin: center;
+  animation: ayni-modal-content-enter 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ayni-modal-leave {
+  pointer-events: none;
+  animation: ayni-modal-backdrop-leave 260ms ease-in both;
+}
+
+.ayni-modal-leave > :first-child {
+  transform-origin: center;
+  animation: ayni-modal-content-leave 220ms ease-in both;
+}
+
 .dark input,
 .dark textarea,
 .dark select {
