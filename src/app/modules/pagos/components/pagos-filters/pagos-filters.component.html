@@ -18,11 +18,11 @@
         @if (hasDateFilters) { <button class="absolute right-8 top-1/2 z-10 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-400" type="button" aria-label="Limpiar rango de fechas" title="Limpiar rango de fechas" (click)="clearDates()"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button> }
       </div>
     </div>
-    <app-table-export-buttons [disabled]="exportDisabled" (exportExcel)="exportExcel.emit()" (exportPdf)="exportPdf.emit()" />
     <button [class]="filterButtonClasses" type="button" aria-label="Mostrar filtros" title="Mostrar filtros" [attr.aria-expanded]="isFiltersOpen" (click)="toggleFilters()">
       <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5Z"/></svg>
       @if (hasAdvancedFilters) { <span class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-blue-500 dark:border-slate-900"></span> }
     </button>
+    <app-table-export-buttons [disabled]="exportDisabled" (exportExcel)="exportExcel.emit()" (exportPdf)="exportPdf.emit()" />
   </div>
 
   @if (isFiltersOpen) {
