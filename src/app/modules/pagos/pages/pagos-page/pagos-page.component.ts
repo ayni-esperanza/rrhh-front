@@ -5,6 +5,7 @@ import { PagosTableComponent } from '../../components/pagos-table/pagos-table.co
 import { PagosService } from '../../services/pagos.service';
 import { PagoColaborador } from '../../models/pago.model';
 import { PagosFilterState } from '../../components/pagos-filters/pagos-filters.component';
+import { ExportTable, TableExportService } from '../../../../shared/services/table-export.service';
 
 @Component({
   selector: 'app-pagos-page',
@@ -13,6 +14,7 @@ import { PagosFilterState } from '../../components/pagos-filters/pagos-filters.c
 })
 export class PagosPageComponent {
   private readonly pagosService = inject(PagosService);
+  private readonly tableExport = inject(TableExportService);
 
   protected readonly metrics = this.pagosService.getMetrics();
   protected readonly pagos = this.pagosService.getPagos();
@@ -44,6 +46,9 @@ export class PagosPageComponent {
   protected updateFilters(filters: PagosFilterState): void {
     this.filters = filters;
   }
+
+  protected exportExcel(): void { void this.tableExport.toExcel(this.exportTable()); }
+  protected exportPdf(): void { void this.tableExport.toPdf(this.exportTable()); }
 
   private emptyFilters(): PagosFilterState {
     const amounts = this.pagos.map((pago) => this.moneyToNumber(pago.montoMensual));
@@ -87,5 +92,24 @@ export class PagosPageComponent {
 
   private normalize(value: string): string {
     return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+
+  private exportTable(): ExportTable {
+    const visibleMonths = this.filteredPagos[0]?.meses.filter((month) => this.monthIntersectsRange(month.mesCompleto)) ?? [];
+    return {
+      title: `Historial de pagos - ${this.periodLabel}`,
+      fileName: 'pagos',
+      columns: [
+        { key: 'nombre', header: 'Colaborador' }, { key: 'cargo', header: 'Cargo' },
+        { key: 'area', header: 'Área' }, { key: 'monto', header: 'Monto mensual' },
+        { key: 'fecha', header: 'Fecha de pago' }, { key: 'banco', header: 'Banco' },
+        ...visibleMonths.map((month, index) => ({ key: `mes${index}`, header: month.mes }))
+      ],
+      rows: this.filteredPagos.map((pago) => ({
+        nombre: pago.nombre, cargo: pago.cargo, area: pago.area, monto: pago.montoMensual,
+        fecha: `${pago.fechaPago} ${pago.horaPago}`, banco: pago.banco,
+        ...Object.fromEntries(pago.meses.filter((month) => this.monthIntersectsRange(month.mesCompleto)).map((month, index) => [`mes${index}`, `${month.estado} - ${month.monto}`]))
+      }))
+    };
   }
 }

@@ -8,7 +8,7 @@
   </div>
 
   <div>
-    <app-colaboradores-filters [colaboradores]="colaboradores" (filtersChange)="updateFilters($event)" (newColaborador)="openNewColaboradorModal()" />
+    <app-colaboradores-filters [colaboradores]="colaboradores" [exportDisabled]="!filteredColaboradores.length" (filtersChange)="updateFilters($event)" (newColaborador)="openNewColaboradorModal()" (exportExcel)="exportExcel()" (exportPdf)="exportPdf()" />
   </div>
 
   @if (selectedColaboradorIds.length) {

@@ -1,6 +1,7 @@
 ﻿import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Colaborador } from '../../models/colaborador.model';
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
+import { TableExportButtonsComponent } from '../../../../shared/components/table-export-buttons/table-export-buttons.component';
 
 export interface ColaboradoresFilterState {
   search: string;
@@ -21,14 +22,17 @@ export interface ColaboradoresFilterState {
 type FilterKey = keyof ColaboradoresFilterState;
 
 @Component({
-  imports: [SelectSearchableComponent],
+  imports: [SelectSearchableComponent, TableExportButtonsComponent],
   selector: 'app-colaboradores-filters',
   templateUrl: './colaboradores-filters.component.html'
 })
 export class ColaboradoresFiltersComponent {
   @Input() colaboradores: Colaborador[] = [];
+  @Input() exportDisabled = false;
   @Output() filtersChange = new EventEmitter<ColaboradoresFilterState>();
   @Output() newColaborador = new EventEmitter<void>();
+  @Output() exportExcel = new EventEmitter<void>();
+  @Output() exportPdf = new EventEmitter<void>();
 
   public isFiltersOpen = false;
   public filters: ColaboradoresFilterState = this.emptyFilters();

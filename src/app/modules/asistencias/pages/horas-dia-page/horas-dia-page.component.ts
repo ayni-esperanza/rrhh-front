@@ -7,6 +7,7 @@ import { AsistenciasService } from '../../services/asistencias.service';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
 import { ConfiguracionHorasExtrasService } from '../../services/configuracion-horas-extras.service';
+import { ExportTable } from '../../../../shared/services/table-export.service';
 
 @Component({
   selector: 'app-horas-dia-page',
@@ -152,6 +153,23 @@ export class HorasDiaPageComponent {
   protected visibleVariation(item: AsistenciaSemana): string {
     const minutes = this.visibleItemDias(item).reduce((total, dia) => total + this.parseMinutes(dia.detalle?.replace('+', '') ?? '0h'), 0);
     return minutes ? `+${this.formatMinutes(minutes)}` : '-';
+  }
+
+  public getExportTable(): ExportTable {
+    return {
+      title: `Asistencias - Horas trabajadas (${this.filters.month})`,
+      fileName: 'asistencias-horas-trabajadas',
+      columns: [
+        { key: 'colaborador', header: 'Colaborador' }, { key: 'cargo', header: 'Cargo' },
+        ...this.visibleDias.map((dia, index) => ({ key: `dia${index}`, header: `${dia.dia} ${dia.fecha}` })),
+        { key: 'total', header: `Total ${this.periodLabel}` }, { key: 'extras', header: 'Horas extras' }
+      ],
+      rows: this.filteredSemana.map((item) => ({
+        colaborador: item.colaborador, cargo: item.cargo,
+        ...Object.fromEntries(this.visibleItemDias(item).map((dia, index) => [`dia${index}`, [dia.valor, dia.detalle, dia.pagoDetalle].filter(Boolean).join(' ')])),
+        total: this.visibleTotal(item), extras: this.visibleVariation(item)
+      }))
+    };
   }
 
   protected onPageChange(event: CambioPaginaEvent): void {

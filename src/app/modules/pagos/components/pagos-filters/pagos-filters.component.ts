@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 import { PagoColaborador, PagoMes } from '../../models/pago.model';
+import { TableExportButtonsComponent } from '../../../../shared/components/table-export-buttons/table-export-buttons.component';
 
 export interface PagosFilterState {
   search: string;
@@ -14,14 +15,17 @@ export interface PagosFilterState {
 }
 
 @Component({
-  imports: [SelectSearchableComponent, DatePickerComponent],
+  imports: [SelectSearchableComponent, DatePickerComponent, TableExportButtonsComponent],
   selector: 'app-pagos-filters',
   templateUrl: './pagos-filters.component.html',
   styleUrl: './pagos-filters.component.css'
 })
 export class PagosFiltersComponent implements OnChanges {
   @Input() pagos: PagoColaborador[] = [];
+  @Input() exportDisabled = false;
   @Output() filtersChange = new EventEmitter<PagosFilterState>();
+  @Output() exportExcel = new EventEmitter<void>();
+  @Output() exportPdf = new EventEmitter<void>();
 
   protected isFiltersOpen = false;
   protected minLimit = 0;

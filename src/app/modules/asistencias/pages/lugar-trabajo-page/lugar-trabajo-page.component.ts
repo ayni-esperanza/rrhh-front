@@ -8,6 +8,7 @@ import { AsistenciasService } from '../../services/asistencias.service';
 import { LugarTrabajo, LugaresTrabajoService } from '../../services/lugares-trabajo.service';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
+import { ExportTable } from '../../../../shared/services/table-export.service';
 
 type LugarVista = 'tabla' | 'activos';
 
@@ -328,6 +329,23 @@ export class LugarTrabajoPageComponent {
   protected visibleTotal(item: LugarSemana): string {
     const registrados = this.visibleItemDias(item).filter((dia) => dia.valor !== '-').length;
     return `${registrados}/${this.visibleItemDias(item).length}`;
+  }
+
+  public getExportTable(): ExportTable {
+    return {
+      title: `Asistencias - Lugar de trabajo (${this.filters.month})`,
+      fileName: 'asistencias-lugar-trabajo',
+      columns: [
+        { key: 'colaborador', header: 'Colaborador' }, { key: 'cargo', header: 'Cargo' },
+        ...this.visibleDias.map((dia, index) => ({ key: `dia${index}`, header: `${dia.dia} ${dia.fecha}` })),
+        { key: 'total', header: `Días registrados ${this.periodLabel}` }
+      ],
+      rows: this.filteredRegistros.map((item) => ({
+        colaborador: item.colaborador, cargo: item.cargo,
+        ...Object.fromEntries(this.visibleItemDias(item).map((dia, index) => [`dia${index}`, dia.valor])),
+        total: this.visibleTotal(item)
+      }))
+    };
   }
 
   protected onPageChange(event: CambioPaginaEvent): void {

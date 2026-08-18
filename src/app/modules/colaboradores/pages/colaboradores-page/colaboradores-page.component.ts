@@ -6,6 +6,7 @@ import { NuevoColaboradorModalComponent } from '../../components/nuevo-colaborad
 import { Colaborador } from '../../models/colaborador.model';
 import { ColaboradoresService } from '../../services/colaboradores.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ExportTable, TableExportService } from '../../../../shared/services/table-export.service';
 
 @Component({
   selector: 'app-colaboradores-page',
@@ -14,6 +15,7 @@ import { ConfirmDialogComponent } from '../../../../shared/components/confirm-di
 })
 export class ColaboradoresPageComponent {
   private readonly colaboradoresService = inject(ColaboradoresService);
+  private readonly tableExport = inject(TableExportService);
 
   protected readonly metrics = this.colaboradoresService.getMetrics();
   protected colaboradores = this.colaboradoresService.getColaboradores();
@@ -71,6 +73,14 @@ export class ColaboradoresPageComponent {
     this.expandedId = '';
   }
 
+  protected exportExcel(): void {
+    void this.tableExport.toExcel(this.exportTable());
+  }
+
+  protected exportPdf(): void {
+    void this.tableExport.toPdf(this.exportTable());
+  }
+
   protected saveColaborador(colaborador: Colaborador): void {
     const existingIndex = this.colaboradores.findIndex((item) => item.id === colaborador.id);
     this.colaboradores = existingIndex === -1
@@ -116,6 +126,25 @@ export class ColaboradoresPageComponent {
 
   private normalize(value: string): string {
     return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  private exportTable(): ExportTable {
+    return {
+      title: 'Colaboradores',
+      fileName: 'colaboradores',
+      columns: [
+        { key: 'nombre', header: 'Nombre completo' }, { key: 'dni', header: 'DNI' },
+        { key: 'cargo', header: 'Cargo' }, { key: 'area', header: 'Área' },
+        { key: 'telefono', header: 'Teléfono' }, { key: 'correo', header: 'Correo' },
+        { key: 'ingreso', header: 'Fecha de ingreso' }, { key: 'contrato', header: 'Contrato' },
+        { key: 'estado', header: 'Estado' }
+      ],
+      rows: this.filteredColaboradores.map((item) => ({
+        nombre: `${item.nombre} ${item.apellido}`, dni: item.dni, cargo: item.cargo, area: item.area || '-',
+        telefono: item.telefono || '-', correo: item.correo, ingreso: item.fechaIngreso,
+        contrato: item.tipoContrato, estado: item.estado
+      }))
+    };
   }
 
   private emptyFilters(): ColaboradoresFilterState {

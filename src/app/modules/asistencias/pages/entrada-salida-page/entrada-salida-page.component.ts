@@ -6,6 +6,7 @@ import { AsistenciaFilters } from '../../models/asistencia.model';
 import { AsistenciasService } from '../../services/asistencias.service';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
+import { ExportTable } from '../../../../shared/services/table-export.service';
 
 type Turno = 'atiempo' | 'tarde' | 'falta' | 'vacio';
 
@@ -164,6 +165,26 @@ export class EntradaSalidaPageComponent {
   protected visibleTotal(item: EntradaSalidaSemana): string {
     const minutes = this.visibleItemDias(item).reduce((total, dia) => total + this.workedMinutes(dia), 0);
     return this.formatMinutes(minutes);
+  }
+
+  public getExportTable(): ExportTable {
+    return {
+      title: `Asistencias - Entradas y salidas (${this.filters.month})`,
+      fileName: 'asistencias-entradas-salidas',
+      columns: [
+        { key: 'colaborador', header: 'Colaborador' }, { key: 'cargo', header: 'Cargo' },
+        ...this.visibleDias.flatMap((dia, index) => [
+          { key: `entrada${index}`, header: `Entrada ${dia.dia} ${dia.fecha}` },
+          { key: `salida${index}`, header: `Salida ${dia.dia} ${dia.fecha}` }
+        ]),
+        { key: 'total', header: `Total ${this.periodLabel}` }
+      ],
+      rows: this.filteredRegistros.map((item) => ({
+        colaborador: item.colaborador, cargo: item.cargo,
+        ...Object.fromEntries(this.visibleItemDias(item).flatMap((dia, index) => [[`entrada${index}`, dia.entrada], [`salida${index}`, dia.salida]])),
+        total: this.visibleTotal(item)
+      }))
+    };
   }
 
   protected onPageChange(event: CambioPaginaEvent): void {

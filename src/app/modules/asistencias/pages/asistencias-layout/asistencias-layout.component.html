@@ -67,7 +67,7 @@
           </div>
         }
       </div>
-      <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-white" type="button" aria-label="Descargar asistencias" title="Descargar asistencias"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></button>
+      <app-table-export-buttons (exportExcel)="exportExcel()" (exportPdf)="exportPdf()" />
     </div>
   </section>
 

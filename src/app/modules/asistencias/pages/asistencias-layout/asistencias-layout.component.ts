@@ -9,17 +9,23 @@ import { HorasDiaPageComponent } from '../horas-dia-page/horas-dia-page.componen
 import { LugarTrabajoPageComponent } from '../lugar-trabajo-page/lugar-trabajo-page.component';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 import { ConfiguracionFeriadoTrabajado, ConfiguracionHorasExtrasService, TipoPagoFeriado } from '../../services/configuracion-horas-extras.service';
+import { TableExportButtonsComponent } from '../../../../shared/components/table-export-buttons/table-export-buttons.component';
+import { ExportTable, TableExportService } from '../../../../shared/services/table-export.service';
 
 type AsistenciaTab = 'horas-dia' | 'entrada-salida' | 'lugar-trabajo';
 
 @Component({
   selector: 'app-asistencias-layout',
-  imports: [HorasDiaPageComponent, EntradaSalidaPageComponent, LugarTrabajoPageComponent, DatePickerComponent, FormsModule],
+  imports: [HorasDiaPageComponent, EntradaSalidaPageComponent, LugarTrabajoPageComponent, DatePickerComponent, FormsModule, TableExportButtonsComponent],
   templateUrl: './asistencias-layout.component.html'
 })
 export class AsistenciasLayoutComponent {
   @ViewChild('tabStage') private tabStage?: ElementRef<HTMLElement>;
+  @ViewChild(HorasDiaPageComponent) private horasDiaPage?: HorasDiaPageComponent;
+  @ViewChild(EntradaSalidaPageComponent) private entradaSalidaPage?: EntradaSalidaPageComponent;
+  @ViewChild(LugarTrabajoPageComponent) private lugarTrabajoPage?: LugarTrabajoPageComponent;
   private readonly configuracionHorasExtrasService = inject(ConfiguracionHorasExtrasService);
+  private readonly tableExport = inject(TableExportService);
   private tabAnimation?: Animation;
   private readonly configuracionInicial = this.configuracionHorasExtrasService.getConfiguracion();
   protected readonly metrics = inject(AsistenciasService).getMetrics();
@@ -74,6 +80,16 @@ export class AsistenciasLayoutComponent {
         { duration: 200, easing: 'ease-out' }
       );
     });
+  }
+
+  protected exportExcel(): void {
+    const table = this.currentExportTable();
+    if (table) void this.tableExport.toExcel(table);
+  }
+
+  protected exportPdf(): void {
+    const table = this.currentExportTable();
+    if (table) void this.tableExport.toPdf(table);
   }
 
   protected openHorasExtrasConfig(): void {
@@ -192,6 +208,12 @@ export class AsistenciasLayoutComponent {
       year: Number.isFinite(year) ? year : 2025,
       monthIndex: monthIndex >= 0 ? monthIndex : 4
     };
+  }
+
+  private currentExportTable(): ExportTable | null {
+    if (this.activeTab === 'horas-dia') return this.horasDiaPage?.getExportTable() ?? null;
+    if (this.activeTab === 'entrada-salida') return this.entradaSalidaPage?.getExportTable() ?? null;
+    return this.lugarTrabajoPage?.getExportTable() ?? null;
   }
 
   private formatDay(day: number): string {
