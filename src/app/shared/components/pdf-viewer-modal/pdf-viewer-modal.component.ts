@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 
@@ -10,11 +10,13 @@ GlobalWorkerOptions.workerSrc = 'assets/pdfjs/pdf.worker.min.mjs?v=4.10.38';
   styleUrl: './pdf-viewer-modal.component.css'
 })
 export class PdfViewerModalComponent implements AfterViewInit, OnChanges, OnDestroy {
+  private readonly changeDetector = inject(ChangeDetectorRef);
   @ViewChild('pdfCanvas') private canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('viewerContainer') private viewerContainer?: ElementRef<HTMLElement>;
 
   @Input({ required: true }) src = '';
   @Input() fileName = 'Documento PDF';
+  @Input() mimeType = 'application/pdf';
   @Output() closeModal = new EventEmitter<void>();
 
   protected currentPage = 1;
@@ -29,6 +31,10 @@ export class PdfViewerModalComponent implements AfterViewInit, OnChanges, OnDest
     return Math.round(this.zoom * 100);
   }
 
+  protected get isImage(): boolean {
+    return this.mimeType.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp)$/i.test(this.fileName);
+  }
+
   private pdf?: PDFDocumentProxy;
   private loadingTask?: PDFDocumentLoadingTask;
   private renderTask?: RenderTask;
@@ -37,11 +43,18 @@ export class PdfViewerModalComponent implements AfterViewInit, OnChanges, OnDest
 
   ngAfterViewInit(): void {
     this.viewInitialized = true;
-    void this.loadPdf();
+    if (!this.isImage) void this.loadPdf();
+    else this.isLoading = false;
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['src'] && !changes['src'].firstChange && this.viewInitialized) void this.loadPdf();
+    if ((changes['src'] || changes['mimeType']) && this.viewInitialized) {
+      if (!this.isImage) void this.loadPdf();
+      else {
+        this.isLoading = false;
+        this.errorMessage = '';
+      }
+    }
   }
 
   ngOnDestroy(): void {
@@ -161,7 +174,10 @@ export class PdfViewerModalComponent implements AfterViewInit, OnChanges, OnDest
       console.error('No se pudo cargar el PDF.', error);
       this.errorMessage = 'No se pudo mostrar el documento PDF.';
     } finally {
-      if (version === this.loadVersion) this.isLoading = false;
+      if (version === this.loadVersion) {
+        this.isLoading = false;
+        this.changeDetector.detectChanges();
+      }
     }
   }
 

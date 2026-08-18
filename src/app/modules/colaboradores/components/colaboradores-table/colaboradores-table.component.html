@@ -89,14 +89,15 @@
                   <section class="space-y-2">
                     <h3 class="flex items-center gap-2 text-[11px] font-bold text-slate-900 dark:text-white"><span class="h-2 w-2 rounded-sm bg-blue-600"></span> Documentos</h3>
                     <div class="space-y-2">
-                      @for (documento of colaborador.documentos; track documento.nombre) {
+                      @for (documento of documentosAdjuntos(colaborador); track documento.nombre) {
                         <div class="flex items-center justify-between gap-4 text-[11px]">
-                          <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>{{ documento.nombre }}</span>
+                          <button type="button" class="flex min-w-0 items-center gap-2 text-left font-semibold text-blue-700 transition hover:text-blue-900 hover:underline dark:text-blue-300 dark:hover:text-blue-200" [title]="'Previsualizar ' + (documento.archivoNombre || documento.nombre)" (click)="$event.stopPropagation(); openDocument(documento)"><span class="h-2 w-2 shrink-0 rounded-full bg-emerald-500"></span><span class="truncate">{{ documento.nombre }}</span></button>
                           <span [class]="estadoDocumentoClase(documento)">{{ estadoDocumento(documento) }}</span>
                         </div>
+                      } @empty {
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400">No hay documentos adjuntos.</p>
                       }
                     </div>
-                    <button class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800" type="button">Ver todos los documentos</button>
                   </section>
                 </div>
               </td>
@@ -108,6 +109,16 @@
   </div>
     <app-paginacion [config]="paginationConfig" [opcionesPorPagina]="[10, 25, 50]" (cambioPagina)="onPageChange($event)" />
 </section>
+
+@if (previewDocument; as document) {
+  @defer {
+    <app-pdf-viewer-modal
+      [src]="document.archivoUrl || ''"
+      [fileName]="document.archivoNombre || document.nombre"
+      [mimeType]="document.archivoTipo || ''"
+      (closeModal)="closeDocumentPreview()" />
+  }
+}
 
 
 

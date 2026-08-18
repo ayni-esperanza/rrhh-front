@@ -11,7 +11,9 @@ type DocumentKey = 'dni' | 'curriculum' | 'antecedentes' | 'certificados';
 type DocumentStatus = DocumentoColaborador['estado'];
 
 interface UploadedDocument {
-  file: File;
+  fileName: string;
+  type: string;
+  size: number;
   url: string;
 }
 
@@ -268,14 +270,19 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.changeStep(step as ModalStep);
   }
 
-  public onFileSelected(event: Event, key: string, control?: AbstractControl | null): void {
+  public async onFileSelected(event: Event, key: string, control?: AbstractControl | null): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
 
     if (!file) return;
 
     this.removeDocument(key);
-    this.documentFiles[key] = { file, url: URL.createObjectURL(file) };
+    this.documentFiles[key] = {
+      fileName: file.name,
+      type: file.type || this.fileTypeFromName(file.name),
+      size: file.size,
+      url: await this.fileToDataUrl(file)
+    };
     control?.setValue(file.name);
     control?.markAsTouched();
     input.value = '';
@@ -285,7 +292,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     const document = this.documentFiles[key];
     if (!document) return;
 
-    if (document.file.type === 'application/pdf' || document.file.name.toLowerCase().endsWith('.pdf')) {
+    if (this.canPreview(document)) {
       this.pdfViewerDocument = document;
       return;
     }
@@ -303,7 +310,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
     const anchor = window.document.createElement('a');
     anchor.href = document.url;
-    anchor.download = document.file.name;
+    anchor.download = document.fileName;
     anchor.click();
   }
 
@@ -312,7 +319,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     if (!document) return;
 
     if (this.pdfViewerDocument === document) this.closePdfViewer();
-    URL.revokeObjectURL(document.url);
+    if (document.url.startsWith('blob:')) URL.revokeObjectURL(document.url);
     delete this.documentFiles[key];
   }
 
@@ -443,8 +450,14 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       epsSeguro: value.adicional.epsSeguro || '',
       contactoEmergencia: contactosEmergencia[0] ? [contactosEmergencia[0].nombre, contactosEmergencia[0].parentesco, contactosEmergencia[0].telefono].filter(Boolean).join(' - ') : '',
       documentos: [
-        ...this.documentDefinitions.map((document) => ({ nombre: document.label, estado: this.documentStatus(document.key) as DocumentStatus, fechaVencimiento: value.documentos[document.key] || undefined })),
-        ...value.documentos.personalizados.map((document) => ({ nombre: document['nombre'] ?? '', estado: this.documentStatusByExpiration(document['fechaVencimiento'] ?? '') as DocumentStatus, fechaVencimiento: document['fechaVencimiento'] ?? undefined }))
+        ...this.documentDefinitions.flatMap((document) => {
+          const uploaded = this.documentFiles[document.key];
+          return uploaded ? [{ nombre: document.label, estado: this.documentStatus(document.key) as DocumentStatus, fechaVencimiento: value.documentos[document.key] || undefined, ...this.documentAttachment(uploaded) }] : [];
+        }),
+        ...value.documentos.personalizados.flatMap((document) => {
+          const uploaded = this.documentFiles[document['id'] ?? ''];
+          return uploaded ? [{ nombre: document['nombre'] ?? '', estado: this.documentStatusByExpiration(document['fechaVencimiento'] ?? '') as DocumentStatus, fechaVencimiento: document['fechaVencimiento'] ?? undefined, ...this.documentAttachment(uploaded) }] : [];
+        })
       ]
     });
 
@@ -464,6 +477,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.profileImageChanged = false;
     this.contactosEmergencia.clear();
     this.datosBancarios.clear();
+    Object.keys(this.documentFiles).forEach((key) => this.removeDocument(key));
     this.documentosPersonalizados.clear();
     const contactos = colaborador.contactosEmergencia ?? (colaborador.telefonoEmergencia ? [{ nombre: '', parentesco: '', telefono: colaborador.telefonoEmergencia }] : []);
     contactos.forEach((contacto) => this.agregarContactoEmergencia(contacto.nombre, contacto.parentesco ?? '', contacto.telefono));
@@ -472,7 +486,20 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     const predefinedDocumentNames = new Set(this.documentDefinitions.map((document) => document.label));
     colaborador.documentos
       .filter((document) => !predefinedDocumentNames.has(document.nombre))
-      .forEach((document) => this.agregarDocumentoPersonalizado(document.nombre, this.dateToInput(document.fechaVencimiento ?? ''), document.nombre));
+      .forEach((document) => {
+        this.agregarDocumentoPersonalizado(document.nombre, this.dateToInput(document.fechaVencimiento ?? ''), document.archivoNombre ?? '');
+        const key = this.documentosPersonalizados.at(this.documentosPersonalizados.length - 1).controls['id'].value ?? '';
+        const uploaded = this.uploadedDocumentFrom(document);
+        if (uploaded) this.documentFiles[key] = uploaded;
+      });
+    const predefinedDates: Record<DocumentKey, string> = { dni: '', curriculum: '', antecedentes: '', certificados: '' };
+    this.documentDefinitions.forEach(({ key, label }) => {
+      const document = colaborador.documentos.find((item) => item.nombre === label);
+      if (!document) return;
+      predefinedDates[key] = this.dateToInput(document.fechaVencimiento ?? '');
+      const uploaded = this.uploadedDocumentFrom(document);
+      if (uploaded) this.documentFiles[key] = uploaded;
+    });
     this.form.patchValue({
       personal: {
         nombre: colaborador.nombre,
@@ -505,7 +532,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         tipoSangre: colaborador.tipoSangre ?? '',
         epsSeguro: colaborador.epsSeguro,
       },
-      documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '' }
+      documentos: predefinedDates
     });
   }
 
@@ -598,6 +625,37 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     if (!value) return '';
     const [year, month, day] = value.split('-');
     return `${day}/${month}/${year}`;
+  }
+
+  private canPreview(document: UploadedDocument): boolean {
+    return document.type === 'application/pdf' || document.type.startsWith('image/') || /\.(pdf|png|jpe?g|gif|webp|bmp)$/i.test(document.fileName);
+  }
+
+  private documentAttachment(document: UploadedDocument): Pick<DocumentoColaborador, 'archivoNombre' | 'archivoTipo' | 'archivoUrl' | 'archivoTamano'> {
+    return { archivoNombre: document.fileName, archivoTipo: document.type, archivoUrl: document.url, archivoTamano: document.size };
+  }
+
+  private uploadedDocumentFrom(document: DocumentoColaborador): UploadedDocument | null {
+    if (!document.archivoUrl || !document.archivoNombre) return null;
+    return { fileName: document.archivoNombre, type: document.archivoTipo || this.fileTypeFromName(document.archivoNombre), size: document.archivoTamano ?? 0, url: document.archivoUrl };
+  }
+
+  private fileTypeFromName(fileName: string): string {
+    if (/\.pdf$/i.test(fileName)) return 'application/pdf';
+    if (/\.png$/i.test(fileName)) return 'image/png';
+    if (/\.jpe?g$/i.test(fileName)) return 'image/jpeg';
+    if (/\.gif$/i.test(fileName)) return 'image/gif';
+    if (/\.webp$/i.test(fileName)) return 'image/webp';
+    return 'application/octet-stream';
+  }
+
+  private fileToDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error ?? new Error('No se pudo leer el archivo.'));
+      reader.readAsDataURL(file);
+    });
   }
 }
 

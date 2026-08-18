@@ -56,13 +56,6 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": {
-            "prebundle": {
-              "exclude": [
-                "pdfjs-dist"
-              ]
-            }
-          },
           "configurations": {
             "production": {
               "buildTarget": "rrhh-front:build:production"

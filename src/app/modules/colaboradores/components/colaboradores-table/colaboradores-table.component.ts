@@ -2,9 +2,10 @@ import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewC
 import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
 import { Colaborador, DocumentoColaborador } from '../../models/colaborador.model';
+import { PdfViewerModalComponent } from '../../../../shared/components/pdf-viewer-modal/pdf-viewer-modal.component';
 
 @Component({
-  imports: [PaginacionComponent, SelectboxComponent],
+  imports: [PaginacionComponent, SelectboxComponent, PdfViewerModalComponent],
   selector: 'app-colaboradores-table',
   templateUrl: './colaboradores-table.component.html'
 })
@@ -18,6 +19,7 @@ export class ColaboradoresTableComponent {
   protected selectedIds = new Set<string>();
   protected paginaActual = 0;
   protected porPagina = 10;
+  protected previewDocument: DocumentoColaborador | null = null;
   private rowSelectionActive = false;
   private ignoreNextRowAction = false;
   private dragSelectionValue = false;
@@ -122,6 +124,28 @@ export class ColaboradoresTableComponent {
   protected estadoDocumentoClase(documento: DocumentoColaborador): string {
     const status = this.estadoDocumento(documento);
     return status === 'Vencido' ? 'text-rose-600 dark:text-rose-300' : status === 'Por vencer' ? 'text-amber-600 dark:text-amber-300' : 'text-emerald-600 dark:text-emerald-300';
+  }
+
+  protected documentosAdjuntos(colaborador: Colaborador): DocumentoColaborador[] {
+    return colaborador.documentos.filter((documento) => Boolean(documento.archivoUrl && documento.archivoNombre));
+  }
+
+  protected openDocument(documento: DocumentoColaborador): void {
+    if (!documento.archivoUrl) return;
+    const isPreviewable = documento.archivoTipo === 'application/pdf'
+      || documento.archivoTipo?.startsWith('image/')
+      || /\.(pdf|png|jpe?g|gif|webp|bmp)$/i.test(documento.archivoNombre ?? '');
+
+    if (isPreviewable) {
+      this.previewDocument = documento;
+      return;
+    }
+
+    window.open(documento.archivoUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  protected closeDocumentPreview(): void {
+    this.previewDocument = null;
   }
 
   @HostListener('document:mouseup')

@@ -53,6 +53,10 @@ export interface DocumentoColaborador {
   nombre: string;
   estado: 'Vigente' | 'Por vencer' | 'Vencido';
   fechaVencimiento?: string;
+  archivoNombre?: string;
+  archivoTipo?: string;
+  archivoUrl?: string;
+  archivoTamano?: number;
 }
 
 export interface ColaboradorMetric {
