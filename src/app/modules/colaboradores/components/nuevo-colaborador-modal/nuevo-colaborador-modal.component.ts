@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Colaborador, DatosBancarios, DocumentoColaborador } from '../../models/colaborador.model';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
@@ -33,6 +33,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   @Output() deleteColaborador = new EventEmitter<string>();
 
   private readonly formBuilder = inject(FormBuilder);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
   protected readonly maxRegistrosComplementarios = 3;
 
   protected readonly steps = [
@@ -286,6 +287,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     control?.setValue(file.name);
     control?.markAsTouched();
     input.value = '';
+    this.changeDetectorRef.markForCheck();
   }
 
   public viewDocument(key: string): void {
@@ -523,7 +525,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         fechaIngreso: this.dateToInput(colaborador.fechaIngreso),
         tipoContrato: colaborador.tipoContrato,
         jornada: colaborador.jornada,
-        sueldoBasico: colaborador.sueldoBasico,
+        sueldoBasico: colaborador.sueldoBasico.replace(/[^\d.]/g, ''),
         estado: colaborador.estado
       },
       adicional: {

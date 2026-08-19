@@ -4,6 +4,8 @@ import { SelectboxComponent } from '../../../../shared/components/selectbox/sele
 import { Colaborador, DocumentoColaborador } from '../../models/colaborador.model';
 import { PdfViewerModalComponent } from '../../../../shared/components/pdf-viewer-modal/pdf-viewer-modal.component';
 
+type SharePlatform = 'whatsapp' | 'messenger' | 'instagram';
+
 @Component({
   imports: [PaginacionComponent, SelectboxComponent, PdfViewerModalComponent],
   selector: 'app-colaboradores-table',
@@ -20,6 +22,9 @@ export class ColaboradoresTableComponent {
   protected paginaActual = 0;
   protected porPagina = 10;
   protected previewDocument: DocumentoColaborador | null = null;
+  protected shareDocumentSelection: DocumentoColaborador | null = null;
+  protected sharePlatformSelection: SharePlatform | null = null;
+  protected shareFeedback = '';
   private rowSelectionActive = false;
   private ignoreNextRowAction = false;
   private dragSelectionValue = false;
@@ -108,6 +113,12 @@ export class ColaboradoresTableComponent {
     return [nombre, parentesco, telefono].filter(Boolean).join(' · ');
   }
 
+  protected formatSueldoBasico(value: string): string {
+    const amount = Number(value.replace(/[^\d.]/g, ''));
+    if (!Number.isFinite(amount)) return 'S/ 0.00';
+    return `S/ ${amount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
   protected estadoDocumento(documento: DocumentoColaborador): DocumentoColaborador['estado'] {
     if (!documento.fechaVencimiento) return documento.estado;
 
@@ -148,6 +159,74 @@ export class ColaboradoresTableComponent {
     this.previewDocument = null;
   }
 
+  protected shareDocument(documento: DocumentoColaborador): void {
+    if (!documento.archivoUrl) return;
+    this.shareFeedback = '';
+    this.sharePlatformSelection = null;
+    this.shareDocumentSelection = documento;
+  }
+
+  protected closeShareModal(): void {
+    this.shareDocumentSelection = null;
+    this.sharePlatformSelection = null;
+  }
+
+  protected selectSharePlatform(platform: SharePlatform): void {
+    this.sharePlatformSelection = platform;
+  }
+
+  protected backToSharePlatforms(): void {
+    this.sharePlatformSelection = null;
+  }
+
+  protected selectedPlatformLabel(): string {
+    return this.sharePlatformSelection ? this.platformLabel(this.sharePlatformSelection) : '';
+  }
+
+  protected shareViaWeb(platform: SharePlatform): void {
+    const documento = this.shareDocumentSelection;
+    if (!documento) return;
+
+    const publicUrl = this.publicDocumentUrl(documento);
+    const message = this.shareMessage(documento, publicUrl);
+    const webUrls: Record<SharePlatform, string> = {
+      whatsapp: `https://web.whatsapp.com/send?text=${encodeURIComponent(message)}`,
+      messenger: 'https://www.messenger.com/',
+      instagram: 'https://www.instagram.com/direct/inbox/'
+    };
+
+    const opened = window.open(webUrls[platform], `ayni-${platform}-web`);
+    if (!opened) {
+      this.openPlatformApp(platform, message, publicUrl);
+      return;
+    }
+    try { opened.opener = null; } catch { /* La pestaña reutilizada puede pertenecer a otro origen. */ }
+    opened.focus();
+
+    const downloaded = !publicUrl && this.downloadDocument(documento);
+    void this.copyShareMessage(message);
+    this.closeShareModal();
+    this.showShareFeedback(downloaded
+      ? `Se abrió ${this.platformLabel(platform)} Web y se preparó el archivo para adjuntarlo.`
+      : `Se abrió ${this.platformLabel(platform)} Web con los datos del documento.`);
+  }
+
+  protected shareViaApp(platform: SharePlatform): void {
+    const documento = this.shareDocumentSelection;
+    if (!documento) return;
+
+    const publicUrl = this.publicDocumentUrl(documento);
+    const message = this.shareMessage(documento, publicUrl);
+    if (!publicUrl) this.downloadDocument(documento);
+    this.openPlatformApp(platform, message, publicUrl);
+    this.closeShareModal();
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeShareModalWithEscape(): void {
+    if (this.shareDocumentSelection) this.closeShareModal();
+  }
+
   @HostListener('document:mouseup')
   protected finishRowSelection(): void {
     this.rowSelectionActive = false;
@@ -170,5 +249,51 @@ export class ColaboradoresTableComponent {
 
   private isInteractiveTarget(target: EventTarget | null): boolean {
     return target instanceof Element && Boolean(target.closest('button, input, a, select, textarea, label, [data-no-row-selection]'));
+  }
+
+  private downloadDocument(documento: DocumentoColaborador): boolean {
+    const anchor = window.document.createElement('a');
+    anchor.href = documento.archivoUrl || '';
+    anchor.download = documento.archivoNombre || documento.nombre;
+    anchor.click();
+    return true;
+  }
+
+  private publicDocumentUrl(documento: DocumentoColaborador): string {
+    const url = documento.archivoUrl || '';
+    return /^https?:\/\//i.test(url) ? url : '';
+  }
+
+  private shareMessage(documento: DocumentoColaborador, publicUrl: string): string {
+    const fileName = documento.archivoNombre || documento.nombre;
+    return [`Documento: ${documento.nombre}`, `Archivo: ${fileName}`, publicUrl].filter(Boolean).join('\n');
+  }
+
+  private openPlatformApp(platform: SharePlatform, message: string, publicUrl: string): void {
+    const appUrls: Record<SharePlatform, string> = {
+      whatsapp: `whatsapp://send?text=${encodeURIComponent(message)}`,
+      messenger: publicUrl ? `fb-messenger://share/?link=${encodeURIComponent(publicUrl)}` : 'fb-messenger://',
+      instagram: 'instagram://direct-inbox'
+    };
+    window.location.href = appUrls[platform];
+  }
+
+  private platformLabel(platform: SharePlatform): string {
+    return platform === 'whatsapp' ? 'WhatsApp' : platform === 'messenger' ? 'Messenger' : 'Instagram';
+  }
+
+  private async copyShareMessage(message: string): Promise<void> {
+    try {
+      await navigator.clipboard?.writeText(message);
+    } catch {
+      // El portapapeles puede estar bloqueado por la configuración del navegador.
+    }
+  }
+
+  private showShareFeedback(message: string): void {
+    this.shareFeedback = message;
+    window.setTimeout(() => {
+      if (this.shareFeedback === message) this.shareFeedback = '';
+    }, 5000);
   }
 }
