@@ -6,7 +6,7 @@ import { AsistenciaFilters } from '../../models/asistencia.model';
 import { AsistenciasService } from '../../services/asistencias.service';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
-import { ExportTable } from '../../../../shared/services/table-export.service';
+import { ExportPdfSection, ExportTable } from '../../../../shared/services/table-export.service';
 
 type Turno = 'atiempo' | 'tarde' | 'falta' | 'vacio';
 
@@ -168,23 +168,51 @@ export class EntradaSalidaPageComponent {
   }
 
   public getExportTable(): ExportTable {
+    const visibleDays = this.visibleDias;
+    const visibleRows = this.filteredRegistros;
     return {
       title: `Asistencias - Entradas y salidas (${this.filters.month})`,
       fileName: 'asistencias-entradas-salidas',
       columns: [
         { key: 'colaborador', header: 'Colaborador' }, { key: 'cargo', header: 'Cargo' },
-        ...this.visibleDias.flatMap((dia, index) => [
+        ...visibleDays.flatMap((dia, index) => [
           { key: `entrada${index}`, header: `Entrada ${dia.dia} ${dia.fecha}` },
           { key: `salida${index}`, header: `Salida ${dia.dia} ${dia.fecha}` }
         ]),
         { key: 'total', header: `Total ${this.periodLabel}` }
       ],
-      rows: this.filteredRegistros.map((item) => ({
+      rows: visibleRows.map((item) => ({
         colaborador: item.colaborador, cargo: item.cargo,
         ...Object.fromEntries(this.visibleItemDias(item).flatMap((dia, index) => [[`entrada${index}`, dia.entrada], [`salida${index}`, dia.salida]])),
         total: this.visibleTotal(item)
-      }))
+      })),
+      pdfSections: this.pdfDaySections(visibleDays, visibleRows)
     };
+  }
+
+  private pdfDaySections(days: Array<{ dia: string; fecha: string }>, rows: EntradaSalidaSemana[]): ExportPdfSection[] {
+    const sections: ExportPdfSection[] = [];
+    for (let start = 0; start < days.length; start += 7) {
+      const dayBlock = days.slice(start, start + 7);
+      const firstDay = dayBlock[0];
+      const lastDay = dayBlock[dayBlock.length - 1];
+      sections.push({
+        title: firstDay === lastDay ? `${firstDay.dia} ${firstDay.fecha}` : `Del ${firstDay.dia} ${firstDay.fecha} al ${lastDay.dia} ${lastDay.fecha}`,
+        columns: [
+          { key: 'colaborador', header: 'Colaborador' },
+          { key: 'cargo', header: 'Cargo' },
+          ...dayBlock.map((day, index) => ({ key: `dia${index}`, header: `${day.dia} ${day.fecha}\nEntrada / Salida` })),
+          { key: 'total', header: `Total ${this.periodLabel}` }
+        ],
+        rows: rows.map((item) => ({
+          colaborador: item.colaborador,
+          cargo: item.cargo,
+          ...Object.fromEntries(this.visibleItemDias(item).slice(start, start + 7).map((day, index) => [`dia${index}`, day.entrada === '-' && day.salida === '-' ? '-' : `${day.entrada} / ${day.salida}`])),
+          total: this.visibleTotal(item)
+        }))
+      });
+    }
+    return sections;
   }
 
   protected onPageChange(event: CambioPaginaEvent): void {

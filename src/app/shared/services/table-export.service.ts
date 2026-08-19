@@ -13,6 +13,13 @@ export interface ExportTable {
   sheetName?: string;
   columns: ExportColumn[];
   rows: Array<Record<string, ExportCell>>;
+  pdfSections?: ExportPdfSection[];
+}
+
+export interface ExportPdfSection {
+  title?: string;
+  columns: ExportColumn[];
+  rows: Array<Record<string, ExportCell>>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -38,24 +45,46 @@ export class TableExportService {
 
   async toPdf(table: ExportTable): Promise<void> {
     const [{ jsPDF }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
-    const landscape = table.columns.length > 6;
+    const sections = table.pdfSections?.length ? table.pdfSections : [{ columns: table.columns, rows: table.rows }];
+    const landscape = Math.max(...sections.map((section) => section.columns.length)) > 6;
     const document = new jsPDF({ orientation: landscape ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' });
-    document.setFontSize(14);
-    document.text(table.title, 40, 36);
-    document.setFontSize(8);
-    document.setTextColor(100);
-    document.text(`Generado: ${new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date())}`, 40, 51);
+    const generatedAt = new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date());
 
-    autoTable(document, {
-      startY: 62,
-      head: [table.columns.map((column) => column.header)],
-      body: table.rows.map((row) => table.columns.map((column) => String(row[column.key] ?? ''))),
-      styles: { fontSize: table.columns.length > 10 ? 6 : 8, cellPadding: 3, overflow: 'linebreak' },
-      headStyles: { fillColor: [34, 197, 94], textColor: 255 },
-      alternateRowStyles: { fillColor: [248, 250, 252] },
-      margin: { left: 30, right: 30 }
+    sections.forEach((section, sectionIndex) => {
+      if (sectionIndex) document.addPage();
+      document.setTextColor(0);
+      document.setFontSize(14);
+      document.text(table.title, 40, 36);
+      document.setFontSize(8);
+      document.setTextColor(100);
+      document.text(`Generado: ${generatedAt}`, 40, 51);
+      if (section.title) {
+        document.setFontSize(9);
+        document.setTextColor(51, 65, 85);
+        document.text(section.title, 40, 66);
+      }
+
+      autoTable(document, {
+        startY: section.title ? 76 : 62,
+        head: [section.columns.map((column) => column.header)],
+        body: section.rows.map((row) => section.columns.map((column) => String(row[column.key] ?? ''))),
+        styles: { fontSize: section.columns.length > 10 ? 6 : 8, cellPadding: 3, overflow: 'linebreak', valign: 'middle' },
+        headStyles: { fillColor: [34, 197, 94], textColor: 255, halign: 'center', valign: 'middle' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: table.pdfSections?.length ? this.pdfColumnStyles(section.columns) : {},
+        margin: { left: 30, right: 30 }
+      });
     });
     document.save(`${this.safeFileName(table.fileName)}.pdf`);
+  }
+
+  private pdfColumnStyles(columns: ExportColumn[]): Record<number, { cellWidth?: number; halign?: 'left' | 'center' | 'right' }> {
+    return Object.fromEntries(columns.map((column, index) => {
+      if (column.key === 'colaborador') return [index, { cellWidth: 90, halign: 'left' as const }];
+      if (column.key === 'cargo') return [index, { cellWidth: 65, halign: 'left' as const }];
+      if (column.key === 'total') return [index, { cellWidth: 55, halign: 'center' as const }];
+      return [index, { halign: 'center' as const }];
+    }));
   }
 
   private safeFileName(value: string): string {
