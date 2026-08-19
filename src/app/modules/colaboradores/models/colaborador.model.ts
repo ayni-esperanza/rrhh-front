@@ -48,6 +48,7 @@ export interface DatosBancarios {
   cuentaBancaria: string;
   cci: string;
   entidadBancaria: string;
+  esPrincipal?: boolean;
 }
 export interface DocumentoColaborador {
   nombre: string;

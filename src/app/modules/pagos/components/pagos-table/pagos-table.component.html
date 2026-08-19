@@ -32,11 +32,23 @@
           @if (expandedId === pago.id) {
             <tr class="bg-slate-50/70 dark:bg-slate-950/30">
               <td colspan="16" class="px-4 py-3">
-                <div class="grid gap-6 text-[11px] font-bold text-slate-800 dark:text-slate-200 sm:grid-cols-3">
-                  <div><span class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400">CTA</span>{{ pago.cta }}</div>
-                  <div><span class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400">CCI</span>{{ pago.cci }}</div>
-                  <div><span class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400">Banco</span>{{ pago.banco }}</div>
-                </div>
+                @if (selectedBankAccount(pago); as cuenta) {
+                  <div class="grid items-end gap-6 text-[11px] font-bold text-slate-800 dark:text-slate-200 sm:grid-cols-3">
+                    <label class="block"><span class="mb-1 block text-[10px] font-semibold text-slate-500 dark:text-slate-400">Banco</span>
+                      @if (pago.cuentasBancarias.length > 1) {
+                        <select class="h-9 w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold leading-5 text-slate-800 outline-none focus:border-blue-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" [value]="selectedBankIndex(pago)" (change)="selectBankAccount(pago.id, $any($event.target).value)">
+                          @for (opcion of pago.cuentasBancarias; track $index) {
+                            <option [value]="$index">{{ opcion.entidadBancaria }}{{ opcion.esPrincipal ? ' (Principal)' : '' }}</option>
+                          }
+                        </select>
+                      } @else {
+                        <span>{{ cuenta.entidadBancaria }}</span>
+                      }
+                    </label>
+                    <div><span class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400">CTA</span><span class="flex items-center gap-1"><span class="min-w-0 truncate">{{ cuenta.cuentaBancaria }}</span><app-copy-text-button [value]="cuenta.cuentaBancaria" label="número de cuenta" /></span></div>
+                    <div><span class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400">CCI</span><span class="flex items-center gap-1"><span class="min-w-0 truncate">{{ cuenta.cci }}</span><app-copy-text-button [value]="cuenta.cci" label="CCI" /></span></div>
+                  </div>
+                }
               </td>
             </tr>
           }

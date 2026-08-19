@@ -147,10 +147,7 @@ export class ColaboradoresPageComponent {
   }
 
   protected saveColaborador(colaborador: Colaborador): void {
-    const existingIndex = this.colaboradores.findIndex((item) => item.id === colaborador.id);
-    this.colaboradores = existingIndex === -1
-      ? [colaborador, ...this.colaboradores]
-      : this.colaboradores.map((item) => item.id === colaborador.id ? colaborador : item);
+    this.colaboradores = this.colaboradoresService.saveColaborador(colaborador);
     this.expandedId = '';
     this.closeNewColaboradorModal();
   }
@@ -161,7 +158,7 @@ export class ColaboradoresPageComponent {
 
   protected updateSelectedStatus(estado: Colaborador['estado']): void {
     const selectedIds = new Set(this.selectedColaboradorIds);
-    this.colaboradores = this.colaboradores.map((colaborador) => selectedIds.has(colaborador.id) ? { ...colaborador, estado } : colaborador);
+    this.colaboradores = this.colaboradoresService.updateEstado(selectedIds, estado);
   }
 
   protected deleteSelectedColaboradores(): void {
@@ -174,7 +171,7 @@ export class ColaboradoresPageComponent {
 
   protected confirmDeletion(): void {
     const ids = new Set(this.pendingDeletionIds);
-    this.colaboradores = this.colaboradores.filter((colaborador) => !ids.has(colaborador.id));
+    this.colaboradores = this.colaboradoresService.deleteColaboradores(ids);
     this.selectedColaboradorIds = this.selectedColaboradorIds.filter((id) => !ids.has(id));
     this.pendingDeletionIds = [];
     this.expandedId = '';

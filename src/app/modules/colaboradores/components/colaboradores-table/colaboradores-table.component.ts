@@ -1,13 +1,14 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild } from '@angular/core';
 import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
-import { Colaborador, DocumentoColaborador } from '../../models/colaborador.model';
+import { Colaborador, DatosBancarios, DocumentoColaborador } from '../../models/colaborador.model';
 import { PdfViewerModalComponent } from '../../../../shared/components/pdf-viewer-modal/pdf-viewer-modal.component';
+import { CopyTextButtonComponent } from '../../../../shared/components/copy-text-button/copy-text-button.component';
 
 type SharePlatform = 'whatsapp' | 'messenger' | 'instagram';
 
 @Component({
-  imports: [PaginacionComponent, SelectboxComponent, PdfViewerModalComponent],
+  imports: [PaginacionComponent, SelectboxComponent, PdfViewerModalComponent, CopyTextButtonComponent],
   selector: 'app-colaboradores-table',
   templateUrl: './colaboradores-table.component.html'
 })
@@ -25,6 +26,7 @@ export class ColaboradoresTableComponent {
   protected shareDocumentSelection: DocumentoColaborador | null = null;
   protected sharePlatformSelection: SharePlatform | null = null;
   protected shareFeedback = '';
+  private readonly selectedBankIndexes = new Map<string, number>();
   private rowSelectionActive = false;
   private ignoreNextRowAction = false;
   private dragSelectionValue = false;
@@ -34,6 +36,20 @@ export class ColaboradoresTableComponent {
 
   protected toggle(colaboradorId: string): void {
     this.expandedIdChange.emit(this.expandedId === colaboradorId ? '' : colaboradorId);
+  }
+
+  protected selectedBankIndex(colaborador: Colaborador): number {
+    return this.selectedBankIndexes.get(colaborador.id)
+      ?? Math.max(0, colaborador.datosBancarios?.findIndex((cuenta) => cuenta.esPrincipal) ?? 0);
+  }
+
+  protected selectedBankAccount(colaborador: Colaborador): DatosBancarios | null {
+    const cuentas = colaborador.datosBancarios ?? [];
+    return cuentas[this.selectedBankIndex(colaborador)] ?? cuentas[0] ?? null;
+  }
+
+  protected selectBankAccount(colaboradorId: string, index: string): void {
+    this.selectedBankIndexes.set(colaboradorId, Number(index));
   }
 
   protected get paginationConfig(): PaginacionConfig {

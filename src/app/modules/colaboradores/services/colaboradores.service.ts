@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Colaborador, ColaboradorMetric } from '../models/colaborador.model';
+import { Colaborador, ColaboradorMetric, DatosBancarios } from '../models/colaborador.model';
 
 const DOCUMENTOS = [
   { nombre: 'DNI', estado: 'Vigente' as const },
@@ -10,6 +10,8 @@ const DOCUMENTOS = [
 
 @Injectable({ providedIn: 'root' })
 export class ColaboradoresService {
+  private colaboradores: Colaborador[] | null = null;
+
   getMetrics(): ColaboradorMetric[] {
     return [
       { label: 'Total colaboradores', value: '186', detail: 'Activos: 162 | Inactivos: 24', icon: 'users', tone: 'blue' },
@@ -20,7 +22,9 @@ export class ColaboradoresService {
   }
 
   getColaboradores(): Colaborador[] {
-    return [
+    if (this.colaboradores) return [...this.colaboradores];
+
+    const colaboradores: Colaborador[] = [
       {
         id: '1',
         imagen: 'https://i.pravatar.cc/96?img=12',
@@ -64,5 +68,51 @@ export class ColaboradoresService {
         id: '7', imagen: 'https://i.pravatar.cc/96?img=15', nombre: 'Oscar', apellido: 'Huaman', dni: '71654433', cargo: 'Tecnico de Mantenimiento', telefonoEmergencia: '987 654 327', estadoCivil: 'Soltero', tallas: { camisa: 'M', pantalon: 'L', calzado: '40' }, estado: 'Inactivo', fechaNacimiento: '31/01/1995', direccion: 'Jr. Las Flores 765, Huancayo', correo: 'oscar.huaman@empresa.com', fechaIngreso: '18/06/2022', tipoContrato: 'Plazo fijo', jornada: 'Tiempo completo', sueldoBasico: '2450.00', gradoInstruccion: 'Tecnico', cuentaBancaria: '002-7234-567890123456', epsSeguro: 'SIS', contactoEmergencia: 'Nelly Huaman - 987 723 456', documentos: DOCUMENTOS
       }
     ];
+    const cuentasPorId: Record<string, DatosBancarios[]> = {
+      '1': [
+        { entidadBancaria: 'BCP', cuentaBancaria: '001102450200456789', cci: '01124500020045678987', esPrincipal: true },
+        { entidadBancaria: 'Interbank', cuentaBancaria: '200300456789012345', cci: '00320030045678901234', esPrincipal: false },
+        { entidadBancaria: 'BBVA', cuentaBancaria: '001104560200123456', cci: '01145600020012345678', esPrincipal: false }
+      ],
+      '2': [
+        { entidadBancaria: 'BCP', cuentaBancaria: '001102450200456790', cci: '01124500020045679088', esPrincipal: true },
+        { entidadBancaria: 'Scotiabank', cuentaBancaria: '009300456789012345', cci: '00930030045678901235', esPrincipal: false }
+      ],
+      '3': [{ entidadBancaria: 'Interbank', cuentaBancaria: '200300456789012346', cci: '00320030045678901235', esPrincipal: true }],
+      '4': [{ entidadBancaria: 'BBVA', cuentaBancaria: '001104560200123457', cci: '01145600020012345679', esPrincipal: true }],
+      '5': [{ entidadBancaria: 'Scotiabank', cuentaBancaria: '009300456789012346', cci: '00930030045678901236', esPrincipal: true }]
+    };
+
+    this.colaboradores = colaboradores.map((colaborador) => {
+      const datosBancarios = cuentasPorId[colaborador.id] ?? [];
+      const principal = datosBancarios.find((cuenta) => cuenta.esPrincipal) ?? datosBancarios[0];
+      return {
+        ...colaborador,
+        datosBancarios,
+        cuentaBancaria: principal?.cuentaBancaria ?? colaborador.cuentaBancaria,
+        cci: principal?.cci ?? colaborador.cci,
+        entidadBancaria: principal?.entidadBancaria ?? colaborador.entidadBancaria
+      };
+    });
+    return [...this.colaboradores];
+  }
+
+  saveColaborador(colaborador: Colaborador): Colaborador[] {
+    const actuales = this.getColaboradores();
+    const index = actuales.findIndex((item) => item.id === colaborador.id);
+    this.colaboradores = index === -1
+      ? [colaborador, ...actuales]
+      : actuales.map((item) => item.id === colaborador.id ? colaborador : item);
+    return [...this.colaboradores];
+  }
+
+  updateEstado(ids: ReadonlySet<string>, estado: Colaborador['estado']): Colaborador[] {
+    this.colaboradores = this.getColaboradores().map((item) => ids.has(item.id) ? { ...item, estado } : item);
+    return [...this.colaboradores];
+  }
+
+  deleteColaboradores(ids: ReadonlySet<string>): Colaborador[] {
+    this.colaboradores = this.getColaboradores().filter((item) => !ids.has(item.id));
+    return [...this.colaboradores];
   }
 }

@@ -170,17 +170,27 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.contactosEmergencia.removeAt(index);
   }
 
-  public agregarDatosBancarios(cuentaBancaria = '', cci = '', entidadBancaria = ''): void {
+  public agregarDatosBancarios(cuentaBancaria = '', cci = '', entidadBancaria = '', esPrincipal = this.datosBancarios.length === 0): void {
     if (this.datosBancarios.length >= this.maxRegistrosComplementarios) return;
     this.datosBancarios.push(this.formBuilder.group({
       cuentaBancaria: [this.digitsOnly(cuentaBancaria, 24), [Validators.required, Validators.pattern(this.bankAccountPattern)]],
       cci: [this.digitsOnly(cci, 20), [Validators.required, Validators.pattern(this.cciPattern)]],
-      entidadBancaria: [entidadBancaria, Validators.required]
+      entidadBancaria: [entidadBancaria, Validators.required],
+      esPrincipal: [esPrincipal]
     }));
+    if (esPrincipal) this.setCuentaPrincipal(this.datosBancarios.length - 1);
   }
 
   public eliminarDatosBancarios(index: number): void {
+    const wasPrincipal = this.datosBancarios.at(index).controls['esPrincipal'].value === true;
     this.datosBancarios.removeAt(index);
+    if (wasPrincipal && this.datosBancarios.length) this.setCuentaPrincipal(0);
+  }
+
+  public setCuentaPrincipal(index: number): void {
+    this.datosBancarios.controls.forEach((control, currentIndex) => {
+      control.controls['esPrincipal'].setValue(currentIndex === index);
+    });
   }
 
   public onProfileImageSelected(event: Event): void {
@@ -412,7 +422,13 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       .map((contacto) => ({ nombre: contacto['nombre'] ?? '', parentesco: contacto['parentesco'] ?? '', telefono: contacto['telefono'] ?? '' }))
       .filter((contacto) => contacto.nombre || contacto.parentesco || contacto.telefono);
     const datosBancarios: DatosBancarios[] = value.adicional.datosBancarios
-      .map((dato) => ({ cuentaBancaria: dato['cuentaBancaria'] ?? '', cci: dato['cci'] ?? '', entidadBancaria: dato['entidadBancaria'] ?? '' }));
+      .map((dato, index) => ({
+        cuentaBancaria: dato['cuentaBancaria'] ?? '',
+        cci: dato['cci'] ?? '',
+        entidadBancaria: dato['entidadBancaria'] ?? '',
+        esPrincipal: value.adicional.datosBancarios.some((bank) => bank['esPrincipal']) ? dato['esPrincipal'] === true : index === 0
+      }));
+    const cuentaPrincipal = datosBancarios.find((dato) => dato.esPrincipal) ?? datosBancarios[0];
     this.saveColaborador.emit({
       id: this.colaborador?.id ?? `nuevo-${Date.now()}`,
       imagen: this.profileImageChanged ? (this.profileImagePreviewUrl || this.defaultProfileImageUrl) : (this.colaborador?.imagen ?? this.defaultProfileImageUrl),
@@ -445,9 +461,9 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       gradoInstruccion: value.laboral.gradoInstruccion || '',
       lugarNacimiento: value.adicional.lugarNacimiento || '',
       tipoSangre: value.adicional.tipoSangre || '',
-      cuentaBancaria: datosBancarios[0]?.cuentaBancaria ?? '',
-      cci: datosBancarios[0]?.cci ?? '',
-      entidadBancaria: datosBancarios[0]?.entidadBancaria ?? '',
+      cuentaBancaria: cuentaPrincipal?.cuentaBancaria ?? '',
+      cci: cuentaPrincipal?.cci ?? '',
+      entidadBancaria: cuentaPrincipal?.entidadBancaria ?? '',
       datosBancarios,
       epsSeguro: value.adicional.epsSeguro || '',
       contactoEmergencia: contactosEmergencia[0] ? [contactosEmergencia[0].nombre, contactosEmergencia[0].parentesco, contactosEmergencia[0].telefono].filter(Boolean).join(' - ') : '',
@@ -483,8 +499,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.documentosPersonalizados.clear();
     const contactos = colaborador.contactosEmergencia ?? (colaborador.telefonoEmergencia ? [{ nombre: '', parentesco: '', telefono: colaborador.telefonoEmergencia }] : []);
     contactos.forEach((contacto) => this.agregarContactoEmergencia(contacto.nombre, contacto.parentesco ?? '', contacto.telefono));
-    const datosBancarios = colaborador.datosBancarios ?? (colaborador.cuentaBancaria ? [{ cuentaBancaria: colaborador.cuentaBancaria, cci: colaborador.cci ?? '', entidadBancaria: colaborador.entidadBancaria ?? '' }] : []);
-    datosBancarios.forEach((dato) => this.agregarDatosBancarios(dato.cuentaBancaria, dato.cci, dato.entidadBancaria));
+    const datosBancarios = colaborador.datosBancarios ?? (colaborador.cuentaBancaria ? [{ cuentaBancaria: colaborador.cuentaBancaria, cci: colaborador.cci ?? '', entidadBancaria: colaborador.entidadBancaria ?? '', esPrincipal: true }] : []);
+    datosBancarios.forEach((dato, index) => this.agregarDatosBancarios(dato.cuentaBancaria, dato.cci, dato.entidadBancaria, dato.esPrincipal ?? index === 0));
     const predefinedDocumentNames = new Set(this.documentDefinitions.map((document) => document.label));
     colaborador.documentos
       .filter((document) => !predefinedDocumentNames.has(document.nombre))

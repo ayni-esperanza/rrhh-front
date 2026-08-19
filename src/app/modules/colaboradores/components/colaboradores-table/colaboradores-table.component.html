@@ -75,9 +75,23 @@
                       <p><span class="block font-semibold text-slate-500">Tipo de sangre</span>{{ colaborador.tipoSangre || '—' }}</p>
                       <p><span class="block font-semibold text-slate-500">EPS / Seguro</span>{{ colaborador.epsSeguro }}</p>
                       <div><span class="block font-semibold text-slate-500">Datos bancarios</span>
-                        @if (colaborador.datosBancarios?.length) {
-                          <div class="mt-1 space-y-1.5">@for (dato of colaborador.datosBancarios; track $index) {<div class="rounded border border-slate-200 p-1.5 dark:border-slate-700"><p>{{ dato.entidadBancaria }}</p><p>Cuenta: {{ dato.cuentaBancaria }}</p><p>CCI: {{ dato.cci }}</p></div>}</div>
-                        } @else { <p>{{ colaborador.cuentaBancaria || '—' }}</p> }
+                        @if (selectedBankAccount(colaborador); as dato) {
+                          <div class="mt-1 space-y-1.5 rounded border border-slate-200 p-1.5 dark:border-slate-700">
+                            @if ((colaborador.datosBancarios?.length ?? 0) > 1) {
+                              <select class="h-9 w-full rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold leading-5 text-slate-800 outline-none focus:border-blue-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" [value]="selectedBankIndex(colaborador)" (change)="selectBankAccount(colaborador.id, $any($event.target).value)">
+                                @for (opcion of colaborador.datosBancarios; track $index) {
+                                  <option [value]="$index">{{ opcion.entidadBancaria }}{{ opcion.esPrincipal ? ' (Principal)' : '' }}</option>
+                                }
+                              </select>
+                            } @else {
+                              <p class="flex items-center justify-between gap-2">{{ dato.entidadBancaria }} @if (dato.esPrincipal) { <span class="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">Principal</span> }</p>
+                            }
+                            <p class="flex items-center gap-1">Cuenta: <span class="min-w-0 truncate">{{ dato.cuentaBancaria }}</span><app-copy-text-button [value]="dato.cuentaBancaria" label="número de cuenta" /></p>
+                            <p class="flex items-center gap-1">CCI: <span class="min-w-0 truncate">{{ dato.cci }}</span><app-copy-text-button [value]="dato.cci" label="CCI" /></p>
+                          </div>
+                        } @else {
+                          <div class="mt-1 space-y-1"><p>{{ colaborador.entidadBancaria || '—' }}</p><p class="flex items-center gap-1">Cuenta: <span class="min-w-0 truncate">{{ colaborador.cuentaBancaria || '—' }}</span><app-copy-text-button [value]="colaborador.cuentaBancaria" label="número de cuenta" /></p>@if (colaborador.cci) { <p class="flex items-center gap-1">CCI: <span class="min-w-0 truncate">{{ colaborador.cci }}</span><app-copy-text-button [value]="colaborador.cci" label="CCI" /></p> }</div>
+                        }
                       </div>
                       <div><span class="block font-semibold text-slate-500">Contactos de emergencia</span>
                         @if (colaborador.contactosEmergencia?.length) {

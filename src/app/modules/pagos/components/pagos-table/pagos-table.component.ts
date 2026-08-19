@@ -2,10 +2,11 @@
 import { Component, Input, OnChanges } from '@angular/core';
 import { PagoColaborador, PagoMes } from '../../models/pago.model';
 import { DetallePagoModalComponent } from '../detalle-pago-modal/detalle-pago-modal.component';
+import { CopyTextButtonComponent } from '../../../../shared/components/copy-text-button/copy-text-button.component';
 
 @Component({
   selector: 'app-pagos-table',
-  imports: [DetallePagoModalComponent, PaginacionComponent],
+  imports: [DetallePagoModalComponent, PaginacionComponent, CopyTextButtonComponent],
   templateUrl: './pagos-table.component.html'
 })
 export class PagosTableComponent implements OnChanges {
@@ -14,10 +15,24 @@ export class PagosTableComponent implements OnChanges {
   protected expandedId: number | null = null;
   protected selectedPago: PagoColaborador | null = null;
   protected isDetalleOpen = false;
+  private readonly selectedBankIndexes = new Map<number, number>();
 
   protected togglePago(id: number): void { this.expandedId = this.expandedId === id ? null : id; }
   protected openDetalle(pago: PagoColaborador): void { this.selectedPago = pago; this.isDetalleOpen = true; }
   protected closeDetalle(): void { this.isDetalleOpen = false; }
+
+  protected selectedBankIndex(pago: PagoColaborador): number {
+    return this.selectedBankIndexes.get(pago.id)
+      ?? Math.max(0, pago.cuentasBancarias.findIndex((cuenta) => cuenta.esPrincipal));
+  }
+
+  protected selectedBankAccount(pago: PagoColaborador) {
+    return pago.cuentasBancarias[this.selectedBankIndex(pago)] ?? pago.cuentasBancarias[0];
+  }
+
+  protected selectBankAccount(pagoId: number, index: string): void {
+    this.selectedBankIndexes.set(pagoId, Number(index));
+  }
 
   ngOnChanges(): void {
     const lastPage = Math.max(0, Math.ceil(this.pagos.length / this.porPagina) - 1);

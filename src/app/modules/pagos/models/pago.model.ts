@@ -18,7 +18,15 @@ export interface PagoColaborador {
   cta: string;
   cci: string;
   banco: string;
+  cuentasBancarias: PagoCuentaBancaria[];
   meses: PagoMes[];
+}
+
+export interface PagoCuentaBancaria {
+  cuentaBancaria: string;
+  cci: string;
+  entidadBancaria: string;
+  esPrincipal: boolean;
 }
 
 export interface PagoMes {

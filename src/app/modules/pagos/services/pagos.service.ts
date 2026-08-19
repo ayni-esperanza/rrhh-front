@@ -1,5 +1,6 @@
 ﻿import { Injectable } from '@angular/core';
-import { PagoColaborador, PagoMetric } from '../models/pago.model';
+import { PagoColaborador, PagoCuentaBancaria, PagoMetric } from '../models/pago.model';
+import { ColaboradoresService } from '../../colaboradores/services/colaboradores.service';
 
 const MESES = [
   ['Ene', 'Enero 2025'], ['Feb', 'Febrero 2025'], ['Mar', 'Marzo 2025'], ['Abr', 'Abril 2025'],
@@ -9,6 +10,8 @@ const MESES = [
 
 @Injectable({ providedIn: 'root' })
 export class PagosService {
+  constructor(private readonly colaboradoresService: ColaboradoresService) {}
+
   getMetrics(): PagoMetric[] {
     return [
       { label: 'Colaboradores', value: '186', detail: 'Activos 186 (100%)', icon: 'users', tone: 'blue' },
@@ -20,13 +23,34 @@ export class PagosService {
   }
 
   getPagos(): PagoColaborador[] {
-    return [
+    const colaboradores = new Map(this.colaboradoresService.getColaboradores().map((colaborador) => [colaborador.id, colaborador]));
+    const pagos = [
       this.colaborador(1, 'Luis Alberto Romero', 'Tecnico Mecanico', 'Mantenimiento', 'https://i.pravatar.cc/96?img=12', 'S/ 2,800.00', '05 May 2025', '10:32 a. m.', 2800, [0, 1, 2, 3], [4], '0011-0245-0200456789', '011-245-000200456789-87', 'BCP - Banco de Credito del Peru'),
       this.colaborador(2, 'Maria Fernanda Lopez', 'Supervisora', 'Operaciones', 'https://i.pravatar.cc/96?img=47', 'S/ 3,200.00', '05 May 2025', '10:35 a. m.', 3200, [0, 1, 2, 3], [4], '0011-0245-0200456790', '011-245-000200456790-88', 'BCP - Banco de Credito del Peru'),
       this.colaborador(3, 'Diego Sanchez Perez', 'Soldador', 'Produccion', 'https://i.pravatar.cc/96?img=13', 'S/ 2,500.00', '-', '-', 2500, [0, 1, 2], [3], '0011-0245-0200456791', '011-245-000200456791-89', 'Interbank'),
       this.colaborador(4, 'Ana Lucia Rojas', 'Operaria', 'Produccion', 'https://i.pravatar.cc/96?img=32', 'S/ 2,200.00', '-', '-', 2200, [0, 1, 2, 3], [4], '0011-0245-0200456792', '011-245-000200456792-90', 'BBVA'),
       this.colaborador(5, 'Jose Manuel Torres', 'Electricista', 'Mantenimiento', 'https://i.pravatar.cc/96?img=11', 'S/ 2,600.00', '-', '-', 2600, [0, 1], [2, 3], '0011-0245-0200456793', '011-245-000200456793-91', 'Scotiabank')
     ];
+
+    return pagos.map((pago) => {
+      const colaborador = colaboradores.get(String(pago.id));
+      const cuentasBancarias: PagoCuentaBancaria[] = colaborador?.datosBancarios?.length
+        ? colaborador.datosBancarios.map((cuenta, index) => ({ ...cuenta, esPrincipal: cuenta.esPrincipal ?? index === 0 }))
+        : [{
+            cuentaBancaria: colaborador?.cuentaBancaria || pago.cta,
+            cci: colaborador?.cci || pago.cci,
+            entidadBancaria: colaborador?.entidadBancaria || pago.banco,
+            esPrincipal: true
+          }];
+      const principal = cuentasBancarias.find((cuenta) => cuenta.esPrincipal) ?? cuentasBancarias[0];
+      return {
+        ...pago,
+        cta: principal.cuentaBancaria,
+        cci: principal.cci,
+        banco: principal.entidadBancaria,
+        cuentasBancarias
+      };
+    });
   }
 
   private colaborador(id: number, nombre: string, cargo: string, area: string, avatar: string, montoMensual: string, fechaPago: string, horaPago: string, monto: number, pagados: number[], abonados: number[], cta: string, cci: string, banco: string): PagoColaborador {
@@ -42,6 +66,7 @@ export class PagosService {
       cta,
       cci,
       banco,
+      cuentasBancarias: [{ cuentaBancaria: cta, cci, entidadBancaria: banco, esPrincipal: true }],
       meses: MESES.map(([mes, mesCompleto], index) => {
         const estado = pagados.includes(index) ? 'Pagado' : abonados.includes(index) ? 'Abonado' : 'Pendiente';
         const programado = index === 4 && estado !== 'Pagado' ? monto + 100 : monto;
