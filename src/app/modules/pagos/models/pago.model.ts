@@ -41,4 +41,16 @@ export interface PagoMes {
   fechaPago: string;
   responsable: string;
   entidadMedio: string;
+  movimientos: PagoMovimiento[];
+}
+
+export interface PagoMovimiento {
+  id: number;
+  numero: number;
+  monto: string;
+  fechaPago: string;
+  horaPago: string;
+  responsable: string;
+  entidadMedio: string;
+  observacion: string;
 }

@@ -3,7 +3,7 @@ import { PagosFiltersComponent } from '../../components/pagos-filters/pagos-filt
 import { PagosMetricsComponent } from '../../components/pagos-metrics/pagos-metrics.component';
 import { PagosTableComponent } from '../../components/pagos-table/pagos-table.component';
 import { PagosService } from '../../services/pagos.service';
-import { PagoColaborador } from '../../models/pago.model';
+import { PagoColaborador, PagoMes } from '../../models/pago.model';
 import { PagosFilterState } from '../../components/pagos-filters/pagos-filters.component';
 import { ExportTable, TableExportService } from '../../../../shared/services/table-export.service';
 
@@ -108,8 +108,20 @@ export class PagosPageComponent {
       rows: this.filteredPagos.map((pago) => ({
         nombre: pago.nombre, cargo: pago.cargo, area: pago.area, monto: pago.montoMensual,
         fecha: `${pago.fechaPago} ${pago.horaPago}`, banco: pago.banco,
-        ...Object.fromEntries(pago.meses.filter((month) => this.monthIntersectsRange(month.mesCompleto)).map((month, index) => [`mes${index}`, `${month.estado} - ${month.monto}`]))
+        ...Object.fromEntries(pago.meses.filter((month) => this.monthIntersectsRange(month.mesCompleto)).map((month, index) => [`mes${index}`, this.exportMonthDetail(month)]))
       }))
     };
+  }
+
+  private exportMonthDetail(month: PagoMes): string {
+    if (month.estado === 'Abonado') {
+      return `Abonado: ${month.pagadoAbonado} | Pendiente: ${month.pendiente} | Total: ${month.montoProgramado}`;
+    }
+
+    if (month.estado === 'Pendiente') {
+      return `Pendiente: ${month.pendiente}`;
+    }
+
+    return `Pagado: ${month.pagadoAbonado}`;
   }
 }

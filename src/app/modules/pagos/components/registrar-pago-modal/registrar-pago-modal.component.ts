@@ -23,7 +23,7 @@ export class RegistrarPagoModalComponent {
   protected observacion = '';
 
   protected get hasAbono(): boolean { return this.mes?.estado === 'Abonado'; }
-  protected get maximo(): string { return this.mes?.montoProgramado ?? 'S/ 0.00'; }
+  protected get maximo(): string { return this.hasAbono ? this.mes?.pendiente ?? 'S/ 0.00' : this.mes?.montoProgramado ?? 'S/ 0.00'; }
 
   @HostListener('document:keydown.escape')
   protected onEscape(): void { if (this.isOpen) this.closeModal.emit(); }

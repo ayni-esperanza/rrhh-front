@@ -72,18 +72,30 @@ export class PagosService {
         const programado = index === 4 && estado !== 'Pagado' ? monto + 100 : monto;
         const pagado = estado === 'Pagado' ? programado : estado === 'Abonado' ? Math.round(programado / 2) : 0;
         const pendiente = Math.max(programado - pagado, 0);
+        const responsable = estado === 'Pendiente' ? '-' : index < 3 ? 'Juan Perez' : 'Maria Lopez';
+        const entidadMedio = estado === 'Pendiente' ? '-' : estado === 'Abonado' ? 'Plin' : index < 3 ? 'Banco de Credito' : 'Banco de la Nacion';
+        const fechaPagoMes = estado === 'Pendiente' ? '-' : `${String(index + 5).padStart(2, '0')} ${mes} 2025`;
+        const movimientos = estado === 'Pendiente' ? [] : estado === 'Abonado'
+          ? [
+              { id: index * 10 + 1, numero: 1, monto: this.money(Math.ceil(pagado * 0.6)), fechaPago: `${String(index + 3).padStart(2, '0')} ${mes} 2025`, horaPago: '09:15 a. m.', responsable, entidadMedio, observacion: 'Primer abono del mes.' },
+              { id: index * 10 + 2, numero: 2, monto: this.money(Math.floor(pagado * 0.4)), fechaPago: fechaPagoMes, horaPago: '10:32 a. m.', responsable, entidadMedio, observacion: 'Segundo abono del mes.' }
+            ]
+          : [
+              { id: index * 10 + 1, numero: 1, monto: this.money(pagado), fechaPago: fechaPagoMes, horaPago: '10:32 a. m.', responsable, entidadMedio, observacion: 'Pago completo del mes.' }
+            ];
         return {
           mes,
           mesCompleto,
           estado,
           monto: this.money(pagado),
-          referencia: `de ${this.money(programado)}`,
+          referencia: estado === 'Abonado' ? `Pend. ${this.money(pendiente)}` : `de ${this.money(programado)}`,
           montoProgramado: this.money(programado),
           pagadoAbonado: this.money(pagado),
           pendiente: this.money(pendiente),
-          fechaPago: estado === 'Pendiente' ? '-' : `${String(index + 5).padStart(2, '0')} ${mes} 2025`,
-          responsable: estado === 'Pendiente' ? '-' : index < 3 ? 'Juan Perez' : 'Maria Lopez',
-          entidadMedio: estado === 'Pendiente' ? '-' : estado === 'Abonado' ? 'Plin' : index < 3 ? 'Banco de Credito' : 'Banco de la Nacion'
+          fechaPago: fechaPagoMes,
+          responsable,
+          entidadMedio,
+          movimientos
         };
       })
     };

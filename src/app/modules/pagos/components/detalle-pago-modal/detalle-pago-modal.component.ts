@@ -14,10 +14,11 @@ export class DetallePagoModalComponent {
 
   protected selectedMes: PagoMes | null = null;
   protected isRegistrarOpen = false;
+  protected expandedMonth = '';
 
   protected resumen(estado: PagoMes['estado']): { monto: string; count: number } {
     const meses = this.pago?.meses.filter((mes) => mes.estado === estado) ?? [];
-    const total = meses.reduce((sum, mes) => sum + Number(mes.pagadoAbonado.replace(/[S/, ]/g, '')), 0);
+    const total = meses.reduce((sum, mes) => sum + this.moneyToNumber(estado === 'Pendiente' ? mes.pendiente : mes.pagadoAbonado), 0);
     return { monto: `S/ ${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, count: meses.length };
   }
 
@@ -30,9 +31,24 @@ export class DetallePagoModalComponent {
     this.isRegistrarOpen = false;
   }
 
+  protected toggleMovimientos(mes: PagoMes): void {
+    if (!mes.movimientos.length) return;
+    this.expandedMonth = this.expandedMonth === mes.mesCompleto ? '' : mes.mesCompleto;
+  }
+
+  protected movimientoLabel(mes: PagoMes): string {
+    const count = mes.movimientos.length;
+    if (!count) return 'Sin movimientos';
+    return `${count} ${mes.estado === 'Pagado' && count === 1 ? 'pago' : count === 1 ? 'abono' : 'abonos'}`;
+  }
+
   protected estadoClasses(estado: PagoMes['estado']): string {
     const classes = { Pagado: 'text-emerald-600 dark:text-emerald-300', Abonado: 'text-orange-600 dark:text-orange-300', Pendiente: 'text-red-600 dark:text-red-300' };
     return classes[estado];
+  }
+
+  private moneyToNumber(value: string): number {
+    return Number(value.replace(/[^0-9.]/g, '')) || 0;
   }
 
   @HostListener('document:keydown.escape')
