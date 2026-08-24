@@ -1,39 +1,21 @@
 ﻿import { Component, inject } from '@angular/core';
 import { AsistenciaFilters, AsistenciaMetric } from '../../models/asistencia.model';
-import { HostListener } from '@angular/core';
 import { ElementRef, ViewChild } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { AsistenciasService } from '../../services/asistencias.service';
 import { EntradaSalidaPageComponent } from '../entrada-salida-page/entrada-salida-page.component';
 import { HorasDiaPageComponent } from '../horas-dia-page/horas-dia-page.component';
 import { LugarTrabajoPageComponent } from '../lugar-trabajo-page/lugar-trabajo-page.component';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
-import { ConfiguracionFeriadoTrabajado, ConfiguracionHorasExtrasService, TipoPagoFeriado } from '../../services/configuracion-horas-extras.service';
+import { ConfiguracionHorasExtrasService } from '../../services/configuracion-horas-extras.service';
 import { TableExportButtonsComponent } from '../../../../shared/components/table-export-buttons/table-export-buttons.component';
 import { ExportTable, TableExportService } from '../../../../shared/services/table-export.service';
-import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { PagosEspecialesModalComponent } from './pagos-especiales-modal/pagos-especiales-modal.component';
 
 type AsistenciaTab = 'horas-dia' | 'entrada-salida' | 'lugar-trabajo';
-type PagosEspecialesTab = 'configuracion-pagos' | 'calendario-feriados';
-type CalendarioFeriadosVista = 'mes' | 'anio';
-
-interface DiaFeriadoLocal {
-  id: string;
-  nombre: string;
-  fecha: string;
-  activo: boolean;
-  color: string;
-}
-
-interface CalendarioFeriadoCelda {
-  fecha: string;
-  dia: number | null;
-  feriado?: DiaFeriadoLocal;
-}
-
 @Component({
   selector: 'app-asistencias-layout',
-  imports: [HorasDiaPageComponent, EntradaSalidaPageComponent, LugarTrabajoPageComponent, DatePickerComponent, FormsModule, TableExportButtonsComponent, ConfirmDialogComponent],
+  standalone: true,
+  imports: [HorasDiaPageComponent, EntradaSalidaPageComponent, LugarTrabajoPageComponent, DatePickerComponent, TableExportButtonsComponent, PagosEspecialesModalComponent],
   templateUrl: './asistencias-layout.component.html'
 })
 export class AsistenciasLayoutComponent {
@@ -41,36 +23,15 @@ export class AsistenciasLayoutComponent {
   @ViewChild(HorasDiaPageComponent) private horasDiaPage?: HorasDiaPageComponent;
   @ViewChild(EntradaSalidaPageComponent) private entradaSalidaPage?: EntradaSalidaPageComponent;
   @ViewChild(LugarTrabajoPageComponent) private lugarTrabajoPage?: LugarTrabajoPageComponent;
-  private readonly configuracionHorasExtrasService = inject(ConfiguracionHorasExtrasService);
   private readonly tableExport = inject(TableExportService);
   private tabAnimation?: Animation;
-  private readonly configuracionInicial = this.configuracionHorasExtrasService.getConfiguracion();
   protected readonly metrics = inject(AsistenciasService).getMetrics();
   protected readonly monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   private readonly shortMonthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   protected activeTab: AsistenciaTab = 'horas-dia';
   protected filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
   protected isHorasExtrasConfigOpen = false;
-  protected pagosEspecialesTab: PagosEspecialesTab = 'configuracion-pagos';
-  protected incrementoHorasExtras = this.configuracionInicial.incrementoPorcentual;
-  protected incrementoHorasExtrasDraft = this.incrementoHorasExtras;
-  protected configuracionFeriado = { ...this.configuracionInicial.feriado };
-  protected feriadoTipoDraft: TipoPagoFeriado = this.configuracionFeriado.tipo;
-  protected feriadoValorDraft = this.configuracionFeriado.valor;
-  protected feriadoDiasBaseDraft = this.configuracionFeriado.diasBase;
-  protected feriadoHorasJornadaDraft = this.configuracionFeriado.horasJornada;
-  protected diaFeriadoNombreDraft = '';
-  protected diaFeriadoFechaDraft = '';
-  protected diaFeriadoColorDraft = '#22C55E';
-  protected diaFeriadoError = '';
-  protected diasFeriados: DiaFeriadoLocal[] = [];
-  protected calendarioFeriadosYear = new Date().getFullYear();
-  protected calendarioFeriadosMonth = new Date().getMonth();
-  protected calendarioFeriadosVista: CalendarioFeriadosVista = 'mes';
-  protected feriadoPendienteInactivar: DiaFeriadoLocal | null = null;
-  protected readonly calendarWeekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-  protected readonly calendarWeekDaysCompact = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-  protected readonly feriadoColorOptions = ['#22C55E', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899'];
+  protected incrementoHorasExtras = inject(ConfiguracionHorasExtrasService).getConfiguracion().incrementoPorcentual;
 
 
   protected get monthPickerValue(): string {
@@ -123,230 +84,11 @@ export class AsistenciasLayoutComponent {
   }
 
   protected openHorasExtrasConfig(): void {
-    this.incrementoHorasExtrasDraft = this.incrementoHorasExtras;
-    this.feriadoTipoDraft = this.configuracionFeriado.tipo;
-    this.feriadoValorDraft = this.configuracionFeriado.valor;
-    this.feriadoDiasBaseDraft = this.configuracionFeriado.diasBase;
-    this.feriadoHorasJornadaDraft = this.configuracionFeriado.horasJornada;
-    this.diaFeriadoNombreDraft = '';
-    this.diaFeriadoFechaDraft = '';
-    this.diaFeriadoColorDraft = '#22C55E';
-    this.diaFeriadoError = '';
-    this.pagosEspecialesTab = 'configuracion-pagos';
     this.isHorasExtrasConfigOpen = true;
   }
 
   protected closeHorasExtrasConfig(): void {
-    this.feriadoPendienteInactivar = null;
     this.isHorasExtrasConfigOpen = false;
-  }
-
-  protected setPagosEspecialesTab(tab: PagosEspecialesTab): void {
-    this.pagosEspecialesTab = tab;
-    this.diaFeriadoError = '';
-  }
-
-  protected pagosEspecialesTabClasses(tab: PagosEspecialesTab): string {
-    return this.pagosEspecialesTab === tab
-      ? 'border-[#22C55E] bg-green-50 text-[#22C55E] dark:bg-[#22C55E]/10'
-      : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white';
-  }
-
-  protected saveHorasExtrasConfig(): void {
-    if (!this.configuracionPagosValida) return;
-    const saved = this.configuracionHorasExtrasService.saveConfiguracion(this.incrementoHorasExtrasDraft, this.feriadoDraft);
-    this.incrementoHorasExtras = saved.incrementoPorcentual;
-    this.configuracionFeriado = { ...saved.feriado };
-    this.closeHorasExtrasConfig();
-  }
-
-  protected setFeriadoTipo(tipo: string): void {
-    this.feriadoTipoDraft = tipo as TipoPagoFeriado;
-    this.feriadoValorDraft = tipo === 'multiplicador' ? 2 : tipo === 'porcentaje' ? 100 : 100;
-  }
-
-  protected get feriadoDraft(): ConfiguracionFeriadoTrabajado {
-    return { tipo: this.feriadoTipoDraft, valor: Number(this.feriadoValorDraft), diasBase: Number(this.feriadoDiasBaseDraft), horasJornada: Number(this.feriadoHorasJornadaDraft) };
-  }
-
-  protected get nuevoDiaFeriadoValido(): boolean {
-    return this.diaFeriadoNombreDraft.trim().length >= 3 && /^\d{4}-\d{2}-\d{2}$/.test(this.diaFeriadoFechaDraft);
-  }
-
-  protected crearDiaFeriado(): void {
-    if (!this.nuevoDiaFeriadoValido) return;
-    const fecha = this.diaFeriadoFechaDraft;
-    if (this.diasFeriados.some((feriado) => feriado.fecha === fecha)) {
-      this.diaFeriadoError = 'Ya existe un día feriado registrado en esa fecha.';
-      return;
-    }
-
-    this.diasFeriados = [
-      ...this.diasFeriados,
-      {
-        id: `feriado-${Date.now()}`,
-        nombre: this.diaFeriadoNombreDraft.trim(),
-        fecha,
-        activo: true,
-        color: this.diaFeriadoColorDraft
-      }
-    ].sort((first, second) => first.fecha.localeCompare(second.fecha));
-    this.diaFeriadoNombreDraft = '';
-    this.diaFeriadoFechaDraft = '';
-    this.diaFeriadoError = '';
-  }
-
-  protected get calendarioFeriadosLabel(): string {
-    if (this.calendarioFeriadosVista === 'anio') return `Año ${this.calendarioFeriadosYear}`;
-    const month = this.monthNames[this.calendarioFeriadosMonth];
-    return `${month} ${this.calendarioFeriadosYear}`;
-  }
-
-  protected get calendarioFeriadosCeldas(): CalendarioFeriadoCelda[] {
-    return this.crearCeldasCalendario(this.calendarioFeriadosYear, this.calendarioFeriadosMonth);
-  }
-
-  protected calendarioMesCeldas(month: number): CalendarioFeriadoCelda[] {
-    return this.crearCeldasCalendario(this.calendarioFeriadosYear, month);
-  }
-
-  private crearCeldasCalendario(year: number, month: number): CalendarioFeriadoCelda[] {
-    const firstWeekDay = (new Date(year, month, 1).getDay() + 6) % 7;
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    return Array.from({ length: 42 }, (_, index) => {
-      const day = index - firstWeekDay + 1;
-      if (day < 1 || day > totalDays) return { fecha: `vacio-${year}-${month}-${index}`, dia: null };
-      const fecha = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      return { fecha, dia: day, feriado: this.diasFeriados.find((item) => item.fecha === fecha) };
-    });
-  }
-
-  protected get feriadosCalendarioMes(): DiaFeriadoLocal[] {
-    const prefix = `${this.calendarioFeriadosYear}-${String(this.calendarioFeriadosMonth + 1).padStart(2, '0')}`;
-    return this.diasFeriados.filter((feriado) => feriado.fecha.startsWith(prefix));
-  }
-
-  protected get feriadosCalendarioPeriodo(): DiaFeriadoLocal[] {
-    if (this.calendarioFeriadosVista === 'anio') {
-      return this.diasFeriados.filter((feriado) => feriado.fecha.startsWith(`${this.calendarioFeriadosYear}-`));
-    }
-    return this.feriadosCalendarioMes;
-  }
-
-  protected setCalendarioFeriadosVista(vista: CalendarioFeriadosVista): void {
-    this.calendarioFeriadosVista = vista;
-  }
-
-  protected calendarioVistaClasses(vista: CalendarioFeriadosVista): string {
-    return this.calendarioFeriadosVista === vista
-      ? 'bg-[#22C55E] text-white shadow-sm'
-      : 'text-slate-500 hover:bg-white hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white';
-  }
-
-  protected cambiarMesFeriados(delta: number): void {
-    if (this.calendarioFeriadosVista === 'anio') {
-      this.calendarioFeriadosYear += delta;
-      return;
-    }
-    const next = new Date(this.calendarioFeriadosYear, this.calendarioFeriadosMonth + delta, 1);
-    this.calendarioFeriadosYear = next.getFullYear();
-    this.calendarioFeriadosMonth = next.getMonth();
-  }
-
-  protected irHoyFeriados(): void {
-    const today = new Date();
-    this.calendarioFeriadosYear = today.getFullYear();
-    this.calendarioFeriadosMonth = today.getMonth();
-  }
-
-  protected seleccionarDiaFeriado(celda: CalendarioFeriadoCelda): void {
-    if (!celda.dia) return;
-    if (celda.feriado) {
-      if (celda.feriado.activo) this.feriadoPendienteInactivar = celda.feriado;
-      else this.alternarDiaFeriado(celda.feriado.id);
-      return;
-    }
-    this.diaFeriadoFechaDraft = celda.fecha;
-    this.diaFeriadoNombreDraft = '';
-    this.diaFeriadoError = '';
-  }
-
-  protected abrirMesFeriados(month: number): void {
-    this.calendarioFeriadosMonth = month;
-    this.calendarioFeriadosVista = 'mes';
-  }
-
-  protected confirmarInactivacionFeriado(): void {
-    const pending = this.feriadoPendienteInactivar;
-    if (!pending) return;
-    this.diasFeriados = this.diasFeriados.map((feriado) =>
-      feriado.id === pending.id ? { ...feriado, activo: false } : feriado
-    );
-    this.feriadoPendienteInactivar = null;
-  }
-
-  protected cancelarInactivacionFeriado(): void {
-    this.feriadoPendienteInactivar = null;
-  }
-
-  protected alternarDiaFeriado(id: string): void {
-    this.diasFeriados = this.diasFeriados.map((feriado) =>
-      feriado.id === id ? { ...feriado, activo: !feriado.activo } : feriado
-    );
-  }
-
-  protected gestionarDiaFeriado(feriado: DiaFeriadoLocal): void {
-    if (feriado.activo) this.feriadoPendienteInactivar = feriado;
-    else this.alternarDiaFeriado(feriado.id);
-  }
-
-  protected actualizarFechaDiaFeriado(fecha: string): void {
-    this.diaFeriadoFechaDraft = fecha;
-    this.diaFeriadoError = '';
-    const [year, month] = fecha.split('-').map(Number);
-    if (year && month >= 1 && month <= 12) {
-      this.calendarioFeriadosYear = year;
-      this.calendarioFeriadosMonth = month - 1;
-    }
-  }
-
-  protected formatearFechaFeriado(fecha: string): string {
-    const [year, month, day] = fecha.split('-').map(Number);
-    if (!year || !month || !day) return fecha;
-    return new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
-      .format(new Date(year, month - 1, day));
-  }
-
-  protected get configuracionPagosValida(): boolean {
-    const extra = Number(this.incrementoHorasExtrasDraft);
-    const valorFeriado = Number(this.feriadoValorDraft);
-    const diasBase = Number(this.feriadoDiasBaseDraft);
-    const horasJornada = Number(this.feriadoHorasJornadaDraft);
-    return Number.isFinite(extra) && extra >= 0 && extra <= 500
-      && Number.isFinite(valorFeriado) && valorFeriado >= 0 && valorFeriado <= (this.feriadoTipoDraft === 'monto-fijo' ? 100000 : 500)
-      && Number.isFinite(diasBase) && diasBase >= 1 && diasBase <= 31
-      && Number.isFinite(horasJornada) && horasJornada >= 1 && horasJornada <= 24;
-  }
-
-  protected get pagoHoraExtraEjemplo(): string {
-    return this.configuracionHorasExtrasService
-      .calcularPagoHoraExtra(10, Number(this.incrementoHorasExtrasDraft) || 0)
-      .toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 });
-  }
-
-  protected get pagoFeriadoEjemplo(): string {
-    return this.configuracionHorasExtrasService
-      .calcularPagoFeriadoPorHoras(1500, this.feriadoHorasJornadaDraft, this.feriadoDraft)
-      .toLocaleString('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 2 });
-  }
-
-  @HostListener('document:keydown.escape')
-  protected closeConfigOnEscape(): void {
-    if (this.feriadoPendienteInactivar) {
-      this.cancelarInactivacionFeriado();
-      return;
-    }
-    if (this.isHorasExtrasConfigOpen) this.closeHorasExtrasConfig();
   }
 
   protected updateSearch(value: string): void {
