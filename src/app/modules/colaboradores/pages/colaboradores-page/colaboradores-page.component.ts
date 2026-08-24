@@ -8,6 +8,7 @@ import { ColaboradoresService } from '../../services/colaboradores.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ExportTable, TableExportService } from '../../../../shared/services/table-export.service';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
+import { ConfiguracionLaboralModalComponent } from '../../components/configuracion-laboral-modal/configuracion-laboral-modal.component';
 
 type ExportFormat = 'excel' | 'pdf';
 
@@ -19,7 +20,7 @@ interface ColaboradorExportColumn {
 
 @Component({
   selector: 'app-colaboradores-page',
-  imports: [ColaboradoresMetricsComponent, ColaboradoresFiltersComponent, ColaboradoresTableComponent, NuevoColaboradorModalComponent, ConfirmDialogComponent, SelectboxComponent],
+  imports: [ColaboradoresMetricsComponent, ColaboradoresFiltersComponent, ColaboradoresTableComponent, NuevoColaboradorModalComponent, ConfiguracionLaboralModalComponent, ConfirmDialogComponent, SelectboxComponent],
   templateUrl: './colaboradores-page.component.html'
 })
 export class ColaboradoresPageComponent {
@@ -31,6 +32,7 @@ export class ColaboradoresPageComponent {
   protected filters: ColaboradoresFilterState = this.emptyFilters();
   protected expandedId = '';
   protected isNewColaboradorModalOpen = false;
+  protected isConfiguracionLaboralModalOpen = false;
   protected selectedColaborador: Colaborador | null = null;
   protected selectedColaboradorIds: string[] = [];
   protected pendingDeletionIds: string[] = [];

@@ -31,6 +31,7 @@ export class ColaboradoresFiltersComponent {
   @Input() exportDisabled = false;
   @Output() filtersChange = new EventEmitter<ColaboradoresFilterState>();
   @Output() newColaborador = new EventEmitter<void>();
+  @Output() configureCatalogs = new EventEmitter<void>();
   @Output() exportExcel = new EventEmitter<void>();
   @Output() exportPdf = new EventEmitter<void>();
 

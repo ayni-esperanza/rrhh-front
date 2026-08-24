@@ -8,7 +8,7 @@
   </div>
 
   <div>
-    <app-colaboradores-filters [colaboradores]="colaboradores" [exportDisabled]="!filteredColaboradores.length" (filtersChange)="updateFilters($event)" (newColaborador)="openNewColaboradorModal()" (exportExcel)="exportExcel()" (exportPdf)="exportPdf()" />
+    <app-colaboradores-filters [colaboradores]="colaboradores" [exportDisabled]="!filteredColaboradores.length" (filtersChange)="updateFilters($event)" (newColaborador)="openNewColaboradorModal()" (configureCatalogs)="isConfiguracionLaboralModalOpen = true" (exportExcel)="exportExcel()" (exportPdf)="exportPdf()" />
   </div>
 
   @if (selectedColaboradorIds.length) {
@@ -76,6 +76,11 @@
   (closeModal)="closeNewColaboradorModal()"
   (saveColaborador)="saveColaborador($event)"
   (deleteColaborador)="deleteColaborador($event)"
+/>
+
+<app-configuracion-laboral-modal
+  [isOpen]="isConfiguracionLaboralModalOpen"
+  (closeModal)="isConfiguracionLaboralModalOpen = false"
 />
 
 <app-confirm-dialog

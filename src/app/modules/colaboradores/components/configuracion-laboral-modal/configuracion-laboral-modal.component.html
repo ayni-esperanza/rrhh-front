@@ -1,0 +1,170 @@
+@if (isOpen) {
+  <div animate.enter="ayni-modal-enter" animate.leave="ayni-modal-leave" class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-[2px] sm:p-5" role="dialog" aria-modal="true" aria-labelledby="configuracion-laboral-title" (click)="close()">
+    <section class="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-white/10 bg-white shadow-[0_24px_80px_-24px_rgba(15,23,42,0.55)] dark:border-slate-700/80 dark:bg-slate-900 sm:max-h-[calc(100dvh-2.5rem)]" (click)="$event.stopPropagation()">
+      <header class="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 px-5 py-3 dark:border-slate-800">
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-50 text-[#22C55E] dark:bg-[#22C55E]/10 dark:text-[#22C55E]">
+            <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3V9.6h.1A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.34.72.64.98.3.26.68.4 1.08.4H21v4h-.1A1.7 1.7 0 0 0 19.4 15Z"/></svg>
+          </span>
+          <div class="flex min-w-0 items-center gap-1.5">
+            <h2 id="configuracion-laboral-title" class="truncate text-lg font-bold text-slate-950 dark:text-white">Configuración laboral</h2>
+            <span class="group relative shrink-0">
+              <button type="button" class="flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-[#22C55E] focus-visible:bg-slate-100 focus-visible:text-[#22C55E] focus-visible:outline-none dark:hover:bg-slate-800" aria-label="Información sobre configuración laboral" aria-describedby="configuracion-laboral-help">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+              </button>
+              <span id="configuracion-laboral-help" role="tooltip" class="invisible absolute left-1/2 top-full z-50 mt-2 w-64 -translate-x-1/2 rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-medium leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 dark:bg-slate-700">
+                Administra los parámetros usados al crear el contrato de un colaborador.
+                <span class="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900 dark:border-b-slate-700" aria-hidden="true"></span>
+              </span>
+            </span>
+          </div>
+        </div>
+        <button class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white" type="button" aria-label="Cerrar configuración laboral" (click)="close()">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </header>
+
+      <div class="grid min-h-0 flex-1 md:grid-cols-[13rem_minmax(0,1fr)]">
+        <aside class="border-b border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/40 md:border-b-0 md:border-r">
+          <nav class="grid grid-cols-3 gap-1 md:grid-cols-1" aria-label="Catálogos laborales">
+            @for (tab of ['areas', 'cargos', 'jornadas']; track tab) {
+              <button type="button" class="flex min-w-0 items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-bold transition" [class]="activeTab === tab ? 'bg-white text-[#22C55E] shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:text-[#22C55E] dark:ring-slate-700' : 'text-slate-600 hover:bg-white/70 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/70 dark:hover:text-white'" (click)="selectTab($any(tab))">
+                @if (tab === 'areas') {<svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V5l7-3v19M19 21V9l-7-3M9 9h.01M9 13h.01M9 17h.01M15 13h.01M15 17h.01"/></svg>}
+                @if (tab === 'cargos') {<svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg>}
+                @if (tab === 'jornadas') {<svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>}
+                <span class="truncate">{{ tabLabel($any(tab)) }}</span>
+              </button>
+            }
+          </nav>
+          <div class="mt-4 hidden rounded-lg border border-blue-100 bg-blue-50 p-3 text-[10px] leading-relaxed text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300 md:block">
+            <strong class="block text-[11px]">Configuración local</strong>
+            Esta vista aún no envía cambios al backend.
+          </div>
+        </aside>
+
+        <main class="flex min-h-0 flex-col overflow-hidden">
+          <div class="shrink-0 border-b border-slate-200 px-4 py-3 dark:border-slate-800 sm:px-5">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex items-center gap-1.5">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ tabLabel(activeTab) }}</h3>
+                <span class="group relative">
+                  <button type="button" class="flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-[#22C55E] focus-visible:bg-slate-100 focus-visible:text-[#22C55E] focus-visible:outline-none dark:hover:bg-slate-800" [attr.aria-label]="'Información sobre ' + tabLabel(activeTab)" aria-describedby="catalogo-activo-help">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+                  </button>
+                  <span id="catalogo-activo-help" role="tooltip" class="invisible absolute left-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-medium leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 dark:bg-slate-700">
+                    {{ tabDescription(activeTab) }}
+                    <span class="absolute bottom-full left-1.5 border-4 border-transparent border-b-slate-900 dark:border-b-slate-700" aria-hidden="true"></span>
+                  </span>
+                </span>
+              </div>
+              <button type="button" class="inline-flex h-8 items-center gap-1.5 rounded-md bg-[#22C55E] px-3 text-[11px] font-bold text-white transition hover:bg-[#22C55E]" (click)="createItem()">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                Nuevo {{ activeTab === 'areas' ? 'área' : activeTab === 'cargos' ? 'cargo' : 'jornada' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="grid min-h-0 flex-1 lg:grid-cols-[16rem_minmax(0,1fr)]">
+            <section class="flex min-h-[13rem] flex-col border-b border-slate-200 p-3 dark:border-slate-800 lg:min-h-0 lg:border-b-0 lg:border-r">
+              <label class="relative block shrink-0">
+                <span class="sr-only">Buscar en {{ tabLabel(activeTab) }}</span>
+                <svg class="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input class="h-9 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-xs text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:focus:ring-[#22C55E]/20" type="search" placeholder="Buscar..." [(ngModel)]="search" />
+              </label>
+              <div class="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+                @for (item of filteredItems; track item.id) {
+                  <button type="button" class="flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition" [class]="selectedId === item.id && !isCreating ? 'border-green-200 bg-green-50 dark:border-[#22C55E]/30 dark:bg-[#22C55E]/10' : 'border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800/60'" (click)="selectItem(item)">
+                    <span class="h-2 w-2 shrink-0 rounded-full" [class]="item.activo ? 'bg-[#22C55E]' : 'bg-slate-300 dark:bg-slate-600'"></span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate text-xs font-semibold text-slate-800 dark:text-slate-100">{{ item.nombre }}</span>
+                      @if (activeTab === 'cargos') {<span class="block truncate text-[10px] text-slate-500">{{ areaName($any(item).areaId) }}</span>}
+                      @if (activeTab === 'jornadas') {<span class="block truncate text-[10px] text-slate-500">{{ $any(item).horaEntrada }} – {{ $any(item).horaSalida }}</span>}
+                    </span>
+                    <span class="text-[9px] font-bold uppercase tracking-wide" [class]="item.activo ? 'text-[#22C55E]' : 'text-slate-400'">{{ item.activo ? 'Activo' : 'Inactivo' }}</span>
+                  </button>
+                } @empty {
+                  <div class="px-3 py-8 text-center text-[11px] text-slate-400">No se encontraron resultados.</div>
+                }
+              </div>
+              <p class="mt-2 shrink-0 text-[10px] text-slate-400">{{ filteredItems.length }} registro(s) · {{ activeCount }} activo(s)</p>
+            </section>
+
+            <section class="min-h-0 overflow-y-auto p-4 sm:p-5">
+              <div class="mx-auto max-w-xl">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-1.5">
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white">{{ isCreating ? 'Nuevo registro' : 'Editar registro' }}</h4>
+                    <span class="group relative">
+                      <button type="button" class="flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-[#22C55E] focus-visible:bg-slate-100 focus-visible:text-[#22C55E] focus-visible:outline-none dark:hover:bg-slate-800" aria-label="Información sobre los campos del formulario" aria-describedby="formulario-registro-help">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+                      </button>
+                      <span id="formulario-registro-help" role="tooltip" class="invisible absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 rounded-lg bg-slate-900 px-3 py-2 text-[11px] font-medium leading-relaxed text-white opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 dark:bg-slate-700">
+                        Los campos marcados con * son obligatorios.
+                        <span class="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900 dark:border-b-slate-700" aria-hidden="true"></span>
+                      </span>
+                    </span>
+                  </div>
+                  @if (!isCreating && selectedId) {
+                    <button type="button" class="rounded-full px-2.5 py-1 text-[10px] font-bold transition" [class]="(activeTab === 'areas' ? areaDraft.activo : activeTab === 'cargos' ? cargoDraft.activo : jornadaDraft.activo) ? 'bg-green-50 text-[#22C55E] hover:bg-green-100 dark:bg-[#22C55E]/10 dark:text-[#22C55E]' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'" (click)="toggleStatus()">
+                      {{ (activeTab === 'areas' ? areaDraft.activo : activeTab === 'cargos' ? cargoDraft.activo : jornadaDraft.activo) ? 'Activo' : 'Inactivo' }}
+                    </button>
+                  }
+                </div>
+
+                @if (activeTab === 'areas') {
+                  <div class="space-y-4">
+                    <label class="block space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Nombre del área *</span><input class="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs outline-none focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-[#22C55E]/20" maxlength="100" placeholder="Ej. Operaciones" [(ngModel)]="areaDraft.nombre" /></label>
+                    <label class="block space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Descripción</span><textarea class="min-h-24 w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-[#22C55E]/20" maxlength="250" placeholder="Describe la función del área" [(ngModel)]="areaDraft.descripcion"></textarea></label>
+                  </div>
+                }
+
+                @if (activeTab === 'cargos') {
+                  <div class="space-y-4">
+                    <label class="block space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Área *</span><select class="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs outline-none focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-[#22C55E]/20" [(ngModel)]="cargoDraft.areaId">@for (area of areas; track area.id) {<option [value]="area.id">{{ area.nombre }}{{ area.activo ? '' : ' (inactiva)' }}</option>}</select></label>
+                    <label class="block space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Nombre del cargo *</span><input class="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs outline-none focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-[#22C55E]/20" maxlength="100" placeholder="Ej. Supervisor" [(ngModel)]="cargoDraft.nombre" /></label>
+                    <label class="block space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Descripción</span><textarea class="min-h-20 w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-[#22C55E]/20" maxlength="250" placeholder="Describe las responsabilidades principales" [(ngModel)]="cargoDraft.descripcion"></textarea></label>
+                  </div>
+                }
+
+                @if (activeTab === 'jornadas') {
+                  <div class="space-y-4">
+                    <label class="block space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Nombre de la jornada *</span><input class="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs outline-none focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-[#22C55E]/20" maxlength="100" placeholder="Ej. Tiempo completo" [(ngModel)]="jornadaDraft.nombre" /></label>
+                    <div class="grid grid-cols-2 gap-3">
+                      <label class="block space-y-1.5">
+                        <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Hora de entrada *</span>
+                        <app-date-picker [value]="jornadaDraft.horaEntrada" [timeOnly]="true" placeholder="hh:mm" inputClass="h-9 w-full cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-[#22C55E]/20" (valueChange)="jornadaDraft.horaEntrada = $event" />
+                      </label>
+                      <label class="block space-y-1.5">
+                        <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Hora de salida *</span>
+                        <app-date-picker [value]="jornadaDraft.horaSalida" [timeOnly]="true" placeholder="hh:mm" inputClass="h-9 w-full cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-[#22C55E]/20" (valueChange)="jornadaDraft.horaSalida = $event" />
+                      </label>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                      <label class="block space-y-1.5">
+                        <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Inicio de almuerzo</span>
+                        <app-date-picker [value]="jornadaDraft.inicioAlmuerzo" [timeOnly]="true" placeholder="hh:mm" inputClass="h-9 w-full cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-[#22C55E]/20" (valueChange)="jornadaDraft.inicioAlmuerzo = $event" />
+                      </label>
+                      <label class="block space-y-1.5">
+                        <span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Fin de almuerzo</span>
+                        <app-date-picker [value]="jornadaDraft.finAlmuerzo" [timeOnly]="true" placeholder="hh:mm" inputClass="h-9 w-full cursor-pointer rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-[#22C55E] focus:ring-2 focus:ring-green-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:ring-[#22C55E]/20" (valueChange)="jornadaDraft.finAlmuerzo = $event" />
+                      </label>
+                    </div>
+                    <label class="block space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Minutos laborables diarios *</span><div class="relative"><input class="h-9 w-full rounded-md border border-slate-200 bg-white px-3 pr-20 text-xs outline-none focus:border-[#22C55E] dark:border-slate-700 dark:bg-slate-950 dark:text-white" type="number" min="1" max="1440" [(ngModel)]="jornadaDraft.minutosDiarios" /><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{{ (jornadaDraft.minutosDiarios / 60).toFixed(1) }} horas</span></div></label>
+                  </div>
+                }
+
+                <div class="mt-5 flex min-h-9 items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+                  <span class="text-[10px] font-semibold text-[#22C55E]" role="status">{{ savedMessage }}</span>
+                  <div class="flex gap-2">
+                    @if (isCreating) {<button type="button" class="h-9 rounded-md border border-slate-300 px-4 text-xs font-bold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" (click)="selectTab(activeTab)">Cancelar</button>}
+                    <button type="button" class="h-9 rounded-md bg-[#22C55E] px-4 text-xs font-bold text-white transition hover:bg-[#22C55E] disabled:cursor-not-allowed disabled:opacity-50" [disabled]="!canSave" (click)="save()">Guardar cambios</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </section>
+  </div>
+}
