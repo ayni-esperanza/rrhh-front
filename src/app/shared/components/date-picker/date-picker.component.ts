@@ -58,7 +58,29 @@ import { isPlatformBrowser } from '@angular/common';
         }
       </div>
     } @else {
-      <input #inp type="text" autocomplete="off" class="hidden">
+      <div class="relative min-h-9">
+        <input
+          #inp
+          type="text"
+          autocomplete="off"
+          readonly
+          [value]="fallbackValue"
+          [placeholder]="placeholder"
+          [attr.aria-label]="placeholder"
+          [class]="inputClass + ' pr-9' + (hasError ? ' !border-red-500' : '')">
+        @if (!pickerReady) {
+          @if (timeOnly) {
+            <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2" />
+            </svg>
+          } @else {
+            <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+            </svg>
+          }
+        }
+      </div>
     }
   `
 })
@@ -80,6 +102,7 @@ export class DatePickerComponent implements AfterViewInit, OnChanges, OnDestroy 
   private fp: any;
   private destroyed = false;
   monthPickerOpen = false;
+  pickerReady = false;
   pickerYear = new Date().getFullYear();
   readonly monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   private readonly isBrowser: boolean;
@@ -149,6 +172,7 @@ export class DatePickerComponent implements AfterViewInit, OnChanges, OnDestroy 
       }
 
       this.fp = instance;
+      this.zone.run(() => { this.pickerReady = true; });
       this.fp.calendarContainer?.classList.add('ayni-date-picker-compact');
       this.actualizarAparienciaInput();
       document.addEventListener('scroll', this.handleDocumentScroll, true);
@@ -160,6 +184,17 @@ export class DatePickerComponent implements AfterViewInit, OnChanges, OnDestroy 
   get selectedMonthLabel(): string {
     const parsed = this.parseMonth(this.value);
     return parsed ? `${this.monthNames[parsed.month]} ${parsed.year}` : this.placeholder;
+  }
+
+  get fallbackValue(): string {
+    if (!this.value) return '';
+    if (this.timeOnly) return this.value;
+
+    const match = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/.exec(this.value);
+    if (!match) return this.value;
+
+    const formattedDate = `${match[3]}/${match[2]}/${match[1]}`;
+    return this.enableTime && match[4] ? `${formattedDate} ${match[4]}` : formattedDate;
   }
 
   toggleMonthPicker(event: Event): void {
