@@ -59,7 +59,7 @@
     </table>
   </div>
     <app-paginacion [config]="paginationConfig" [opcionesPorPagina]="[10, 25, 50]" (cambioPagina)="onPageChange($event)" />
-  <app-detalle-pago-modal [isOpen]="isDetalleOpen" [pago]="selectedPago" (closeModal)="closeDetalle()" />
+  <app-detalle-pago-modal [isOpen]="isDetalleOpen" [pago]="selectedPago" (closeModal)="closeDetalle()" (paymentSaved)="paymentSaved.emit()" />
 </section>
 
 

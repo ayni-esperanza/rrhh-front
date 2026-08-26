@@ -1,9 +1,10 @@
-import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, Output, ViewChild, inject } from '@angular/core';
 import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
 import { Colaborador, DatosBancarios, DocumentoColaborador } from '../../models/colaborador.model';
 import { PdfViewerModalComponent } from '../../../../shared/components/pdf-viewer-modal/pdf-viewer-modal.component';
 import { CopyTextButtonComponent } from '../../../../shared/components/copy-text-button/copy-text-button.component';
+import { ColaboradoresService } from '../../services/colaboradores.service';
 
 type SharePlatform = 'whatsapp' | 'messenger' | 'instagram';
 
@@ -13,6 +14,7 @@ type SharePlatform = 'whatsapp' | 'messenger' | 'instagram';
   templateUrl: './colaboradores-table.component.html'
 })
 export class ColaboradoresTableComponent {
+  private readonly colaboradoresService = inject(ColaboradoresService);
   @Input({ required: true }) colaboradores: Colaborador[] = [];
   @Input() expandedId = '';
   @Output() expandedIdChange = new EventEmitter<string>();
@@ -31,6 +33,7 @@ export class ColaboradoresTableComponent {
   private ignoreNextRowAction = false;
   private dragSelectionValue = false;
   private dragStartId: string | null = null;
+  private previewObjectUrl = '';
 
   @ViewChild('selectionTable') private selectionTable?: ElementRef<HTMLTableElement>;
 
@@ -163,16 +166,22 @@ export class ColaboradoresTableComponent {
       || documento.archivoTipo?.startsWith('image/')
       || /\.(pdf|png|jpe?g|gif|webp|bmp)$/i.test(documento.archivoNombre ?? '');
 
-    if (isPreviewable) {
-      this.previewDocument = documento;
-      return;
-    }
-
-    window.open(documento.archivoUrl, '_blank', 'noopener,noreferrer');
+    this.colaboradoresService.downloadDocument(documento.archivoUrl).subscribe((blob) => {
+      const objectUrl = URL.createObjectURL(blob);
+      if (isPreviewable) {
+        this.revokePreviewUrl();
+        this.previewObjectUrl = objectUrl;
+        this.previewDocument = { ...documento, archivoUrl: objectUrl };
+        return;
+      }
+      window.open(objectUrl, '_blank', 'noopener,noreferrer');
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    });
   }
 
   protected closeDocumentPreview(): void {
     this.previewDocument = null;
+    this.revokePreviewUrl();
   }
 
   protected shareDocument(documento: DocumentoColaborador): void {
@@ -268,11 +277,22 @@ export class ColaboradoresTableComponent {
   }
 
   private downloadDocument(documento: DocumentoColaborador): boolean {
-    const anchor = window.document.createElement('a');
-    anchor.href = documento.archivoUrl || '';
-    anchor.download = documento.archivoNombre || documento.nombre;
-    anchor.click();
+    if (!documento.archivoUrl) return false;
+    this.colaboradoresService.downloadDocument(documento.archivoUrl).subscribe((blob) => {
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = window.document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = documento.archivoNombre || documento.nombre;
+      anchor.click();
+      URL.revokeObjectURL(objectUrl);
+    });
     return true;
+  }
+
+  private revokePreviewUrl(): void {
+    if (!this.previewObjectUrl) return;
+    URL.revokeObjectURL(this.previewObjectUrl);
+    this.previewObjectUrl = '';
   }
 
   private publicDocumentUrl(documento: DocumentoColaborador): string {

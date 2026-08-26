@@ -16,10 +16,11 @@ interface EntradaSalidaDia {
   entrada: string;
   salida: string;
   turno: Turno;
+  lugar?: string;
 }
 
 interface EntradaSalidaSemana {
-  id: number;
+  id: string;
   colaborador: string;
   cargo: string;
   avatar: string;
@@ -91,34 +92,36 @@ interface EntradaSalidaSemana {
       <app-paginacion [config]="paginationConfig" [opcionesPorPagina]="[10, 25, 50]" (cambioPagina)="onPageChange($event)" />
     </section>
 
-    <app-editar-registro-horario-modal [isOpen]="isEditModalOpen" [registro]="selectedRegistro" (closeModal)="closeEditarRegistro()" (saveChanges)="closeEditarRegistro()" />
+    <app-editar-registro-horario-modal [isOpen]="isEditModalOpen" [registro]="selectedRegistro" (closeModal)="closeEditarRegistro()" (saveChanges)="saveEditarRegistro($event)" />
   `
 })
 export class EntradaSalidaPageComponent {
-  @Input() filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
+  @Input() filters: AsistenciaFilters = { search: '', range: 'semana', month: '', weekIndex: 0, dayIndex: 0, visibleWeekIndexes: [0, 1, 2, 3] };
 
-  private readonly colaboradores = inject(AsistenciasService).getMes();
+  private readonly asistenciasService = inject(AsistenciasService);
+  private readonly colaboradores = this.asistenciasService.getMes();
 
-  protected readonly dias = this.colaboradores[0]?.dias.map(({ dia, fecha }) => ({ dia, fecha })) ?? [];
+  protected get dias() { return this.colaboradores[0]?.dias.map(({ dia, fecha }) => ({ dia, fecha })) ?? []; }
   protected isEditModalOpen = false;
   protected selectedRegistro: AsistenciaRegistroEdicion | null = null;
-  protected readonly registros: EntradaSalidaSemana[] = this.colaboradores.map((item, index) => ({
+  private editingContext: { itemId: string; fecha: string } | null = null;
+  protected get registros(): EntradaSalidaSemana[] { return this.colaboradores.map((item) => ({
     id: item.id,
     colaborador: item.colaborador,
     cargo: item.cargo,
     avatar: item.avatar,
-    dias: this.buildDias(index)
-  }));
+    dias: item.dias.map((dia) => ({ dia: dia.dia, fecha: dia.fecha, entrada: dia.entrada ?? '-', salida: dia.salida ?? '-', turno: dia.tipo === 'falta' ? 'falta' : dia.entrada && dia.entrada !== '-' ? 'atiempo' : 'vacio', lugar: dia.lugar }))
+  })); }
 
   protected paginaActual = 0;
   protected porPagina = 10;
-  protected selectedIds = new Set<number>();
+  protected selectedIds = new Set<string>();
   protected bulkEntrada = '';
   protected bulkSalida = '';
   private rowSelectionActive = false;
   private ignoreNextRowAction = false;
   private dragSelectionValue = false;
-  private dragStartId: number | null = null;
+  private dragStartId: string | null = null;
 
   protected get paginationConfig(): PaginacionConfig {
     const totalElementos = this.filteredRegistros.length;
@@ -223,29 +226,33 @@ export class EntradaSalidaPageComponent {
   protected openEditarRegistro(item: EntradaSalidaSemana, dia: EntradaSalidaDia): void {
     if (this.ignoreNextRowAction) return;
     const empty = dia.turno === 'falta' || dia.turno === 'vacio';
+    this.editingContext = { itemId: item.id, fecha: dia.fecha };
     this.selectedRegistro = {
       colaborador: item.colaborador,
       cargo: item.cargo,
       avatar: item.avatar,
-      fecha: `${dia.dia}, ${dia.fecha} de 2025`,
-      entrada: dia.entrada === '-' ? '-' : `${dia.entrada} AM`,
-      salida: dia.salida === '-' ? '-' : `${dia.salida} PM`,
-      entradaAlmuerzo: empty ? '-' : '01:00 PM',
-      salidaAlmuerzo: empty ? '-' : '02:00 PM',
+      fecha: `${dia.dia}, ${dia.fecha}`,
+      entrada: dia.entrada,
+      salida: dia.salida,
+      entradaAlmuerzo: '-',
+      salidaAlmuerzo: '-',
       horasNormales: empty ? '-' : this.visibleTotal(item),
       horasExtras: dia.turno === 'tarde' ? 'Tarde' : '-',
       tipoRegistro: dia.turno === 'tarde' ? 'Tarde' : dia.turno === 'falta' ? 'Falta' : 'Horas normales',
       estado: dia.turno === 'falta' ? 'Incompleto' : 'Completo',
-      lugar: item.id % 2 === 0 ? 'Sucursal Sur' : 'Planta Principal - Linea de Produccion'
+      lugar: dia.lugar ?? 'Sin registro'
     };
     this.isEditModalOpen = true;
   }
 
+  protected saveEditarRegistro(registro: AsistenciaRegistroEdicion): void { const context = this.editingContext; if (!context) return this.closeEditarRegistro(); this.asistenciasService.save(context.itemId, this.dateForCell(context.fecha), { horaEntrada: this.time24(registro.entrada), horaSalida: this.time24(registro.salida), entradaAlmuerzo: this.time24(registro.entradaAlmuerzo), salidaAlmuerzo: this.time24(registro.salidaAlmuerzo), tipoRegistro: registro.tipoRegistro === 'Falta' ? 'FALTA' : 'NORMAL', estado: registro.estado.toUpperCase() }).subscribe(() => this.closeEditarRegistro()); }
+
   protected closeEditarRegistro(): void {
     this.isEditModalOpen = false;
+    this.editingContext = null;
   }
 
-  protected isSelected(itemId: number): boolean {
+  protected isSelected(itemId: string): boolean {
     return this.selectedIds.has(itemId);
   }
 
@@ -257,7 +264,7 @@ export class EntradaSalidaPageComponent {
     return !this.allPageRowsSelected && this.paginatedRegistros.some(({ id }) => this.isSelected(id));
   }
 
-  protected toggleRowSelection(itemId: number, isSelected: boolean): void {
+  protected toggleRowSelection(itemId: string, isSelected: boolean): void {
     if (isSelected) this.selectedIds.add(itemId);
     else this.selectedIds.delete(itemId);
   }
@@ -268,6 +275,8 @@ export class EntradaSalidaPageComponent {
 
   protected applyBulkTimes(): void {
     if (!this.bulkEntrada && !this.bulkSalida) return;
+    const ids = [...this.selectedIds];
+    const fechas = this.visibleDias.map((dia) => this.dateForCell(dia.fecha));
     this.registros.filter(({ id }) => this.selectedIds.has(id)).forEach((item) => {
       this.visibleItemDias(item).forEach((dia) => {
         if (this.bulkEntrada) dia.entrada = this.bulkEntrada;
@@ -275,19 +284,20 @@ export class EntradaSalidaPageComponent {
         dia.turno = dia.entrada === '-' || dia.salida === '-' ? 'vacio' : this.isLateTime(dia.entrada) ? 'tarde' : 'atiempo';
       });
     });
+    this.asistenciasService.saveBulk(ids, fechas, { horaEntrada: this.bulkEntrada || null, horaSalida: this.bulkSalida || null, tipoRegistro: 'NORMAL', estado: 'COMPLETO' }).subscribe();
     this.selectedIds.clear();
     this.bulkEntrada = '';
     this.bulkSalida = '';
   }
 
-  protected beginRowSelection(event: MouseEvent, itemId: number): void {
+  protected beginRowSelection(event: MouseEvent, itemId: string): void {
     if (event.button !== 0 || this.isInteractiveTarget(event.target)) return;
     this.rowSelectionActive = true;
     this.dragStartId = itemId;
     this.dragSelectionValue = !this.isSelected(itemId);
   }
 
-  protected extendRowSelection(itemId: number): void {
+  protected extendRowSelection(itemId: string): void {
     if (!this.rowSelectionActive || this.dragStartId === null || itemId === this.dragStartId) return;
     this.ignoreNextRowAction = true;
     this.toggleRowSelection(this.dragStartId, this.dragSelectionValue);
@@ -356,28 +366,8 @@ export class EntradaSalidaPageComponent {
   private normalize(value: string): string {
     return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
-
-  private buildDias(index: number): EntradaSalidaDia[] {
-    const lateDays = [[1, 10, 23], [0, 2, 8, 17], [11, 22], [3, 16, 24], [4, 15, 25]];
-    const missingDays = [[6], [13, 27], [9], [20], [6]];
-
-    return this.dias.map((dia, dayIndex) => {
-      const dayOfWeek = dayIndex % 7;
-      if (missingDays[index]?.includes(dayIndex)) {
-        return this.missing(dia.dia, dia.fecha);
-      }
-
-      if (dayOfWeek >= 5) {
-        return this.empty(dia.dia, dia.fecha);
-      }
-
-      const isLate = lateDays[index]?.includes(dayIndex);
-      const entrada = isLate ? `08:${(5 + ((index + dayIndex) % 4) * 3).toString().padStart(2, '0')}` : `07:${(35 + ((index + dayIndex) % 5) * 4).toString().padStart(2, '0')}`;
-      const salidaHour = isLate ? 17 : 18;
-      const salidaMinute = isLate ? 35 + ((index + dayIndex) % 4) * 4 : 5 + ((index + dayIndex) % 5) * 6;
-      return this.day(dia.dia, dia.fecha, entrada, `${salidaHour}:${salidaMinute.toString().padStart(2, '0')}`, isLate ? 'tarde' : 'atiempo');
-    });
-  }
+  private dateForCell(value: string): string { const [day, month] = value.split('/'); const year = this.filters.month.match(/\d{4}/)?.[0] ?? String(new Date().getFullYear()); return `${year}-${month}-${day}`; }
+  private time24(value: string): string | null { if (!value || value === '-') return null; const match = value.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if (!match) return null; let hour = Number(match[1]); if (match[3]?.toUpperCase() === 'PM' && hour < 12) hour += 12; if (match[3]?.toUpperCase() === 'AM' && hour === 12) hour = 0; return `${String(hour).padStart(2, '0')}:${match[2]}`; }
 
   private day(dia: string, fecha: string, entrada: string, salida: string, turno: Turno = 'atiempo'): EntradaSalidaDia { return { dia, fecha, entrada, salida, turno }; }
   private empty(dia: string, fecha: string): EntradaSalidaDia { return { dia, fecha, entrada: '-', salida: '-', turno: 'vacio' }; }

@@ -1,26 +1,27 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { map, Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { PaginatedResponse } from '../../../core/models/api.models';
 import { Alerta } from '../models/alerta.model';
+
+interface ApiAlerta { id: string; titulo: string; detalle: string; fecha: string; tipo: string; prioridad: string; vistoAt: string | null; colaborador?: { nombres: string; apellidoPaterno: string; apellidoMaterno?: string }; }
+export interface AlertasMetrics { total: number; pendientes: number; alta: number; media: number; }
 
 @Injectable({ providedIn: 'root' })
 export class AlertasService {
-  getAlertas(): Alerta[] {
-    return [
-      { id: 1, titulo: '2 inasistencias sin justificar', colaborador: 'Luis Alberto Romero', detalle: 'Registros pendientes del 12 y 15 de agosto.', fecha: '18/08/2026', tipo: 'inasistencia', prioridad: 'alta' },
-      { id: 2, titulo: 'Pago pendiente de validación', colaborador: 'María Fernanda López', detalle: 'La transferencia de agosto requiere confirmación.', fecha: '18/08/2026', tipo: 'pago', prioridad: 'alta' },
-      { id: 3, titulo: 'Cumpleaños próximo', colaborador: 'Diego Sánchez Pérez', detalle: 'Cumpleaños dentro de 3 días.', fecha: '21/08/2026', tipo: 'cumpleanos', prioridad: 'baja' },
-      { id: 4, titulo: '5 años en la empresa', colaborador: 'Carla Mendoza Díaz', detalle: 'Reconocimiento por aniversario laboral.', fecha: '20/08/2026', tipo: 'antiguedad', prioridad: 'media', aniosTrabajo: 5 },
-      { id: 5, titulo: 'Inasistencia sin sustento', colaborador: 'Ana Lucía Rojas', detalle: 'No se adjuntó justificación para el 17 de agosto.', fecha: '17/08/2026', tipo: 'inasistencia', prioridad: 'alta' },
-      { id: 6, titulo: 'Pago observado', colaborador: 'José Manuel Torres', detalle: 'La cuenta bancaria registrada no pudo validarse.', fecha: '16/08/2026', tipo: 'pago', prioridad: 'media' },
-      { id: 7, titulo: 'Cumpleaños del mes', colaborador: 'Oscar Huamán', detalle: 'Cumpleaños programado para el 26 de agosto.', fecha: '26/08/2026', tipo: 'cumpleanos', prioridad: 'baja' },
-      { id: 8, titulo: '3 años en la empresa', colaborador: 'Ana Lucía Rojas', detalle: 'Aniversario laboral durante esta semana.', fecha: '22/08/2026', tipo: 'antiguedad', prioridad: 'baja', aniosTrabajo: 3 },
-      { id: 9, titulo: '3 inasistencias acumuladas', colaborador: 'Oscar Huamán', detalle: 'Superó el umbral mensual de inasistencias.', fecha: '15/08/2026', tipo: 'inasistencia', prioridad: 'alta' },
-      { id: 10, titulo: 'Abono incompleto', colaborador: 'Diego Sánchez Pérez', detalle: 'Existe un saldo pendiente de S/ 420.00.', fecha: '14/08/2026', tipo: 'pago', prioridad: 'alta' },
-      { id: 11, titulo: 'Cumpleaños próximo', colaborador: 'María Fernanda López', detalle: 'Cumpleaños dentro de 10 días.', fecha: '28/08/2026', tipo: 'cumpleanos', prioridad: 'baja' },
-      { id: 12, titulo: '10 años en la empresa', colaborador: 'José Manuel Torres', detalle: 'Reconocimiento por una década de servicio.', fecha: '30/08/2026', tipo: 'antiguedad', prioridad: 'media', aniosTrabajo: 10 },
-      { id: 13, titulo: 'Marcación incompleta', colaborador: 'Carla Mendoza Díaz', detalle: 'No registra ingreso ni salida del 13 de agosto.', fecha: '13/08/2026', tipo: 'inasistencia', prioridad: 'media' },
-      { id: 14, titulo: 'Pago por aprobar', colaborador: 'Luis Alberto Romero', detalle: 'Planilla de agosto pendiente de aprobación.', fecha: '12/08/2026', tipo: 'pago', prioridad: 'media' },
-      { id: 15, titulo: '1 año en la empresa', colaborador: 'Diego Sánchez Pérez', detalle: 'Primer aniversario laboral.', fecha: '25/08/2026', tipo: 'antiguedad', prioridad: 'baja', aniosTrabajo: 1 },
-      { id: 16, titulo: 'Cumpleaños de hoy', colaborador: 'Luis Alberto Romero', detalle: 'Enviar saludo institucional.', fecha: '18/08/2026', tipo: 'cumpleanos', prioridad: 'media' }
-    ];
+  private readonly http = inject(HttpClient);
+  private readonly url = `${environment.apiUrl}/alertas`;
+  getAlertas(): Observable<Alerta[]> {
+    return this.http.get<PaginatedResponse<ApiAlerta>>(this.url, { params: { page: 1, limit: 100 } }).pipe(map(({ data }) => data.map((item) => ({
+      id: item.id, titulo: item.titulo, detalle: item.detalle,
+      colaborador: item.colaborador ? [item.colaborador.nombres, item.colaborador.apellidoPaterno, item.colaborador.apellidoMaterno].filter(Boolean).join(' ') : 'Sin colaborador',
+      fecha: new Intl.DateTimeFormat('es-PE').format(new Date(`${item.fecha}T00:00:00`)),
+      tipo: item.tipo.toLowerCase() as Alerta['tipo'], prioridad: item.prioridad.toLowerCase() as Alerta['prioridad'], visto: Boolean(item.vistoAt)
+    }))));
   }
+  getMetrics(): Observable<AlertasMetrics> { return this.http.get<AlertasMetrics>(`${this.url}/metricas`); }
+  generate(): Observable<unknown> { return this.http.post(`${this.url}/generar`, {}); }
+  markAsSeen(id: string): Observable<void> { return this.http.patch<void>(`${this.url}/${id}/visto`, {}); }
+  markAllAsSeen(): Observable<void> { return this.http.patch<void>(`${this.url}/marcar-todas-vistas`, {}); }
 }

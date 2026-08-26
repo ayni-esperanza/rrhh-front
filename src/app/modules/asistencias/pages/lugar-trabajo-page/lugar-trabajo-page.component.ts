@@ -20,7 +20,7 @@ interface LugarDia {
 }
 
 interface LugarSemana {
-  id: number;
+  id: string;
   colaborador: string;
   cargo: string;
   avatar: string;
@@ -203,30 +203,31 @@ interface LugarSemana {
   `
 })
 export class LugarTrabajoPageComponent {
-  @Input() filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
+  @Input() filters: AsistenciaFilters = { search: '', range: 'semana', month: '', weekIndex: 0, dayIndex: 0, visibleWeekIndexes: [0, 1, 2, 3] };
 
-  private readonly colaboradores = inject(AsistenciasService).getMes();
+  private readonly asistenciasService = inject(AsistenciasService);
+  private readonly colaboradores = this.asistenciasService.getMes();
   private readonly lugaresService = inject(LugaresTrabajoService);
 
-  protected readonly dias = this.colaboradores[0]?.dias.map(({ dia, fecha }) => ({ dia, fecha })) ?? [];
+  protected get dias() { return this.colaboradores[0]?.dias.map(({ dia, fecha }) => ({ dia, fecha })) ?? []; }
   protected vista: LugarVista = 'tabla';
   protected isEditModalOpen = false;
   protected isGestionOpen = false;
   protected selectedRegistro: AsistenciaRegistroEdicion | null = null;
-  protected editingContext: { itemId: number; dia: string; fecha: string } | null = null;
+  protected editingContext: { itemId: string; dia: string; fecha: string } | null = null;
   protected editingLugarId: string | null = null;
   protected selectedLugarId: string | null = null;
   protected lugarForm = { nombre: '', color: '#22c55e' };
-  protected readonly registros: LugarSemana[] = this.colaboradores.map((item, index) => ({ id: item.id, colaborador: item.colaborador, cargo: item.cargo, avatar: item.avatar, dias: this.buildDias(index) }));
+  protected get registros(): LugarSemana[] { return this.colaboradores.map((item) => ({ id: item.id, colaborador: item.colaborador, cargo: item.cargo, avatar: item.avatar, dias: item.dias.map((dia) => ({ dia: dia.dia, fecha: dia.fecha, valor: dia.lugar ?? 'Sin registro', lugarId: dia.lugarId ?? '' })) })); }
 
   protected paginaActual = 0;
   protected porPagina = 10;
-  protected selectedIds = new Set<number>();
+  protected selectedIds = new Set<string>();
   protected bulkLugar = '';
   private rowSelectionActive = false;
   private ignoreNextRowAction = false;
   private dragSelectionValue = false;
-  private dragStartId: number | null = null;
+  private dragStartId: string | null = null;
 
   protected get paginationConfig(): PaginacionConfig {
     const totalElementos = this.filteredRegistros.length;
@@ -284,7 +285,7 @@ export class LugarTrabajoPageComponent {
 
   protected get activosPorLugar(): Array<LugarTrabajo & { activos: number; registros: number }> {
     return this.lugares.map((lugar) => {
-      const colaboradoresActivos = new Set<number>();
+      const colaboradoresActivos = new Set<string>();
       let registros = 0;
 
       for (const item of this.filteredRegistros) {
@@ -361,12 +362,12 @@ export class LugarTrabajoPageComponent {
       colaborador: item.colaborador,
       cargo: item.cargo,
       avatar: item.avatar,
-      fecha: `${dia.dia}, ${dia.fecha} de 2025`,
-      entrada: empty ? '-' : '08:00 AM',
-      salida: empty ? '-' : '05:15 PM',
-      entradaAlmuerzo: empty ? '-' : '01:00 PM',
-      salidaAlmuerzo: empty ? '-' : '02:00 PM',
-      horasNormales: empty ? '-' : '8h 15m',
+      fecha: `${dia.dia}, ${dia.fecha}`,
+      entrada: '-',
+      salida: '-',
+      entradaAlmuerzo: '-',
+      salidaAlmuerzo: '-',
+      horasNormales: '-',
       horasExtras: '-',
       tipoRegistro: empty ? 'Sin registro' : 'Horas normales',
       estado: empty ? 'Incompleto' : 'Completo',
@@ -378,12 +379,12 @@ export class LugarTrabajoPageComponent {
   protected saveEditarRegistro(registro: AsistenciaRegistroEdicion): void {
     const item = this.registros.find((registroItem) => registroItem.id === this.editingContext?.itemId);
     const dia = item?.dias.find((diaItem) => diaItem.dia === this.editingContext?.dia && diaItem.fecha === this.editingContext?.fecha);
-    if (dia) {
+    if (dia && item) {
       const lugar = this.lugaresService.findByName(registro.lugar);
-      dia.valor = lugar.locked ? '-' : lugar.nombre;
-      dia.lugarId = lugar.id;
+      const source = this.colaboradores.find((x) => x.id === item.id)?.dias.find((x) => x.fecha === dia.fecha);
+      this.asistenciasService.save(item.id, this.dateForCell(dia.fecha), { horaEntrada: source?.entrada === '-' ? null : source?.entrada, horaSalida: source?.salida === '-' ? null : source?.salida, tipoRegistro: source ? source.tipo.toUpperCase().replaceAll('-', '_') : 'NORMAL', estado: source?.tipo === 'falta' ? 'INCOMPLETO' : 'COMPLETO', lugarTrabajoId: lugar.locked ? null : lugar.id }).subscribe(() => { if (source) { source.lugar = lugar.locked ? undefined : lugar.nombre; source.lugarId = lugar.locked ? undefined : lugar.id; } this.closeEditarRegistro(); });
+      return;
     }
-
     this.closeEditarRegistro();
   }
 
@@ -392,7 +393,7 @@ export class LugarTrabajoPageComponent {
     this.editingContext = null;
   }
 
-  protected isSelected(itemId: number): boolean {
+  protected isSelected(itemId: string): boolean {
     return this.selectedIds.has(itemId);
   }
 
@@ -404,7 +405,7 @@ export class LugarTrabajoPageComponent {
     return !this.allPageRowsSelected && this.paginatedRegistros.some(({ id }) => this.isSelected(id));
   }
 
-  protected toggleRowSelection(itemId: number, isSelected: boolean): void {
+  protected toggleRowSelection(itemId: string, isSelected: boolean): void {
     if (isSelected) this.selectedIds.add(itemId);
     else this.selectedIds.delete(itemId);
   }
@@ -416,24 +417,27 @@ export class LugarTrabajoPageComponent {
   protected applyBulkLugar(): void {
     if (!this.bulkLugar) return;
     const lugar = this.lugaresService.findByName(this.bulkLugar);
+    const ids = [...this.selectedIds];
+    const fechas = this.visibleDias.map((dia) => this.dateForCell(dia.fecha));
     this.registros.filter(({ id }) => this.selectedIds.has(id)).forEach((item) => {
       this.visibleItemDias(item).forEach((dia) => {
         dia.valor = lugar.locked ? '-' : lugar.nombre;
         dia.lugarId = lugar.id;
       });
     });
+    this.asistenciasService.saveBulk(ids, fechas, { lugarTrabajoId: lugar.locked ? null : lugar.id, tipoRegistro: 'NORMAL', estado: 'COMPLETO' }).subscribe();
     this.selectedIds.clear();
     this.bulkLugar = '';
   }
 
-  protected beginRowSelection(event: MouseEvent, itemId: number): void {
+  protected beginRowSelection(event: MouseEvent, itemId: string): void {
     if (event.button !== 0 || this.isInteractiveTarget(event.target)) return;
     this.rowSelectionActive = true;
     this.dragStartId = itemId;
     this.dragSelectionValue = !this.isSelected(itemId);
   }
 
-  protected extendRowSelection(itemId: number): void {
+  protected extendRowSelection(itemId: string): void {
     if (!this.rowSelectionActive || this.dragStartId === null || itemId === this.dragStartId) return;
     this.ignoreNextRowAction = true;
     this.toggleRowSelection(this.dragStartId, this.dragSelectionValue);
@@ -522,19 +526,7 @@ export class LugarTrabajoPageComponent {
   private normalize(value: string): string {
     return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
-
-  private buildDias(index: number): LugarDia[] {
-    const places = this.lugares.filter((lugar) => !lugar.locked);
-
-    return this.dias.map((dia, dayIndex) => {
-      if (dayIndex % 7 >= 5) {
-        return this.empty(dia.dia, dia.fecha);
-      }
-
-      const place = places[(index + dayIndex) % places.length];
-      return this.place(dia.dia, dia.fecha, place.nombre, place.id);
-    });
-  }
+  private dateForCell(value: string): string { const [day, month] = value.split('/'); const year = this.filters.month.match(/\d{4}/)?.[0] ?? String(new Date().getFullYear()); return `${year}-${month}-${day}`; }
 
   private renameLugarInRegistros(oldName: string, newName: string): void {
     this.registros.forEach((item) => item.dias.forEach((dia) => {

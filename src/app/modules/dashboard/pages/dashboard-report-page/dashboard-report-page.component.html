@@ -47,10 +47,10 @@
                 <ngx-charts-line-chart [results]="current.chartData" [scheme]="chartScheme" [legend]="false" [xAxis]="true" [yAxis]="true" [showGridLines]="true" [autoScale]="true" [timeline]="false" [animations]="false"></ngx-charts-line-chart>
               }
               @case ('pie') {
-                <ngx-charts-pie-chart [results]="current.chartData" [scheme]="chartScheme" [doughnut]="true" [arcWidth]="0.35" [legend]="true" [labels]="true" [animations]="true"></ngx-charts-pie-chart>
+                <ngx-charts-pie-chart [results]="current.chartData" [scheme]="chartScheme" [doughnut]="true" [arcWidth]="0.35" [legend]="true" [labels]="true" [animations]="false"></ngx-charts-pie-chart>
               }
               @default {
-                <ngx-charts-bar-vertical [results]="current.chartData" [scheme]="chartScheme" [legend]="false" [xAxis]="true" [yAxis]="true" [showGridLines]="true" [roundEdges]="true" [showDataLabel]="true" [animations]="true"></ngx-charts-bar-vertical>
+                <ngx-charts-bar-vertical [results]="current.chartData" [scheme]="chartScheme" [legend]="false" [xAxis]="true" [yAxis]="true" [showGridLines]="true" [roundEdges]="true" [showDataLabel]="true" [animations]="false"></ngx-charts-bar-vertical>
               }
             }
           </div>

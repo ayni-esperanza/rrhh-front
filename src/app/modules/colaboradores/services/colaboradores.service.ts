@@ -1,118 +1,97 @@
-import { Injectable } from '@angular/core';
-import { Colaborador, ColaboradorMetric, DatosBancarios } from '../models/colaborador.model';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { PaginatedResponse } from '../../../core/models/api.models';
+import { Colaborador, ColaboradorMetric } from '../models/colaborador.model';
 
-const DOCUMENTOS = [
-  { nombre: 'DNI', estado: 'Vigente' as const },
-  { nombre: 'Curriculum', estado: 'Vigente' as const },
-  { nombre: 'Antecedentes', estado: 'Vigente' as const },
-  { nombre: 'Certificados', estado: 'Vigente' as const }
-];
+interface CatalogItem { id: string; nombre: string; }
+interface ApiContrato { cargo: CatalogItem & { area: CatalogItem }; jornada: CatalogItem; tipoContrato: string; fechaInicio: string; sueldoBasico: number; }
+interface ApiDocumento { id: string; nombre: string; fechaVencimiento?: string; archivoNombre: string; archivoTipo?: string; archivoUrl: string; archivoTamano?: string; }
+interface ApiColaborador { id: string; dni: string; nombres: string; apellidoPaterno: string; apellidoMaterno?: string; sexo?: string; numeroHijos?: number; fechaNacimiento: string; lugarNacimiento?: string; estadoCivil?: string; gradoInstruccion?: string; tipoSangre?: string; telefono?: string; correo?: string; direccion?: string; fotoUrl?: string; epsSeguro?: string; estado: string; tallaCamisa?: string; tallaPantalon?: string; tallaCalzado?: string; contratoActual?: ApiContrato; contactosEmergencia?: Array<{ nombre: string; parentesco?: string; telefono: string }>; cuentasBancarias?: Array<{ entidadBancaria: string; numeroCuenta: string; cci?: string; principal: boolean }>; documentos?: ApiDocumento[] }
+interface ApiMetrics { total: number; activos: number; inactivos: number; minutos_extras: number; asistencia_promedio: number; costo_planilla: number; }
 
 @Injectable({ providedIn: 'root' })
 export class ColaboradoresService {
-  private colaboradores: Colaborador[] | null = null;
-
-  getMetrics(): ColaboradorMetric[] {
-    return [
-      { label: 'Total colaboradores', value: '186', detail: 'Activos: 162 | Inactivos: 24', icon: 'users', tone: 'blue' },
-      { label: 'Asistencia promedio (mes)', value: '92.4%', detail: '3.6% vs mes anterior', icon: 'calendar', tone: 'purple' },
-      { label: 'Horas extras (mes)', value: '236 h', detail: '18 h vs mes anterior', icon: 'clock', tone: 'amber' },
-      { label: 'Costo de planilla (mes)', value: 'S/ 185,420.00', detail: '7.8% vs mes anterior', icon: 'money', tone: 'emerald' }
-    ];
+  private readonly http = inject(HttpClient);
+  private readonly url = `${environment.apiUrl}/colaboradores`;
+  getMetrics(): Observable<ColaboradorMetric[]> {
+    return this.http.get<ApiMetrics>(`${this.url}/metricas`).pipe(map((m) => [
+      { label: 'Total colaboradores', value: String(m.total), detail: `Activos: ${m.activos} | Inactivos: ${m.inactivos}`, icon: 'users', tone: 'blue' },
+      { label: 'Asistencia promedio (mes)', value: `${Number(m.asistencia_promedio).toFixed(1)}%`, detail: 'Periodo actual', icon: 'calendar', tone: 'purple' },
+      { label: 'Horas extras (mes)', value: `${(m.minutos_extras / 60).toFixed(1)} h`, detail: 'Periodo actual', icon: 'clock', tone: 'amber' },
+      { label: 'Costo de planilla (mes)', value: this.money(m.costo_planilla), detail: 'Periodo actual', icon: 'money', tone: 'emerald' }
+    ] as ColaboradorMetric[]));
   }
+  getColaboradores(): Observable<Colaborador[]> { return this.http.get<PaginatedResponse<ApiColaborador>>(this.url, { params: { page: 1, limit: 100 } }).pipe(map(({ data }) => data.map((x) => this.toView(x)))); }
+  getColaborador(id: string): Observable<Colaborador> { return this.http.get<ApiColaborador>(`${this.url}/${id}`).pipe(map((x) => this.toView(x))); }
+  saveColaborador(item: Colaborador): Observable<Colaborador> {
+    return forkJoin({ areas: this.catalog('areas'), cargos: this.catalog('cargos'), jornadas: this.catalog('jornadas') }).pipe(switchMap(({ cargos, jornadas }) => {
+      const cargo = cargos.find((x) => x.nombre === item.cargo); const jornada = jornadas.find((x) => x.nombre === item.jornada);
+      if (!cargo || !jornada) throw new Error('El cargo o la jornada seleccionados no existen en el backend');
+      const payload = this.toPayload(item, cargo.id, jornada.id);
+      const creating = !item.id || item.id.startsWith('nuevo-');
+      return (creating ? this.http.post<ApiColaborador>(this.url, payload) : this.http.patch<ApiColaborador>(`${this.url}/${item.id}`, payload)).pipe(
+        switchMap((saved) => this.syncDocuments(saved.id, item.documentos).pipe(
+          switchMap(() => this.getColaborador(saved.id))
+        ))
+      );
+    }));
+  }
+  updateEstado(ids: ReadonlySet<string>, estado: Colaborador['estado']): Observable<void> { return this.http.patch<void>(`${this.url}/estado-lote`, { ids: [...ids], estado: estado.toUpperCase() }); }
+  deleteColaboradores(ids: ReadonlySet<string>): Observable<void> { return this.http.request<void>('DELETE', `${this.url}/lote`, { body: { ids: [...ids] } }); }
+  deleteColaborador(id: string): Observable<void> { return this.http.delete<void>(`${this.url}/${id}`); }
+  listDocuments(id: string): Observable<ApiDocumento[]> { return this.http.get<ApiDocumento[]>(`${this.url}/${id}/documentos`); }
+  createDocument(id: string, value: Omit<ApiDocumento, 'id'>): Observable<ApiDocumento> { return this.http.post<ApiDocumento>(`${this.url}/${id}/documentos`, value); }
+  updateDocument(id: string, documentId: string, value: Partial<ApiDocumento>): Observable<ApiDocumento> { return this.http.patch<ApiDocumento>(`${this.url}/${id}/documentos/${documentId}`, value); }
+  deleteDocument(id: string, documentId: string): Observable<void> { return this.http.delete<void>(`${this.url}/${id}/documentos/${documentId}`); }
+  uploadDocument(id: string, document: Colaborador['documentos'][number]): Observable<ApiDocumento> {
+    const formData = new FormData();
+    formData.append('nombre', document.nombre);
+    if (document.fechaVencimiento) formData.append('fechaVencimiento', this.iso(document.fechaVencimiento));
+    formData.append('archivo', this.dataUrlFile(document), document.archivoNombre ?? document.nombre);
+    return this.http.post<ApiDocumento>(`${this.url}/${id}/documentos/archivo`, formData);
+  }
+  downloadDocument(url: string): Observable<Blob> { return this.http.get(url.startsWith('http') ? url : `${environment.apiUrl.replace(/\/api$/, '')}${url}`, { responseType: 'blob' }); }
+  private catalog(type: string): Observable<CatalogItem[]> { return this.http.get<PaginatedResponse<CatalogItem>>(`${environment.apiUrl}/catalogos/${type}`, { params: { page: 1, limit: 100, activo: true } }).pipe(map((x) => x.data)); }
+  private syncDocuments(id: string, documents: Colaborador['documentos']): Observable<unknown> {
+    return this.listDocuments(id).pipe(switchMap((existing) => {
+      const submittedIds = new Set(documents.map((document) => document.id).filter((value): value is string => Boolean(value)));
+      const operations: Observable<unknown>[] = existing
+        .filter((document) => !submittedIds.has(document.id))
+        .map((document) => this.deleteDocument(id, document.id));
 
-  getColaboradores(): Colaborador[] {
-    if (this.colaboradores) return [...this.colaboradores];
-
-    const colaboradores: Colaborador[] = [
-      {
-        id: '1',
-        imagen: 'https://i.pravatar.cc/96?img=12',
-        nombre: 'Luis Alberto',
-        apellido: 'Romero',
-        dni: '72945678',
-        cargo: 'Tecnico Mecanico',
-        telefonoEmergencia: '987 654 321',
-        estadoCivil: 'Soltero',
-        tallas: { camisa: 'M', pantalon: 'L', calzado: '42' },
-        estado: 'Activo',
-        fechaNacimiento: '15/06/1992',
-        direccion: 'Av. Los Constructores 123, Trujillo',
-        correo: 'luis.romero@empresa.com',
-        fechaIngreso: '01/03/2022',
-        tipoContrato: 'Indeterminado',
-        jornada: 'Tiempo completo',
-        sueldoBasico: '2800.00',
-        gradoInstruccion: 'Tecnico',
-        cuentaBancaria: '002-1234-567890123456',
-        epsSeguro: 'Pacifico EPS',
-        contactoEmergencia: 'Maria Romero - 987 123 456',
-        documentos: DOCUMENTOS
-      },
-      {
-        id: '2', imagen: 'https://i.pravatar.cc/96?img=47', nombre: 'Maria Fernanda', apellido: 'Lopez', dni: '74651234', cargo: 'Supervisora', telefonoEmergencia: '987 654 322', estadoCivil: 'Casada', tallas: { camisa: 'M', pantalon: 'L', calzado: '38' }, estado: 'Activo', fechaNacimiento: '24/11/1989', direccion: 'Jr. Primavera 450, Lima', correo: 'maria.lopez@empresa.com', fechaIngreso: '15/08/2021', tipoContrato: 'Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '4200.00', gradoInstruccion: 'Universitario', cuentaBancaria: '002-2234-567890123456', epsSeguro: 'Rimac EPS', contactoEmergencia: 'Carlos Lopez - 987 223 456', documentos: DOCUMENTOS
-      },
-      {
-        id: '3', imagen: 'https://i.pravatar.cc/96?img=13', nombre: 'Diego', apellido: 'Sanchez Perez', dni: '70894561', cargo: 'Soldador', telefonoEmergencia: '987 654 323', estadoCivil: 'Soltero', tallas: { camisa: 'M', pantalon: 'L', calzado: '41' }, estado: 'Activo', fechaNacimiento: '03/02/1994', direccion: 'Calle Norte 221, Arequipa', correo: 'diego.sanchez@empresa.com', fechaIngreso: '10/01/2023', tipoContrato: 'Plazo fijo', jornada: 'Tiempo completo', sueldoBasico: '2650.00', gradoInstruccion: 'Tecnico', cuentaBancaria: '002-3234-567890123456', epsSeguro: 'Pacifico EPS', contactoEmergencia: 'Rosa Perez - 987 323 456', documentos: DOCUMENTOS
-      },
-      {
-        id: '4', imagen: 'https://i.pravatar.cc/96?img=32', nombre: 'Ana Lucia', apellido: 'Rojas', dni: '77345129', cargo: 'Operaria', telefonoEmergencia: '987 654 324', estadoCivil: 'Soltera', tallas: { camisa: 'M', pantalon: 'L', calzado: '37' }, estado: 'Activo', fechaNacimiento: '19/09/1997', direccion: 'Av. Industrial 980, Chiclayo', correo: 'ana.rojas@empresa.com', fechaIngreso: '20/05/2022', tipoContrato: 'Plazo fijo', jornada: 'Tiempo completo', sueldoBasico: '2100.00', gradoInstruccion: 'Secundaria completa', cuentaBancaria: '002-4234-567890123456', epsSeguro: 'SIS', contactoEmergencia: 'Lucia Rojas - 987 423 456', documentos: DOCUMENTOS
-      },
-      {
-        id: '5', imagen: 'https://i.pravatar.cc/96?img=11', nombre: 'Jose Manuel', apellido: 'Torres', dni: '70122345', cargo: 'Electricista', telefonoEmergencia: '987 654 325', estadoCivil: 'Casado', tallas: { camisa: 'M', pantalon: 'L', calzado: '42' }, estado: 'Activo', fechaNacimiento: '28/04/1987', direccion: 'Pasaje Central 117, Piura', correo: 'jose.torres@empresa.com', fechaIngreso: '12/07/2020', tipoContrato: 'Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '3050.00', gradoInstruccion: 'Tecnico', cuentaBancaria: '002-5234-567890123456', epsSeguro: 'Rimac EPS', contactoEmergencia: 'Elena Torres - 987 523 456', documentos: DOCUMENTOS
-      },
-      {
-        id: '6', imagen: 'https://i.pravatar.cc/96?img=45', nombre: 'Carla', apellido: 'Mendoza Diaz', dni: '76543210', cargo: 'Administradora', telefonoEmergencia: '987 654 326', estadoCivil: 'Casada', tallas: { camisa: 'M', pantalon: 'L', calzado: '38' }, estado: 'Activo', fechaNacimiento: '07/12/1990', direccion: 'Av. El Sol 334, Cusco', correo: 'carla.mendoza@empresa.com', fechaIngreso: '05/02/2021', tipoContrato: 'Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '3700.00', gradoInstruccion: 'Universitario', cuentaBancaria: '002-6234-567890123456', epsSeguro: 'Pacifico EPS', contactoEmergencia: 'Miguel Diaz - 987 623 456', documentos: DOCUMENTOS
-      },
-      {
-        id: '7', imagen: 'https://i.pravatar.cc/96?img=15', nombre: 'Oscar', apellido: 'Huaman', dni: '71654433', cargo: 'Tecnico de Mantenimiento', telefonoEmergencia: '987 654 327', estadoCivil: 'Soltero', tallas: { camisa: 'M', pantalon: 'L', calzado: '40' }, estado: 'Inactivo', fechaNacimiento: '31/01/1995', direccion: 'Jr. Las Flores 765, Huancayo', correo: 'oscar.huaman@empresa.com', fechaIngreso: '18/06/2022', tipoContrato: 'Plazo fijo', jornada: 'Tiempo completo', sueldoBasico: '2450.00', gradoInstruccion: 'Tecnico', cuentaBancaria: '002-7234-567890123456', epsSeguro: 'SIS', contactoEmergencia: 'Nelly Huaman - 987 723 456', documentos: DOCUMENTOS
+      for (const document of documents) {
+        if (document.archivoUrl?.startsWith('data:')) {
+          const upload = this.uploadDocument(id, document);
+          operations.push(document.id
+            ? this.deleteDocument(id, document.id).pipe(switchMap(() => upload))
+            : upload);
+        } else if (document.id) {
+          operations.push(this.updateDocument(id, document.id, {
+            nombre: document.nombre,
+            fechaVencimiento: document.fechaVencimiento ? this.iso(document.fechaVencimiento) : undefined
+          }));
+        }
       }
-    ];
-    const cuentasPorId: Record<string, DatosBancarios[]> = {
-      '1': [
-        { entidadBancaria: 'BCP', cuentaBancaria: '001102450200456789', cci: '01124500020045678987', esPrincipal: true },
-        { entidadBancaria: 'Interbank', cuentaBancaria: '200300456789012345', cci: '00320030045678901234', esPrincipal: false },
-        { entidadBancaria: 'BBVA', cuentaBancaria: '001104560200123456', cci: '01145600020012345678', esPrincipal: false }
-      ],
-      '2': [
-        { entidadBancaria: 'BCP', cuentaBancaria: '001102450200456790', cci: '01124500020045679088', esPrincipal: true },
-        { entidadBancaria: 'Scotiabank', cuentaBancaria: '009300456789012345', cci: '00930030045678901235', esPrincipal: false }
-      ],
-      '3': [{ entidadBancaria: 'Interbank', cuentaBancaria: '200300456789012346', cci: '00320030045678901235', esPrincipal: true }],
-      '4': [{ entidadBancaria: 'BBVA', cuentaBancaria: '001104560200123457', cci: '01145600020012345679', esPrincipal: true }],
-      '5': [{ entidadBancaria: 'Scotiabank', cuentaBancaria: '009300456789012346', cci: '00930030045678901236', esPrincipal: true }]
-    };
 
-    this.colaboradores = colaboradores.map((colaborador) => {
-      const datosBancarios = cuentasPorId[colaborador.id] ?? [];
-      const principal = datosBancarios.find((cuenta) => cuenta.esPrincipal) ?? datosBancarios[0];
-      return {
-        ...colaborador,
-        datosBancarios,
-        cuentaBancaria: principal?.cuentaBancaria ?? colaborador.cuentaBancaria,
-        cci: principal?.cci ?? colaborador.cci,
-        entidadBancaria: principal?.entidadBancaria ?? colaborador.entidadBancaria
-      };
-    });
-    return [...this.colaboradores];
+      return operations.length ? forkJoin(operations) : of([]);
+    }));
   }
 
-  saveColaborador(colaborador: Colaborador): Colaborador[] {
-    const actuales = this.getColaboradores();
-    const index = actuales.findIndex((item) => item.id === colaborador.id);
-    this.colaboradores = index === -1
-      ? [colaborador, ...actuales]
-      : actuales.map((item) => item.id === colaborador.id ? colaborador : item);
-    return [...this.colaboradores];
+  private dataUrlFile(document: Colaborador['documentos'][number]): File {
+    const source = document.archivoUrl ?? '';
+    const match = source.match(/^data:([^;,]+)?(?:;base64)?,(.*)$/);
+    if (!match) throw new Error('El documento seleccionado no contiene un archivo válido');
+    const mimeType = match[1] || document.archivoTipo || 'application/octet-stream';
+    const binary = source.includes(';base64,') ? atob(match[2]) : decodeURIComponent(match[2]);
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return new File([bytes], document.archivoNombre ?? document.nombre, { type: mimeType });
   }
-
-  updateEstado(ids: ReadonlySet<string>, estado: Colaborador['estado']): Colaborador[] {
-    this.colaboradores = this.getColaboradores().map((item) => ids.has(item.id) ? { ...item, estado } : item);
-    return [...this.colaboradores];
-  }
-
-  deleteColaboradores(ids: ReadonlySet<string>): Colaborador[] {
-    this.colaboradores = this.getColaboradores().filter((item) => !ids.has(item.id));
-    return [...this.colaboradores];
-  }
+  private toPayload(x: Colaborador, cargoId: string, jornadaId: string) { return { dni: x.dni, nombres: x.nombre, apellidoPaterno: x.apellidoPaterno || x.apellido.split(' ')[0], apellidoMaterno: x.apellidoMaterno || x.apellido.split(' ').slice(1).join(' ') || undefined, sexo: ({ Masculino: 'MASCULINO', Femenino: 'FEMENINO', 'No binario': 'NO_BINARIO' } as Record<string, string>)[x.sexo ?? ''] || undefined, fechaNacimiento: this.iso(x.fechaNacimiento), lugarNacimiento: x.lugarNacimiento || undefined, estadoCivil: x.estadoCivil || undefined, numeroHijos: Number(x.hijos || 0), gradoInstruccion: x.gradoInstruccion || undefined, tipoSangre: x.tipoSangre || undefined, telefono: x.telefono || undefined, correo: x.correo || undefined, direccion: x.direccion || undefined, fotoUrl: x.imagen || undefined, epsSeguro: x.epsSeguro || undefined, tallas: x.tallas, estado: x.estado.toUpperCase(), contrato: { cargoId, jornadaId, tipoContrato: x.tipoContrato, fechaInicio: this.iso(x.fechaIngreso), sueldoBasico: Number(x.sueldoBasico) }, cuentasBancarias: (x.datosBancarios ?? []).map((b) => ({ entidadBancaria: b.entidadBancaria, numeroCuenta: b.cuentaBancaria, cci: b.cci || undefined, principal: Boolean(b.esPrincipal) })), contactosEmergencia: (x.contactosEmergencia ?? []).map((c, index) => ({ ...c, principal: index === 0 })) }; }
+  private toView(x: ApiColaborador): Colaborador { const contract = x.contratoActual; const accounts = (x.cuentasBancarias ?? []).map((b) => ({ entidadBancaria: b.entidadBancaria, cuentaBancaria: b.numeroCuenta, cci: b.cci ?? '', esPrincipal: b.principal })); const principal = accounts.find((b) => b.esPrincipal) ?? accounts[0]; const contacts = x.contactosEmergencia ?? []; return { id: x.id, imagen: x.fotoUrl ?? '', nombre: x.nombres, apellido: [x.apellidoPaterno, x.apellidoMaterno].filter(Boolean).join(' '), apellidoPaterno: x.apellidoPaterno, apellidoMaterno: x.apellidoMaterno, dni: x.dni, sexo: ({ MASCULINO: 'Masculino', FEMENINO: 'Femenino', NO_BINARIO: 'No binario' } as Record<string, Colaborador['sexo']>)[x.sexo ?? ''], hijos: String(x.numeroHijos ?? 0), cargo: contract?.cargo?.nombre ?? '', area: contract?.cargo?.area?.nombre ?? '', telefono: x.telefono ?? '', telefonoEmergencia: contacts[0]?.telefono ?? '', contactosEmergencia: contacts, estadoCivil: x.estadoCivil ?? '', tallas: { camisa: x.tallaCamisa ?? '', pantalon: x.tallaPantalon ?? '', calzado: x.tallaCalzado ?? '' }, estado: x.estado === 'ACTIVO' ? 'Activo' : 'Inactivo', fechaNacimiento: this.displayDate(x.fechaNacimiento), direccion: x.direccion ?? '', correo: x.correo ?? '', fechaIngreso: this.displayDate(contract?.fechaInicio ?? ''), tipoContrato: contract?.tipoContrato ?? '', jornada: contract?.jornada?.nombre ?? '', sueldoBasico: String(contract?.sueldoBasico ?? ''), gradoInstruccion: x.gradoInstruccion ?? '', lugarNacimiento: x.lugarNacimiento ?? '', tipoSangre: x.tipoSangre ?? '', cuentaBancaria: principal?.cuentaBancaria ?? '', cci: principal?.cci ?? '', entidadBancaria: principal?.entidadBancaria ?? '', datosBancarios: accounts, epsSeguro: x.epsSeguro ?? '', contactoEmergencia: contacts[0] ? `${contacts[0].nombre} - ${contacts[0].telefono}` : '', documentos: (x.documentos ?? []).map((d) => ({ ...d, archivoTamano: Number(d.archivoTamano ?? 0), fechaVencimiento: d.fechaVencimiento, estado: this.documentStatus(d.fechaVencimiento) })) }; }
+  private iso(value: string): string { if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value; const [d, m, y] = value.split('/'); return y && m && d ? `${y}-${m}-${d}` : value; }
+  private displayDate(value: string): string { if (!value) return ''; const [y, m, d] = value.slice(0, 10).split('-'); return `${d}/${m}/${y}`; }
+  private documentStatus(value?: string): 'Vigente' | 'Por vencer' | 'Vencido' { if (!value) return 'Vigente'; const days = (new Date(value).getTime() - Date.now()) / 86400000; return days < 0 ? 'Vencido' : days <= 30 ? 'Por vencer' : 'Vigente'; }
+  private money(value: number): string { return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(Number(value) || 0); }
 }

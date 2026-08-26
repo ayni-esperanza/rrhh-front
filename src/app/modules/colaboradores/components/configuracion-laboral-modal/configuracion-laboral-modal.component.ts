@@ -1,6 +1,8 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
+import { CatalogosService } from '../../services/catalogos.service';
+import { forkJoin } from 'rxjs';
 
 type CatalogTab = 'areas' | 'cargos' | 'jornadas';
 
@@ -36,36 +38,46 @@ interface JornadaItem {
   templateUrl: './configuracion-laboral-modal.component.html'
 })
 export class ConfiguracionLaboralModalComponent {
+  private readonly catalogos = inject(CatalogosService);
   @Input() isOpen = false;
   @Output() closeModal = new EventEmitter<void>();
 
   protected activeTab: CatalogTab = 'areas';
   protected search = '';
-  protected selectedId = 'area-1';
+  protected selectedId = '';
   protected isCreating = false;
   protected savedMessage = '';
+  protected errorMessage = '';
+  protected isLoading = true;
+  protected isSaving = false;
 
-  protected areas: AreaItem[] = [
-    { id: 'area-1', nombre: 'Administración', descripcion: 'Gestión administrativa y financiera', activo: true },
-    { id: 'area-2', nombre: 'Operaciones', descripcion: 'Ejecución y supervisión de operaciones', activo: true },
-    { id: 'area-3', nombre: 'Mantenimiento', descripcion: 'Mantenimiento preventivo y correctivo', activo: true }
-  ];
+  protected areas: AreaItem[] = [];
+  protected cargos: CargoItem[] = [];
+  protected jornadas: JornadaItem[] = [];
+  protected areaDraft: AreaItem = this.emptyArea();
+  protected cargoDraft: CargoItem = this.emptyCargo();
+  protected jornadaDraft: JornadaItem = this.emptyJornada();
 
-  protected cargos: CargoItem[] = [
-    { id: 'cargo-1', areaId: 'area-2', nombre: 'Supervisor', descripcion: 'Supervisa al equipo operativo', activo: true },
-    { id: 'cargo-2', areaId: 'area-3', nombre: 'Técnico mecánico', descripcion: 'Ejecuta trabajos de mantenimiento mecánico', activo: true },
-    { id: 'cargo-3', areaId: 'area-1', nombre: 'Administrador', descripcion: 'Gestiona los procesos administrativos', activo: true }
-  ];
-
-  protected jornadas: JornadaItem[] = [
-    { id: 'jornada-1', nombre: 'Tiempo completo', horaEntrada: '08:00', horaSalida: '17:00', inicioAlmuerzo: '13:00', finAlmuerzo: '14:00', minutosDiarios: 480, activo: true },
-    { id: 'jornada-2', nombre: 'Medio tiempo', horaEntrada: '08:00', horaSalida: '12:00', inicioAlmuerzo: '', finAlmuerzo: '', minutosDiarios: 240, activo: true },
-    { id: 'jornada-3', nombre: 'Turno nocturno', horaEntrada: '22:00', horaSalida: '06:00', inicioAlmuerzo: '02:00', finAlmuerzo: '02:30', minutosDiarios: 450, activo: false }
-  ];
-
-  protected areaDraft: AreaItem = { ...this.areas[0] };
-  protected cargoDraft: CargoItem = { ...this.cargos[0] };
-  protected jornadaDraft: JornadaItem = { ...this.jornadas[0] };
+  constructor() {
+    forkJoin({
+      areas: this.catalogos.list<AreaItem>('areas'),
+      cargos: this.catalogos.list<CargoItem>('cargos'),
+      jornadas: this.catalogos.list<JornadaItem>('jornadas')
+    }).subscribe({
+      next: ({ areas, cargos, jornadas }) => {
+        this.areas = areas;
+        this.cargos = cargos;
+        this.jornadas = jornadas;
+        this.selectInitialItem();
+        this.isLoading = false;
+      },
+      error: () => {
+        this.errorMessage = 'No se pudieron cargar los catálogos laborales.';
+        this.isLoading = false;
+        this.selectInitialItem();
+      }
+    });
+  }
 
   protected get filteredItems(): Array<AreaItem | CargoItem | JornadaItem> {
     const term = this.search.trim().toLocaleLowerCase();
@@ -105,9 +117,11 @@ export class ConfiguracionLaboralModalComponent {
     this.activeTab = tab;
     this.search = '';
     this.savedMessage = '';
+    this.errorMessage = '';
     this.isCreating = false;
     const first = tab === 'areas' ? this.areas[0] : tab === 'cargos' ? this.cargos[0] : this.jornadas[0];
     this.selectedId = first?.id ?? '';
+    this.isCreating = !first;
     this.loadDraft();
   }
 
@@ -115,6 +129,7 @@ export class ConfiguracionLaboralModalComponent {
     this.selectedId = item.id;
     this.isCreating = false;
     this.savedMessage = '';
+    this.errorMessage = '';
     this.loadDraft();
   }
 
@@ -122,18 +137,34 @@ export class ConfiguracionLaboralModalComponent {
     this.isCreating = true;
     this.selectedId = '';
     this.savedMessage = '';
+    this.errorMessage = '';
     if (this.activeTab === 'areas') this.areaDraft = this.emptyArea();
     if (this.activeTab === 'cargos') this.cargoDraft = this.emptyCargo();
     if (this.activeTab === 'jornadas') this.jornadaDraft = this.emptyJornada();
   }
 
   protected save(): void {
-    if (!this.canSave) return;
-    if (this.activeTab === 'areas') this.saveArea();
-    if (this.activeTab === 'cargos') this.saveCargo();
-    if (this.activeTab === 'jornadas') this.saveJornada();
-    this.isCreating = false;
-    this.savedMessage = 'Cambios guardados localmente';
+    if (!this.canSave || this.isSaving) return;
+    const draft = this.activeTab === 'areas' ? this.areaDraft : this.activeTab === 'cargos' ? this.cargoDraft : this.jornadaDraft;
+    const { id, ...payload } = draft;
+    const creating = this.isCreating || !id;
+    this.isSaving = true;
+    this.errorMessage = '';
+    const request = creating
+      ? this.catalogos.create<typeof draft>(this.activeTab, payload)
+      : this.catalogos.update<typeof draft>(this.activeTab, id, payload);
+    request.subscribe({
+      next: () => {
+        this.isCreating = false;
+        this.isSaving = false;
+        this.savedMessage = creating ? 'Registro creado' : 'Cambios guardados';
+        this.reloadActive();
+      },
+      error: () => {
+        this.isSaving = false;
+        this.errorMessage = creating ? 'No se pudo crear el registro.' : 'No se pudieron guardar los cambios.';
+      }
+    });
   }
 
   protected toggleStatus(): void {
@@ -167,42 +198,6 @@ export class ConfiguracionLaboralModalComponent {
     }
   }
 
-  private saveArea(): void {
-    const item = { ...this.areaDraft, nombre: this.areaDraft.nombre.trim() };
-    if (this.isCreating) {
-      item.id = this.newId('area');
-      this.areas = [item, ...this.areas];
-    } else {
-      this.areas = this.areas.map((area) => area.id === item.id ? item : area);
-    }
-    this.selectedId = item.id;
-    this.areaDraft = { ...item };
-  }
-
-  private saveCargo(): void {
-    const item = { ...this.cargoDraft, nombre: this.cargoDraft.nombre.trim() };
-    if (this.isCreating) {
-      item.id = this.newId('cargo');
-      this.cargos = [item, ...this.cargos];
-    } else {
-      this.cargos = this.cargos.map((cargo) => cargo.id === item.id ? item : cargo);
-    }
-    this.selectedId = item.id;
-    this.cargoDraft = { ...item };
-  }
-
-  private saveJornada(): void {
-    const item = { ...this.jornadaDraft, nombre: this.jornadaDraft.nombre.trim() };
-    if (this.isCreating) {
-      item.id = this.newId('jornada');
-      this.jornadas = [item, ...this.jornadas];
-    } else {
-      this.jornadas = this.jornadas.map((jornada) => jornada.id === item.id ? item : jornada);
-    }
-    this.selectedId = item.id;
-    this.jornadaDraft = { ...item };
-  }
-
   private emptyArea(): AreaItem {
     return { id: '', nombre: '', descripcion: '', activo: true };
   }
@@ -215,7 +210,24 @@ export class ConfiguracionLaboralModalComponent {
     return { id: '', nombre: '', horaEntrada: '08:00', horaSalida: '17:00', inicioAlmuerzo: '13:00', finAlmuerzo: '14:00', minutosDiarios: 480, activo: true };
   }
 
-  private newId(prefix: string): string {
-    return `${prefix}-${Date.now()}`;
+  private reloadActive(): void {
+    this.catalogos.list<AreaItem | CargoItem | JornadaItem>(this.activeTab).subscribe({
+      next: (items) => {
+        if (this.activeTab === 'areas') this.areas = items as AreaItem[];
+        if (this.activeTab === 'cargos') this.cargos = items as CargoItem[];
+        if (this.activeTab === 'jornadas') this.jornadas = items as JornadaItem[];
+        this.selectedId = items[0]?.id ?? '';
+        this.isCreating = !this.selectedId;
+        this.loadDraft();
+      },
+      error: () => this.errorMessage = 'El cambio se guardó, pero no se pudo actualizar el listado.'
+    });
+  }
+
+  private selectInitialItem(): void {
+    const first = this.activeTab === 'areas' ? this.areas[0] : this.activeTab === 'cargos' ? this.cargos[0] : this.jornadas[0];
+    this.selectedId = first?.id ?? '';
+    this.isCreating = !first;
+    this.loadDraft();
   }
 }

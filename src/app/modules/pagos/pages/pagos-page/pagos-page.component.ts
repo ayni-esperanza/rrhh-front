@@ -16,9 +16,19 @@ export class PagosPageComponent {
   private readonly pagosService = inject(PagosService);
   private readonly tableExport = inject(TableExportService);
 
-  protected readonly metrics = this.pagosService.getMetrics();
-  protected readonly pagos = this.pagosService.getPagos();
+  protected metrics = [] as import('../../models/pago.model').PagoMetric[];
+  protected pagos: PagoColaborador[] = [];
   protected filters: PagosFilterState = this.emptyFilters();
+
+  constructor() {
+    this.reload();
+  }
+
+  protected reload(): void {
+    const now = new Date();
+    this.pagosService.getMetrics(now.getFullYear(), now.getMonth() + 1).subscribe((metrics) => this.metrics = metrics);
+    this.pagosService.getPagos(now.getFullYear()).subscribe((pagos) => { this.pagos = pagos; this.filters = this.emptyFilters(); });
+  }
 
   protected get filteredPagos(): PagoColaborador[] {
     const search = this.normalize(this.filters.search);
@@ -54,12 +64,12 @@ export class PagosPageComponent {
     const amounts = this.pagos.map((pago) => this.moneyToNumber(pago.montoMensual));
     return {
       search: '',
-      dateFrom: '2025-05-01',
-      dateTo: '2025-05-31',
+      dateFrom: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`,
+      dateTo: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toLocaleDateString('en-CA'),
       area: '',
       estado: '',
-      minAmount: Math.floor(Math.min(...amounts) / 100) * 100,
-      maxAmount: Math.ceil(Math.max(...amounts) / 100) * 100
+      minAmount: amounts.length ? Math.floor(Math.min(...amounts) / 100) * 100 : 0,
+      maxAmount: amounts.length ? Math.ceil(Math.max(...amounts) / 100) * 100 : 0
     };
   }
 

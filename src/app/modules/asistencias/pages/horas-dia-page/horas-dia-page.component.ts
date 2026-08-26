@@ -81,18 +81,19 @@ import { ExportTable } from '../../../../shared/services/table-export.service';
   `
 })
 export class HorasDiaPageComponent {
-  @Input() filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
+  @Input() filters: AsistenciaFilters = { search: '', range: 'semana', month: '', weekIndex: 0, dayIndex: 0, visibleWeekIndexes: [0, 1, 2, 3] };
 
-  protected readonly semana = inject(AsistenciasService).getMes();
+  private readonly asistenciasService = inject(AsistenciasService);
+  protected readonly semana = this.asistenciasService.getMes();
   private readonly configuracionPagosService = inject(ConfiguracionHorasExtrasService);
-  protected readonly dias = this.semana[0]?.dias ?? [];
+  protected get dias() { return this.semana[0]?.dias ?? []; }
   protected isEditModalOpen = false;
   protected selectedRegistro: AsistenciaRegistroEdicion | null = null;
-  protected editingContext: { itemId: number; dia: string; fecha: string } | null = null;
+  protected editingContext: { itemId: string; dia: string; fecha: string } | null = null;
 
   protected paginaActual = 0;
   protected porPagina = 10;
-  protected selectedIds = new Set<number>();
+  protected selectedIds = new Set<string>();
   protected bulkTipoRegistro = '';
   protected bulkHorasExtras = '';
   protected bulkFeriadoTrabajado = false;
@@ -101,7 +102,7 @@ export class HorasDiaPageComponent {
   private rowSelectionActive = false;
   private ignoreNextRowAction = false;
   private dragSelectionValue = false;
-  private dragStartId: number | null = null;
+  private dragStartId: string | null = null;
 
   protected get paginationConfig(): PaginacionConfig {
     const totalElementos = this.filteredSemana.length;
@@ -185,7 +186,7 @@ export class HorasDiaPageComponent {
       colaborador: item.colaborador,
       cargo: item.cargo,
       avatar: item.avatar,
-      fecha: `${dia.dia}, ${dia.fecha} de 2025`,
+      fecha: `${dia.dia}, ${dia.fecha}`,
       entrada: blocked ? '-' : '08:00 AM',
       salida: blocked ? '-' : dia.tipo === 'extra' ? '05:45 PM' : '05:15 PM',
       entradaAlmuerzo: blocked ? '-' : '01:00 PM',
@@ -198,7 +199,7 @@ export class HorasDiaPageComponent {
       pagoPersonalizadoTipo: dia.pagoPersonalizado?.tipo,
       pagoPersonalizadoValor: dia.pagoPersonalizado?.valor,
       estado: dia.tipo === 'falta' ? 'Incompleto' : 'Completo',
-      lugar: item.id % 2 === 0 ? 'Sucursal Sur' : 'Planta Principal - Linea de Produccion'
+      lugar: dia.lugar ?? 'Sin registro'
     };
     this.isEditModalOpen = true;
   }
@@ -211,7 +212,7 @@ export class HorasDiaPageComponent {
 
     const item = this.semana.find((semanaItem) => semanaItem.id === this.editingContext?.itemId);
     const dia = item?.dias.find((diaItem) => diaItem.dia === this.editingContext?.dia && diaItem.fecha === this.editingContext?.fecha);
-    if (dia) {
+    if (dia && item) {
       const updatedDia = this.diaFromRegistro(registro);
       dia.tipo = updatedDia.tipo;
       dia.valor = updatedDia.valor;
@@ -224,8 +225,9 @@ export class HorasDiaPageComponent {
       else delete dia.pagoDetalle;
       if (updatedDia.pagoPersonalizado) dia.pagoPersonalizado = updatedDia.pagoPersonalizado;
       else delete dia.pagoPersonalizado;
+      this.asistenciasService.save(item.id, this.dateForCell(dia.fecha), { horaEntrada: this.time24(registro.entrada), horaSalida: this.time24(registro.salida), entradaAlmuerzo: this.time24(registro.entradaAlmuerzo), salidaAlmuerzo: this.time24(registro.salidaAlmuerzo), tipoRegistro: this.apiType(dia.tipo), estado: registro.estado.toUpperCase(), lugarTrabajoId: dia.lugarId || null, feriadoTrabajado: Boolean(registro.feriadoTrabajado), pagoPersonalizadoTipo: registro.pagoPersonalizadoTipo?.toUpperCase().replace('-', '_'), pagoPersonalizadoValor: registro.pagoPersonalizadoValor }).subscribe(() => this.closeEditarRegistro());
+      return;
     }
-
     this.closeEditarRegistro();
   }
 
@@ -234,7 +236,7 @@ export class HorasDiaPageComponent {
     this.editingContext = null;
   }
 
-  protected isSelected(itemId: number): boolean {
+  protected isSelected(itemId: string): boolean {
     return this.selectedIds.has(itemId);
   }
 
@@ -246,7 +248,7 @@ export class HorasDiaPageComponent {
     return !this.allPageRowsSelected && this.paginatedSemana.some(({ id }) => this.isSelected(id));
   }
 
-  protected toggleRowSelection(itemId: number, isSelected: boolean): void {
+  protected toggleRowSelection(itemId: string, isSelected: boolean): void {
     if (isSelected) this.selectedIds.add(itemId);
     else this.selectedIds.delete(itemId);
   }
@@ -263,6 +265,9 @@ export class HorasDiaPageComponent {
 
   protected applyBulkTipoRegistro(): void {
     if (!this.bulkTipoRegistro || (this.bulkTipoRegistro === 'Horas extras' && !this.bulkHorasExtras)) return;
+    const ids = [...this.selectedIds];
+    const sample = this.diaFromRegistro({ tipoRegistro: this.bulkTipoRegistro, feriadoTrabajado: this.bulkFeriadoTrabajado, horasNormales: '0h', horasExtras: this.bulkHorasExtras } as AsistenciaRegistroEdicion);
+    const fechas = this.visibleDias.map((dia) => this.dateForCell(dia.fecha));
     this.semana.filter(({ id }) => this.selectedIds.has(id)).forEach((item) => {
       this.visibleItemDias(item).forEach((dia) => {
         const horasRegistradas = this.isWorkedDay(dia) ? dia.valor : '8h';
@@ -276,20 +281,21 @@ export class HorasDiaPageComponent {
         delete dia.pagoPersonalizado;
       });
     });
+    this.asistenciasService.saveBulk(ids, fechas, { tipoRegistro: this.apiType(sample.tipo), estado: sample.tipo === 'falta' ? 'INCOMPLETO' : 'COMPLETO', feriadoTrabajado: this.bulkFeriadoTrabajado }).subscribe();
     this.selectedIds.clear();
     this.bulkTipoRegistro = '';
     this.bulkHorasExtras = '';
     this.bulkFeriadoTrabajado = false;
   }
 
-  protected beginRowSelection(event: MouseEvent, itemId: number): void {
+  protected beginRowSelection(event: MouseEvent, itemId: string): void {
     if (event.button !== 0 || this.isInteractiveTarget(event.target)) return;
     this.rowSelectionActive = true;
     this.dragStartId = itemId;
     this.dragSelectionValue = !this.isSelected(itemId);
   }
 
-  protected extendRowSelection(itemId: number): void {
+  protected extendRowSelection(itemId: string): void {
     if (!this.rowSelectionActive || this.dragStartId === null || itemId === this.dragStartId) return;
     this.ignoreNextRowAction = true;
     this.toggleRowSelection(this.dragStartId, this.dragSelectionValue);
@@ -419,6 +425,9 @@ export class HorasDiaPageComponent {
   private normalize(value: string): string {
     return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
+  private dateForCell(value: string): string { const [day, month] = value.split('/'); const year = this.filters.month.match(/\d{4}/)?.[0] ?? String(new Date().getFullYear()); return `${year}-${month}-${day}`; }
+  private time24(value: string): string | null { if (!value || value === '-') return null; const match = value.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if (!match) return null; let hour = Number(match[1]); if (match[3]?.toUpperCase() === 'PM' && hour < 12) hour += 12; if (match[3]?.toUpperCase() === 'AM' && hour === 12) hour = 0; return `${String(hour).padStart(2, '0')}:${match[2]}`; }
+  private apiType(type: AsistenciaCelda['tipo']): string { return type.toUpperCase().replaceAll('-', '_'); }
 }
 
 

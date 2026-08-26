@@ -1,4 +1,7 @@
-import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { environment } from '../../../../environments/environment';
+import { PaginatedResponse } from '../../../core/models/api.models';
 
 export interface ConfiguracionHorasExtras {
   incrementoPorcentual: number;
@@ -16,8 +19,15 @@ export interface ConfiguracionFeriadoTrabajado {
 
 @Injectable({ providedIn: 'root' })
 export class ConfiguracionHorasExtrasService {
-  private readonly storageKey = 'rrhh.configuracion-horas-extras';
-  private configuracion: ConfiguracionHorasExtras = this.load();
+  private readonly http = inject(HttpClient);
+  private configuracion: ConfiguracionHorasExtras = { incrementoPorcentual: 0, feriado: { tipo: 'multiplicador', valor: 0, diasBase: 30, horasJornada: 8 } };
+  private horasExtraId = '';
+  private pagoFeriadoId = '';
+
+  constructor() {
+    this.http.get<PaginatedResponse<{ id: string; incrementoPorcentual: number }>>(`${environment.apiUrl}/configuraciones-horas-extra`, { params: { page: 1, limit: 1, activo: true } }).subscribe((x) => { if (x.data[0]) { this.horasExtraId = x.data[0].id; this.configuracion.incrementoPorcentual = Number(x.data[0].incrementoPorcentual); } });
+    this.http.get<PaginatedResponse<{ id: string; tipoCalculo: string; valor: number; diasBase: number; horasJornada: number }>>(`${environment.apiUrl}/configuraciones-pago-feriado`, { params: { page: 1, limit: 1, activo: true } }).subscribe((x) => { const value = x.data[0]; if (value) { this.pagoFeriadoId = value.id; this.configuracion.feriado = { tipo: value.tipoCalculo.toLowerCase().replace('_', '-') as TipoPagoFeriado, valor: Number(value.valor), diasBase: value.diasBase, horasJornada: value.horasJornada }; } });
+  }
 
   getConfiguracion(): ConfiguracionHorasExtras {
     return { ...this.configuracion, feriado: { ...this.configuracion.feriado } };
@@ -34,9 +44,23 @@ export class ConfiguracionHorasExtrasService {
         horasJornada: this.clamp(feriado.horasJornada, 1, 24, 8)
       }
     };
-    if (typeof localStorage !== 'undefined') localStorage.setItem(this.storageKey, JSON.stringify(this.configuracion));
+    const vigenteDesde = new Date().toLocaleDateString('en-CA');
+    const overtimePayload = { nombre: `Horas extra ${vigenteDesde}`, incrementoPorcentual: this.configuracion.incrementoPorcentual, vigenteDesde };
+    const holidayPayload = { nombre: `Feriado ${vigenteDesde}`, tipoCalculo: tipo.toUpperCase().replace('-', '_'), valor: this.configuracion.feriado.valor, diasBase: this.configuracion.feriado.diasBase, horasJornada: this.configuracion.feriado.horasJornada, vigenteDesde, esPredeterminada: true };
+    const overtimeRequest = this.horasExtraId
+      ? this.http.patch<{ id: string }>(`${environment.apiUrl}/configuraciones-horas-extra/${this.horasExtraId}`, overtimePayload)
+      : this.http.post<{ id: string }>(`${environment.apiUrl}/configuraciones-horas-extra`, overtimePayload);
+    const holidayRequest = this.pagoFeriadoId
+      ? this.http.patch<{ id: string }>(`${environment.apiUrl}/configuraciones-pago-feriado/${this.pagoFeriadoId}`, holidayPayload)
+      : this.http.post<{ id: string }>(`${environment.apiUrl}/configuraciones-pago-feriado`, holidayPayload);
+    overtimeRequest.subscribe((saved) => this.horasExtraId = saved.id);
+    holidayRequest.subscribe((saved) => this.pagoFeriadoId = saved.id);
     return this.getConfiguracion();
   }
+
+  deactivateOvertime(id = this.horasExtraId) { return this.http.delete<void>(`${environment.apiUrl}/configuraciones-horas-extra/${id}`); }
+  getHolidayConfiguration(id: string) { return this.http.get<Record<string, unknown>>(`${environment.apiUrl}/configuraciones-pago-feriado/${id}`); }
+  deactivateHolidayConfiguration(id = this.pagoFeriadoId) { return this.http.delete<void>(`${environment.apiUrl}/configuraciones-pago-feriado/${id}`); }
 
   calcularPagoHoraExtra(valorHoraRegular: number, incrementoPorcentual = this.configuracion.incrementoPorcentual): number {
     return valorHoraRegular * (1 + incrementoPorcentual / 100);
@@ -59,25 +83,6 @@ export class ConfiguracionHorasExtrasService {
     if (configuracion.tipo === 'monto-fijo') return `Feriado trabajado · S/ ${configuracion.valor.toFixed(2)} por día`;
     if (configuracion.tipo === 'multiplicador') return `Feriado trabajado · x${configuracion.valor} por hora`;
     return `Feriado trabajado · +${configuracion.valor}% por hora`;
-  }
-
-  private load(): ConfiguracionHorasExtras {
-    const defaults: ConfiguracionHorasExtras = { incrementoPorcentual: 25, feriado: { tipo: 'multiplicador', valor: 2, diasBase: 30, horasJornada: 8 } };
-    if (typeof localStorage === 'undefined') return defaults;
-    try {
-      const stored = JSON.parse(localStorage.getItem(this.storageKey) ?? 'null') as Partial<ConfiguracionHorasExtras> | null;
-      return {
-        incrementoPorcentual: this.clamp(stored?.incrementoPorcentual, 0, 500, defaults.incrementoPorcentual),
-        feriado: {
-          tipo: stored?.feriado?.tipo ?? defaults.feriado.tipo,
-          valor: this.clamp(stored?.feriado?.valor, 0, 100000, defaults.feriado.valor),
-          diasBase: this.clamp(stored?.feriado?.diasBase, 1, 31, defaults.feriado.diasBase),
-          horasJornada: this.clamp(stored?.feriado?.horasJornada, 1, 24, defaults.feriado.horasJornada)
-        }
-      };
-    } catch {
-      return defaults;
-    }
   }
 
   private clamp(value: unknown, min: number, max: number, fallback: number): number {

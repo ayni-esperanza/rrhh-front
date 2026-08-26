@@ -24,12 +24,13 @@ export class AsistenciasLayoutComponent {
   @ViewChild(EntradaSalidaPageComponent) private entradaSalidaPage?: EntradaSalidaPageComponent;
   @ViewChild(LugarTrabajoPageComponent) private lugarTrabajoPage?: LugarTrabajoPageComponent;
   private readonly tableExport = inject(TableExportService);
+  private readonly asistenciasService = inject(AsistenciasService);
   private tabAnimation?: Animation;
-  protected readonly metrics = inject(AsistenciasService).getMetrics();
+  protected readonly metrics = this.asistenciasService.getMetrics();
   protected readonly monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   private readonly shortMonthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   protected activeTab: AsistenciaTab = 'horas-dia';
-  protected filters: AsistenciaFilters = { search: '', range: 'semana', month: 'Mayo 2025', weekIndex: 0, dayIndex: 4, visibleWeekIndexes: [0, 1, 2, 3] };
+  protected filters: AsistenciaFilters = this.initialFilters();
   protected isHorasExtrasConfigOpen = false;
   protected incrementoHorasExtras = inject(ConfiguracionHorasExtrasService).getConfiguracion().incrementoPorcentual;
 
@@ -107,7 +108,10 @@ export class AsistenciasLayoutComponent {
     const monthIndex = Number(month) - 1;
     if (!year || Number.isNaN(monthIndex) || monthIndex < 0 || monthIndex > 11) return;
     this.setMonth(`${this.monthNames[monthIndex]} ${year}`);
+    this.asistenciasService.load(`${year}-${String(monthIndex + 1).padStart(2, '0')}`);
   }
+
+  private initialFilters(): AsistenciaFilters { const now = new Date(); return { search: '', range: 'semana', month: `${this.monthNames[now.getMonth()]} ${now.getFullYear()}`, weekIndex: Math.min(3, Math.floor((now.getDate() - 1) / 7)), dayIndex: (now.getDay() + 6) % 7, visibleWeekIndexes: [0, 1, 2, 3] }; }
 
   protected toggleMonthWeek(index: number): void {
     const selected = this.filters.visibleWeekIndexes;

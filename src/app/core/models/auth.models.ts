@@ -15,5 +15,12 @@ export interface LoginCredentials {
 
 export interface AuthState {
   token: string | null;
+  refreshToken: string | null;
   user: UserSession | null;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: UserSession;
 }

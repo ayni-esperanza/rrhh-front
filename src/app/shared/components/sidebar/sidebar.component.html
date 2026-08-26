@@ -136,6 +136,14 @@
               </div>
             </div>
 
+            <a
+              routerLink="/auth/cambiar-password"
+              (click)="closeMenus()"
+              class="mt-2 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              <span>Cambiar contraseña</span>
+            </a>
+
             <button
               type="button"
               (click)="logout()"

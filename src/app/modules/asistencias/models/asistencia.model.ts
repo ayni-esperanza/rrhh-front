@@ -18,7 +18,7 @@ export interface AsistenciaDia {
 }
 
 export interface AsistenciaSemana {
-  id: number;
+  id: string;
   colaborador: string;
   cargo: string;
   avatar: string;
@@ -47,6 +47,10 @@ export interface AsistenciaCelda {
     tipo: 'porcentaje' | 'multiplicador' | 'monto-fijo';
     valor: number;
   };
+  entrada?: string;
+  salida?: string;
+  lugarId?: string;
+  lugar?: string;
 }
 
 

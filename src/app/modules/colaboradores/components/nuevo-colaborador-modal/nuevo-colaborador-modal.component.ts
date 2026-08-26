@@ -5,12 +5,14 @@ import { Colaborador, DatosBancarios, DocumentoColaborador } from '../../models/
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
 import { PdfViewerModalComponent } from '../../../../shared/components/pdf-viewer-modal/pdf-viewer-modal.component';
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
+import { CatalogosService } from '../../services/catalogos.service';
 
 type ModalStep = 0 | 1 | 2 | 3;
 type DocumentKey = 'dni' | 'curriculum' | 'antecedentes' | 'certificados';
 type DocumentStatus = DocumentoColaborador['estado'];
 
 interface UploadedDocument {
+  id?: string;
   fileName: string;
   type: string;
   size: number;
@@ -34,6 +36,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
   private readonly formBuilder = inject(FormBuilder);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly catalogos = inject(CatalogosService);
   protected readonly maxRegistrosComplementarios = 3;
 
   protected readonly steps = [
@@ -44,8 +47,9 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   ] as const;
   protected currentStep: ModalStep = 0;
   protected showStepErrors = false;
-  protected readonly cargoOptions = ['Técnico mecánico', 'Supervisora', 'Soldador', 'Operaria', 'Electricista', 'Administradora', 'Técnico de Mantenimiento', 'Analista de Recursos Humanos', 'Asistente administrativo'];
-  protected readonly areaOptions = ['Administración', 'Recursos Humanos', 'Operaciones', 'Producción', 'Mantenimiento', 'Logística', 'Seguridad y Salud en el Trabajo', 'Finanzas', 'Comercial'];
+  protected cargoOptions: string[] = [];
+  protected areaOptions: string[] = [];
+  protected jornadaOptions: string[] = [];
   public readonly tipoContratoOptions = ['Planilla - Indeterminado', 'Planilla - Plazo fijo', 'Planilla - Temporal', 'Servicio - Indeterminado', 'Servicio - Plazo fijo', 'Servicio - Temporal'];
   protected readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'];
   protected readonly seguroOptions = ['Rimac EPS', 'Pacífico EPS', 'SIS', 'EsSalud', 'Mapfre EPS', 'Sin seguro'];
@@ -61,7 +65,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   protected pdfViewerDocument: UploadedDocument | null = null;
   public profileImagePreviewUrl = '';
   private profileImageChanged = false;
-  private readonly defaultProfileImageUrl = 'https://i.pravatar.cc/96?img=5';
+  private readonly defaultProfileImageUrl = '';
   private readonly dniPattern = /^\d{8}$/;
   private readonly phonePattern = /^9\d{2}\s?\d{3}\s?\d{3}$/;
   private readonly moneyPattern = /^\d+(\.\d{1,2})?$/;
@@ -75,6 +79,12 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     'CCI': 'Debe tener 20 dígitos.',
     'Teléfono de emergencia': 'Debe tener 9 dígitos y empezar con 9.'
   };
+
+  constructor() {
+    this.catalogos.list<{ nombre: string }>('areas').subscribe((items) => this.areaOptions = items.map((x) => x.nombre));
+    this.catalogos.list<{ nombre: string }>('cargos').subscribe((items) => this.cargoOptions = items.map((x) => x.nombre));
+    this.catalogos.list<{ nombre: string }>('jornadas').subscribe((items) => this.jornadaOptions = items.map((x) => x.nombre));
+  }
 
   protected readonly form = this.formBuilder.group({
     personal: this.formBuilder.group({
@@ -649,13 +659,13 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     return document.type === 'application/pdf' || document.type.startsWith('image/') || /\.(pdf|png|jpe?g|gif|webp|bmp)$/i.test(document.fileName);
   }
 
-  private documentAttachment(document: UploadedDocument): Pick<DocumentoColaborador, 'archivoNombre' | 'archivoTipo' | 'archivoUrl' | 'archivoTamano'> {
-    return { archivoNombre: document.fileName, archivoTipo: document.type, archivoUrl: document.url, archivoTamano: document.size };
+  private documentAttachment(document: UploadedDocument): Pick<DocumentoColaborador, 'id' | 'archivoNombre' | 'archivoTipo' | 'archivoUrl' | 'archivoTamano'> {
+    return { id: document.id, archivoNombre: document.fileName, archivoTipo: document.type, archivoUrl: document.url, archivoTamano: document.size };
   }
 
   private uploadedDocumentFrom(document: DocumentoColaborador): UploadedDocument | null {
     if (!document.archivoUrl || !document.archivoNombre) return null;
-    return { fileName: document.archivoNombre, type: document.archivoTipo || this.fileTypeFromName(document.archivoNombre), size: document.archivoTamano ?? 0, url: document.archivoUrl };
+    return { id: document.id, fileName: document.archivoNombre, type: document.archivoTipo || this.fileTypeFromName(document.archivoNombre), size: document.archivoTamano ?? 0, url: document.archivoUrl };
   }
 
   private fileTypeFromName(fileName: string): string {

@@ -7,6 +7,7 @@ import {
   ConfiguracionHorasExtrasService,
   TipoPagoFeriado
 } from '../../../services/configuracion-horas-extras.service';
+import { FeriadosService } from '../../../services/feriados.service';
 
 type PagosEspecialesTab = 'configuracion-pagos' | 'calendario-feriados';
 type CalendarioFeriadosVista = 'mes' | 'anio';
@@ -37,6 +38,7 @@ export class PagosEspecialesModalComponent {
   readonly incrementoSaved = output<number>();
 
   private readonly configuracionHorasExtrasService = inject(ConfiguracionHorasExtrasService);
+  private readonly feriadosService = inject(FeriadosService);
   private readonly configuracionInicial = this.configuracionHorasExtrasService.getConfiguracion();
 
   protected pagosEspecialesTab: PagosEspecialesTab = 'configuracion-pagos';
@@ -122,19 +124,10 @@ export class PagosEspecialesModalComponent {
       return;
     }
 
-    this.diasFeriados = [
-      ...this.diasFeriados,
-      {
-        id: `feriado-${Date.now()}`,
-        nombre: this.diaFeriadoNombreDraft.trim(),
-        fecha,
-        activo: true,
-        color: this.diaFeriadoColorDraft
-      }
-    ].sort((first, second) => first.fecha.localeCompare(second.fecha));
-    this.diaFeriadoNombreDraft = '';
-    this.diaFeriadoFechaDraft = '';
-    this.diaFeriadoError = '';
+    this.feriadosService.create({ nombre: this.diaFeriadoNombreDraft.trim(), fecha }).subscribe((created) => {
+      this.diasFeriados = [...this.diasFeriados, { ...created, color: this.diaFeriadoColorDraft }].sort((a, b) => a.fecha.localeCompare(b.fecha));
+      this.diaFeriadoNombreDraft = ''; this.diaFeriadoFechaDraft = ''; this.diaFeriadoError = '';
+    });
   }
 
   protected get calendarioFeriadosLabel(): string {
@@ -208,10 +201,7 @@ export class PagosEspecialesModalComponent {
   protected confirmarInactivacionFeriado(): void {
     const pending = this.feriadoPendienteInactivar;
     if (!pending) return;
-    this.diasFeriados = this.diasFeriados.map((feriado) =>
-      feriado.id === pending.id ? { ...feriado, activo: false } : feriado
-    );
-    this.feriadoPendienteInactivar = null;
+    this.feriadosService.deactivate(pending.id).subscribe(() => { this.diasFeriados = this.diasFeriados.map((feriado) => feriado.id === pending.id ? { ...feriado, activo: false } : feriado); this.feriadoPendienteInactivar = null; });
   }
 
   protected cancelarInactivacionFeriado(): void {
@@ -280,6 +270,7 @@ export class PagosEspecialesModalComponent {
   }
 
   private prepareForOpen(): void {
+    this.feriadosService.list().subscribe((items) => this.diasFeriados = items.map((item) => ({ ...item, color: item.color || '#22C55E' })));
     const current = this.configuracionHorasExtrasService.getConfiguracion();
     this.incrementoHorasExtras = current.incrementoPorcentual;
     this.incrementoHorasExtrasDraft = current.incrementoPorcentual;

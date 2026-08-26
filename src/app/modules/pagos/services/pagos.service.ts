@@ -1,107 +1,65 @@
-﻿import { Injectable } from '@angular/core';
-import { PagoColaborador, PagoCuentaBancaria, PagoMetric } from '../models/pago.model';
-import { ColaboradoresService } from '../../colaboradores/services/colaboradores.service';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { map, Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { PaginatedResponse } from '../../../core/models/api.models';
+import { PagoColaborador, PagoMetric, PagoMovimiento } from '../models/pago.model';
 
-const MESES = [
-  ['Ene', 'Enero 2025'], ['Feb', 'Febrero 2025'], ['Mar', 'Marzo 2025'], ['Abr', 'Abril 2025'],
-  ['May', 'Mayo 2025'], ['Jun', 'Junio 2025'], ['Jul', 'Julio 2025'], ['Ago', 'Agosto 2025'],
-  ['Sep', 'Septiembre 2025'], ['Oct', 'Octubre 2025'], ['Nov', 'Noviembre 2025'], ['Dic', 'Diciembre 2025']
-] as const;
+interface ApiMetrics { periodo: string; colaboradores: number; planillaTotal: number; pagado: number; pendiente: number; proximoPago: { fecha: string; periodo: string } | null; }
+interface ApiPago { colaborador: { id: string; nombres: string; apellidoPaterno: string; apellidoMaterno?: string; fotoUrl?: string }; cuentasBancarias: Array<{ numeroCuenta: string; cci?: string; entidadBancaria: string; principal: boolean }>; meses: Array<{ id: string; periodo: { anio: number; mes: number }; estado: string; montoProgramado: number; totalPagado: number; saldoPendiente: number; updatedAt: string }> }
+interface ApiMovimiento { id: string; monto: number; fechaPago: string; medioPago: string; entidadMedio?: string; referencia?: string; observacion?: string; estado: string; responsableId?: string; }
+export interface PlanillaPeriodo { id: string; anio: number; mes: number; estado: string; fechaPagoProgramada?: string; }
+export interface PlanillaDetalle { id: string; bonificaciones: number; descuentos: number; estado: string; [key: string]: unknown; }
 
 @Injectable({ providedIn: 'root' })
 export class PagosService {
-  constructor(private readonly colaboradoresService: ColaboradoresService) {}
-
-  getMetrics(): PagoMetric[] {
-    return [
-      { label: 'Colaboradores', value: '186', detail: 'Activos 186 (100%)', icon: 'users', tone: 'blue' },
-      { label: 'Planilla mensual total', value: 'S/ 128,560.00', detail: 'Mayo 2025', icon: 'wallet', tone: 'emerald' },
-      { label: 'Pagos realizados', value: 'S/ 72,340.00', detail: '56.3% del total', icon: 'card', tone: 'orange' },
-      { label: 'Pendiente por pagar', value: 'S/ 56,220.00', detail: '43.7% del total', icon: 'money', tone: 'purple' },
-      { label: 'Proximo pago', value: '05 Jun 2025', detail: 'Planilla de Junio', icon: 'calendar', tone: 'rose' }
-    ];
+  private readonly http = inject(HttpClient);
+  private readonly url = `${environment.apiUrl}/planillas`;
+  getMetrics(year: number, month: number): Observable<PagoMetric[]> {
+    return this.http.get<ApiMetrics>(`${this.url}/metricas`, { params: { anio: year, mes: month } }).pipe(map((m) => [
+      { label: 'Colaboradores', value: String(m.colaboradores), detail: m.periodo, icon: 'users', tone: 'blue' },
+      { label: 'Planilla mensual total', value: this.money(m.planillaTotal), detail: m.periodo, icon: 'wallet', tone: 'emerald' },
+      { label: 'Pagos realizados', value: this.money(m.pagado), detail: this.percent(m.pagado, m.planillaTotal), icon: 'card', tone: 'orange' },
+      { label: 'Pendiente por pagar', value: this.money(m.pendiente), detail: this.percent(m.pendiente, m.planillaTotal), icon: 'money', tone: 'purple' },
+      { label: 'Próximo pago', value: m.proximoPago ? this.date(m.proximoPago.fecha) : 'Sin fecha', detail: m.proximoPago ? this.periodLabel(m.proximoPago.periodo) : 'Sin fecha programada', icon: 'calendar', tone: 'rose' }
+    ] as PagoMetric[]));
   }
-
-  getPagos(): PagoColaborador[] {
-    const colaboradores = new Map(this.colaboradoresService.getColaboradores().map((colaborador) => [colaborador.id, colaborador]));
-    const pagos = [
-      this.colaborador(1, 'Luis Alberto Romero', 'Tecnico Mecanico', 'Mantenimiento', 'https://i.pravatar.cc/96?img=12', 'S/ 2,800.00', '05 May 2025', '10:32 a. m.', 2800, [0, 1, 2, 3], [4], '0011-0245-0200456789', '011-245-000200456789-87', 'BCP - Banco de Credito del Peru'),
-      this.colaborador(2, 'Maria Fernanda Lopez', 'Supervisora', 'Operaciones', 'https://i.pravatar.cc/96?img=47', 'S/ 3,200.00', '05 May 2025', '10:35 a. m.', 3200, [0, 1, 2, 3], [4], '0011-0245-0200456790', '011-245-000200456790-88', 'BCP - Banco de Credito del Peru'),
-      this.colaborador(3, 'Diego Sanchez Perez', 'Soldador', 'Produccion', 'https://i.pravatar.cc/96?img=13', 'S/ 2,500.00', '-', '-', 2500, [0, 1, 2], [3], '0011-0245-0200456791', '011-245-000200456791-89', 'Interbank'),
-      this.colaborador(4, 'Ana Lucia Rojas', 'Operaria', 'Produccion', 'https://i.pravatar.cc/96?img=32', 'S/ 2,200.00', '-', '-', 2200, [0, 1, 2, 3], [4], '0011-0245-0200456792', '011-245-000200456792-90', 'BBVA'),
-      this.colaborador(5, 'Jose Manuel Torres', 'Electricista', 'Mantenimiento', 'https://i.pravatar.cc/96?img=11', 'S/ 2,600.00', '-', '-', 2600, [0, 1], [2, 3], '0011-0245-0200456793', '011-245-000200456793-91', 'Scotiabank')
-    ];
-
-    return pagos.map((pago) => {
-      const colaborador = colaboradores.get(String(pago.id));
-      const cuentasBancarias: PagoCuentaBancaria[] = colaborador?.datosBancarios?.length
-        ? colaborador.datosBancarios.map((cuenta, index) => ({ ...cuenta, esPrincipal: cuenta.esPrincipal ?? index === 0 }))
-        : [{
-            cuentaBancaria: colaborador?.cuentaBancaria || pago.cta,
-            cci: colaborador?.cci || pago.cci,
-            entidadBancaria: colaborador?.entidadBancaria || pago.banco,
-            esPrincipal: true
-          }];
-      const principal = cuentasBancarias.find((cuenta) => cuenta.esPrincipal) ?? cuentasBancarias[0];
-      return {
-        ...pago,
-        cta: principal.cuentaBancaria,
-        cci: principal.cci,
-        banco: principal.entidadBancaria,
-        cuentasBancarias
-      };
-    });
+  getPagos(year: number): Observable<PagoColaborador[]> {
+    return this.http.get<PaginatedResponse<ApiPago>>(this.url, { params: { anio: year, page: 1, limit: 100 } }).pipe(map(({ data }) => data.map((item) => this.toView(item))));
   }
-
-  private colaborador(id: number, nombre: string, cargo: string, area: string, avatar: string, montoMensual: string, fechaPago: string, horaPago: string, monto: number, pagados: number[], abonados: number[], cta: string, cci: string, banco: string): PagoColaborador {
-    return {
-      id,
-      nombre,
-      cargo,
-      area,
-      avatar,
-      montoMensual,
-      fechaPago,
-      horaPago,
-      cta,
-      cci,
-      banco,
-      cuentasBancarias: [{ cuentaBancaria: cta, cci, entidadBancaria: banco, esPrincipal: true }],
-      meses: MESES.map(([mes, mesCompleto], index) => {
-        const estado = pagados.includes(index) ? 'Pagado' : abonados.includes(index) ? 'Abonado' : 'Pendiente';
-        const programado = index === 4 && estado !== 'Pagado' ? monto + 100 : monto;
-        const pagado = estado === 'Pagado' ? programado : estado === 'Abonado' ? Math.round(programado / 2) : 0;
-        const pendiente = Math.max(programado - pagado, 0);
-        const responsable = estado === 'Pendiente' ? '-' : index < 3 ? 'Juan Perez' : 'Maria Lopez';
-        const entidadMedio = estado === 'Pendiente' ? '-' : estado === 'Abonado' ? 'Plin' : index < 3 ? 'Banco de Credito' : 'Banco de la Nacion';
-        const fechaPagoMes = estado === 'Pendiente' ? '-' : `${String(index + 5).padStart(2, '0')} ${mes} 2025`;
-        const movimientos = estado === 'Pendiente' ? [] : estado === 'Abonado'
-          ? [
-              { id: index * 10 + 1, numero: 1, monto: this.money(Math.ceil(pagado * 0.6)), fechaPago: `${String(index + 3).padStart(2, '0')} ${mes} 2025`, horaPago: '09:15 a. m.', responsable, entidadMedio, observacion: 'Primer abono del mes.' },
-              { id: index * 10 + 2, numero: 2, monto: this.money(Math.floor(pagado * 0.4)), fechaPago: fechaPagoMes, horaPago: '10:32 a. m.', responsable, entidadMedio, observacion: 'Segundo abono del mes.' }
-            ]
-          : [
-              { id: index * 10 + 1, numero: 1, monto: this.money(pagado), fechaPago: fechaPagoMes, horaPago: '10:32 a. m.', responsable, entidadMedio, observacion: 'Pago completo del mes.' }
-            ];
-        return {
-          mes,
-          mesCompleto,
-          estado,
-          monto: this.money(pagado),
-          referencia: estado === 'Abonado' ? `Pend. ${this.money(pendiente)}` : `de ${this.money(programado)}`,
-          montoProgramado: this.money(programado),
-          pagadoAbonado: this.money(pagado),
-          pendiente: this.money(pendiente),
-          fechaPago: fechaPagoMes,
-          responsable,
-          entidadMedio,
-          movimientos
-        };
-      })
-    };
+  listPeriods(params: { anio?: number; mes?: number; estado?: string; page?: number; limit?: number } = {}): Observable<PaginatedResponse<PlanillaPeriodo>> { return this.http.get<PaginatedResponse<PlanillaPeriodo>>(`${this.url}/periodos`, { params: { page: 1, limit: 100, ...params } }); }
+  createPeriod(value: { anio: number; mes: number; fechaPagoProgramada?: string }): Observable<PlanillaPeriodo> { return this.http.post<PlanillaPeriodo>(`${this.url}/periodos`, value); }
+  getPeriod(id: string): Observable<PlanillaPeriodo> { return this.http.get<PlanillaPeriodo>(`${this.url}/periodos/${id}`); }
+  getPeriodDetails(id: string, params: { estado?: string; areaId?: string; page?: number; limit?: number } = {}): Observable<PaginatedResponse<PlanillaDetalle>> { return this.http.get<PaginatedResponse<PlanillaDetalle>>(`${this.url}/periodos/${id}/detalles`, { params: { page: 1, limit: 100, ...params } }); }
+  calculatePeriod(id: string): Observable<PlanillaPeriodo> { return this.http.post<PlanillaPeriodo>(`${this.url}/periodos/${id}/calcular`, {}); }
+  closePeriod(id: string): Observable<PlanillaPeriodo> { return this.http.post<PlanillaPeriodo>(`${this.url}/periodos/${id}/cerrar`, {}); }
+  getDetail(id: string): Observable<PlanillaDetalle> { return this.http.get<PlanillaDetalle>(`${this.url}/detalles/${id}`); }
+  updateDetail(id: string, value: { bonificaciones?: number; descuentos?: number }): Observable<PlanillaDetalle> { return this.http.patch<PlanillaDetalle>(`${this.url}/detalles/${id}`, value); }
+  getPaymentHistory(detailId: string): Observable<PagoMovimiento[]> {
+    return this.http.get<ApiMovimiento[]>(`${this.url}/detalles/${detailId}/pagos`).pipe(map((items) => items.map((item, index) => ({
+      id: item.id, numero: index + 1, monto: this.money(item.monto), fechaPago: this.date(item.fechaPago),
+      horaPago: new Intl.DateTimeFormat('es-PE', { timeStyle: 'short' }).format(new Date(item.fechaPago)),
+      responsable: item.responsableId ?? '-', entidadMedio: [item.entidadMedio, item.medioPago].filter(Boolean).join(' / '),
+      observacion: item.observacion ?? item.referencia ?? '', estado: item.estado
+    }))));
   }
-
-  private money(value: number): string {
-    return `S/ ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  cancelPayment(paymentId: string): Observable<unknown> { return this.http.post(`${this.url}/pagos/${paymentId}/anular`, {}); }
+  private toView(item: ApiPago): PagoColaborador {
+    const accounts = item.cuentasBancarias.map((x) => ({ cuentaBancaria: x.numeroCuenta, cci: x.cci ?? '', entidadBancaria: x.entidadBancaria, esPrincipal: x.principal }));
+    const principal = accounts.find((x) => x.esPrincipal) ?? accounts[0];
+    const latest = item.meses[item.meses.length - 1];
+    return { id: item.colaborador.id, nombre: [item.colaborador.nombres, item.colaborador.apellidoPaterno, item.colaborador.apellidoMaterno].filter(Boolean).join(' '), cargo: '', area: '', avatar: item.colaborador.fotoUrl ?? '', montoMensual: this.money(latest?.montoProgramado ?? 0), fechaPago: latest?.updatedAt ? this.date(latest.updatedAt) : '-', horaPago: latest?.updatedAt ? new Intl.DateTimeFormat('es-PE', { timeStyle: 'short' }).format(new Date(latest.updatedAt)) : '-', cta: principal?.cuentaBancaria ?? '', cci: principal?.cci ?? '', banco: principal?.entidadBancaria ?? '', cuentasBancarias: accounts, meses: item.meses.map((month) => ({ id: month.id, mes: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(new Date(Date.UTC(month.periodo.anio, month.periodo.mes - 1))), mesCompleto: new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(month.periodo.anio, month.periodo.mes - 1))), estado: this.status(month.estado), monto: this.money(month.totalPagado), referencia: `de ${this.money(month.montoProgramado)}`, montoProgramado: this.money(month.montoProgramado), pagadoAbonado: this.money(month.totalPagado), pendiente: this.money(month.saldoPendiente), fechaPago: month.updatedAt ? this.date(month.updatedAt) : '-', responsable: '-', entidadMedio: '-', movimientos: [] })) };
+  }
+  registerPayment(detailId: string, value: { monto: number; fechaPago: string; medioPago: string; cuentaBancariaId?: string; entidadMedio?: string; referencia?: string; observacion?: string }): Observable<unknown> { return this.http.post(`${this.url}/detalles/${detailId}/pagos`, value); }
+  private status(value: string): 'Pagado' | 'Abonado' | 'Pendiente' { return value === 'PAGADO' ? 'Pagado' : value === 'ABONADO' ? 'Abonado' : 'Pendiente'; }
+  private money(value: number): string { return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(Number(value) || 0); }
+  private date(value: string): string {
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
+    return new Intl.DateTimeFormat('es-PE').format(parsed);
+  }
+  private percent(value: number, total: number): string { return total ? `${((value / total) * 100).toFixed(1)}% del total` : '0% del total'; }
+  private periodLabel(value: string): string {
+    const [year, month] = value.split('-').map(Number);
+    return new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(year, month - 1)));
   }
 }

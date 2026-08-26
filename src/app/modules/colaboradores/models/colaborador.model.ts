@@ -51,6 +51,7 @@ export interface DatosBancarios {
   esPrincipal?: boolean;
 }
 export interface DocumentoColaborador {
+  id?: string;
   nombre: string;
   estado: 'Vigente' | 'Por vencer' | 'Vencido';
   fechaVencimiento?: string;

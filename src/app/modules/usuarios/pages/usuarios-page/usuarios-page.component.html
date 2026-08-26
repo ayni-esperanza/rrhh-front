@@ -3,12 +3,12 @@
     <h1 class="text-xl font-bold text-slate-950 dark:text-white">Usuarios</h1>
   </header>
 
-  <app-usuarios-metrics [usuarios]="usuarios" />
+  <app-usuarios-metrics [usuarios]="usuarios" [metrics]="metrics" />
   <app-usuarios-filters (filtersChange)="updateFilters($event)" (newUsuario)="openNewUsuario()" />
   <app-usuarios-table [usuarios]="filteredUsuarios" (editUsuario)="editUsuario($event)" />
 </section>
 
-<app-usuario-modal [isOpen]="isUsuarioModalOpen" [usuario]="selectedUsuario" [existingEmails]="unavailableEmails" (closeModal)="closeUsuarioModal()" (saveUsuario)="saveUsuario($event)" (deleteUsuario)="requestDelete($event)" />
+<app-usuario-modal [isOpen]="isUsuarioModalOpen" [usuario]="selectedUsuario" [existingEmails]="unavailableEmails" (closeModal)="closeUsuarioModal()" (saveUsuario)="saveUsuario($event)" (deleteUsuario)="requestDelete($event)" (resetPassword)="resetPassword($event)" />
 
 <app-usuario-credentials-modal [isOpen]="createdCredentials !== null" [correo]="createdCredentials?.correo ?? ''" [password]="createdCredentials?.password ?? ''" (closeModal)="closeCredentialsModal()" />
 

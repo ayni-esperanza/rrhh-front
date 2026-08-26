@@ -1,6 +1,8 @@
 ﻿import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { PagoColaborador, PagoMes } from '../../models/pago.model';
+import { inject } from '@angular/core';
 import { RegistrarPagoModalComponent } from '../registrar-pago-modal/registrar-pago-modal.component';
+import { PagosService } from '../../services/pagos.service';
 
 @Component({
   selector: 'app-detalle-pago-modal',
@@ -11,6 +13,8 @@ export class DetallePagoModalComponent {
   @Input() isOpen = false;
   @Input() pago: PagoColaborador | null = null;
   @Output() closeModal = new EventEmitter<void>();
+  @Output() paymentSaved = new EventEmitter<void>();
+  private readonly pagosService = inject(PagosService);
 
   protected selectedMes: PagoMes | null = null;
   protected isRegistrarOpen = false;
@@ -32,13 +36,24 @@ export class DetallePagoModalComponent {
   }
 
   protected toggleMovimientos(mes: PagoMes): void {
-    if (!mes.movimientos.length) return;
-    this.expandedMonth = this.expandedMonth === mes.mesCompleto ? '' : mes.mesCompleto;
+    if (this.expandedMonth === mes.mesCompleto) { this.expandedMonth = ''; return; }
+    if (mes.movimientos.length) { this.expandedMonth = mes.mesCompleto; return; }
+    this.pagosService.getPaymentHistory(mes.id).subscribe((movimientos) => { mes.movimientos = movimientos; this.expandedMonth = mes.mesCompleto; });
+  }
+
+  protected paymentRegistered(): void {
+    if (!this.selectedMes) return;
+    this.pagosService.getPaymentHistory(this.selectedMes.id).subscribe((movimientos) => {
+      this.selectedMes!.movimientos = movimientos;
+      this.expandedMonth = this.selectedMes!.mesCompleto;
+      this.closeRegistrar();
+      this.paymentSaved.emit();
+    });
   }
 
   protected movimientoLabel(mes: PagoMes): string {
     const count = mes.movimientos.length;
-    if (!count) return 'Sin movimientos';
+    if (!count) return 'Ver movimientos';
     return `${count} ${mes.estado === 'Pagado' && count === 1 ? 'pago' : count === 1 ? 'abono' : 'abonos'}`;
   }
 

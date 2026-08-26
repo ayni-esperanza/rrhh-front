@@ -16,8 +16,8 @@ export class LoginPageComponent implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly loginForm = this.formBuilder.group({
-    username: ['admin@rrhh.com', [Validators.required, Validators.email]],
-    password: ['admin123', [Validators.required, Validators.minLength(6)]]
+    username: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]]
   });
 
   protected loading = false;
@@ -48,14 +48,12 @@ export class LoginPageComponent implements OnInit {
 
     this.loading = true;
     const { username, password } = this.loginForm.getRawValue();
-    const loggedIn = this.authService.login({ email: username || '', password: password || '' });
-
-    if (!loggedIn) {
-      this.error = 'Usuario o contraseña incorrectos';
-      this.loading = false;
-      return;
-    }
-
-    void this.router.navigate([this.authService.getLandingRoute()]);
+    this.authService.login({ email: username || '', password: password || '' }).subscribe({
+      next: () => void this.router.navigate([this.authService.getLandingRoute()]),
+      error: () => {
+        this.error = 'Usuario o contraseña incorrectos';
+        this.loading = false;
+      }
+    });
   }
 }

@@ -27,8 +27,8 @@ export class ColaboradoresPageComponent {
   private readonly colaboradoresService = inject(ColaboradoresService);
   private readonly tableExport = inject(TableExportService);
 
-  protected readonly metrics = this.colaboradoresService.getMetrics();
-  protected colaboradores = this.colaboradoresService.getColaboradores();
+  protected metrics: import('../../models/colaborador.model').ColaboradorMetric[] = [];
+  protected colaboradores: Colaborador[] = [];
   protected filters: ColaboradoresFilterState = this.emptyFilters();
   protected expandedId = '';
   protected isNewColaboradorModalOpen = false;
@@ -61,6 +61,8 @@ export class ColaboradoresPageComponent {
     { key: 'estado', header: 'Estado', value: (item) => item.estado }
   ];
   protected selectedExportColumnKeys = new Set<string>(['nombre', 'apellido', 'dni', 'cargo', 'area', 'telefono', 'correo', 'fechaIngreso', 'contrato', 'estado']);
+
+  constructor() { this.reload(); this.colaboradoresService.getMetrics().subscribe((metrics) => this.metrics = metrics); }
 
   protected get filteredColaboradores(): Colaborador[] {
     const search = this.normalize(this.filters.search);
@@ -100,8 +102,7 @@ export class ColaboradoresPageComponent {
   }
 
   protected editColaborador(colaborador: Colaborador): void {
-    this.selectedColaborador = colaborador;
-    this.isNewColaboradorModalOpen = true;
+    this.colaboradoresService.getColaborador(colaborador.id).subscribe((detail) => { this.selectedColaborador = detail; this.isNewColaboradorModalOpen = true; });
   }
 
   protected updateFilters(filters: ColaboradoresFilterState): void {
@@ -149,9 +150,7 @@ export class ColaboradoresPageComponent {
   }
 
   protected saveColaborador(colaborador: Colaborador): void {
-    this.colaboradores = this.colaboradoresService.saveColaborador(colaborador);
-    this.expandedId = '';
-    this.closeNewColaboradorModal();
+    this.colaboradoresService.saveColaborador(colaborador).subscribe((saved) => { const index = this.colaboradores.findIndex((x) => x.id === saved.id); this.colaboradores = index < 0 ? [saved, ...this.colaboradores] : this.colaboradores.map((x) => x.id === saved.id ? saved : x); this.expandedId = ''; this.closeNewColaboradorModal(); });
   }
 
   protected updateSelectedColaboradores(ids: string[]): void {
@@ -160,7 +159,7 @@ export class ColaboradoresPageComponent {
 
   protected updateSelectedStatus(estado: Colaborador['estado']): void {
     const selectedIds = new Set(this.selectedColaboradorIds);
-    this.colaboradores = this.colaboradoresService.updateEstado(selectedIds, estado);
+    this.colaboradoresService.updateEstado(selectedIds, estado).subscribe(() => this.colaboradores = this.colaboradores.map((item) => selectedIds.has(item.id) ? { ...item, estado } : item));
   }
 
   protected deleteSelectedColaboradores(): void {
@@ -173,11 +172,7 @@ export class ColaboradoresPageComponent {
 
   protected confirmDeletion(): void {
     const ids = new Set(this.pendingDeletionIds);
-    this.colaboradores = this.colaboradoresService.deleteColaboradores(ids);
-    this.selectedColaboradorIds = this.selectedColaboradorIds.filter((id) => !ids.has(id));
-    this.pendingDeletionIds = [];
-    this.expandedId = '';
-    this.closeNewColaboradorModal();
+    this.colaboradoresService.deleteColaboradores(ids).subscribe(() => { this.colaboradores = this.colaboradores.filter((x) => !ids.has(x.id)); this.selectedColaboradorIds = this.selectedColaboradorIds.filter((id) => !ids.has(id)); this.pendingDeletionIds = []; this.expandedId = ''; this.closeNewColaboradorModal(); });
   }
 
   protected cancelDeletion(): void {
@@ -230,4 +225,5 @@ export class ColaboradoresPageComponent {
       calzado: ''
     };
   }
+  private reload(): void { this.colaboradoresService.getColaboradores().subscribe((items) => this.colaboradores = items); }
 }

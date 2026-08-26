@@ -5,5 +5,5 @@
 
   <app-pagos-metrics [metrics]="metrics" />
   <app-pagos-filters [pagos]="pagos" [exportDisabled]="!filteredPagos.length" (filtersChange)="updateFilters($event)" (exportExcel)="exportExcel()" (exportPdf)="exportPdf()" />
-  <app-pagos-table [pagos]="filteredPagos" [periodLabel]="periodLabel" />
+  <app-pagos-table [pagos]="filteredPagos" [periodLabel]="periodLabel" (paymentSaved)="reload()" />
 </section>

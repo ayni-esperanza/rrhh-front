@@ -1,6 +1,7 @@
 ﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
 import { Component, Input, OnChanges } from '@angular/core';
 import { PagoColaborador, PagoMes } from '../../models/pago.model';
+import { EventEmitter, Output } from '@angular/core';
 import { DetallePagoModalComponent } from '../detalle-pago-modal/detalle-pago-modal.component';
 import { CopyTextButtonComponent } from '../../../../shared/components/copy-text-button/copy-text-button.component';
 
@@ -12,12 +13,13 @@ import { CopyTextButtonComponent } from '../../../../shared/components/copy-text
 export class PagosTableComponent implements OnChanges {
   @Input({ required: true }) pagos: PagoColaborador[] = [];
   @Input() periodLabel = '';
-  protected expandedId: number | null = null;
+  @Output() paymentSaved = new EventEmitter<void>();
+  protected expandedId: string | null = null;
   protected selectedPago: PagoColaborador | null = null;
   protected isDetalleOpen = false;
-  private readonly selectedBankIndexes = new Map<number, number>();
+  private readonly selectedBankIndexes = new Map<string, number>();
 
-  protected togglePago(id: number): void { this.expandedId = this.expandedId === id ? null : id; }
+  protected togglePago(id: string): void { this.expandedId = this.expandedId === id ? null : id; }
   protected openDetalle(pago: PagoColaborador): void { this.selectedPago = pago; this.isDetalleOpen = true; }
   protected closeDetalle(): void { this.isDetalleOpen = false; }
 
@@ -30,7 +32,7 @@ export class PagosTableComponent implements OnChanges {
     return pago.cuentasBancarias[this.selectedBankIndex(pago)] ?? pago.cuentasBancarias[0];
   }
 
-  protected selectBankAccount(pagoId: number, index: string): void {
+  protected selectBankAccount(pagoId: string, index: string): void {
     this.selectedBankIndexes.set(pagoId, Number(index));
   }
 

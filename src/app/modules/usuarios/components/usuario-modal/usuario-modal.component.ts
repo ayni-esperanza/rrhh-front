@@ -15,6 +15,7 @@ export class UsuarioModalComponent implements OnChanges {
   @Output() closeModal = new EventEmitter<void>();
   @Output() saveUsuario = new EventEmitter<Usuario>();
   @Output() deleteUsuario = new EventEmitter<Usuario>();
+  @Output() resetPassword = new EventEmitter<Usuario>();
 
   protected draft: Usuario = this.emptyUsuario();
   protected submitted = false;
@@ -77,7 +78,7 @@ export class UsuarioModalComponent implements OnChanges {
   }
 
   private emptyUsuario(): Usuario {
-    return { id: 0, nombre: '', correo: '', password: '', rol: 'colaborador', estado: 'activo', ultimoAcceso: 'Sin accesos' };
+    return { id: '', nombre: '', correo: '', rol: 'colaborador', estado: 'activo', ultimoAcceso: 'Sin accesos' };
   }
 
 }

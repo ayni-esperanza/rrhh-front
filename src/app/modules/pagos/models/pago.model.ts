@@ -7,7 +7,7 @@
 }
 
 export interface PagoColaborador {
-  id: number;
+  id: string;
   nombre: string;
   cargo: string;
   area: string;
@@ -30,6 +30,7 @@ export interface PagoCuentaBancaria {
 }
 
 export interface PagoMes {
+  id: string;
   mes: string;
   mesCompleto: string;
   estado: 'Pagado' | 'Abonado' | 'Pendiente';
@@ -45,7 +46,7 @@ export interface PagoMes {
 }
 
 export interface PagoMovimiento {
-  id: number;
+  id: string;
   numero: number;
   monto: string;
   fechaPago: string;
@@ -53,4 +54,5 @@ export interface PagoMovimiento {
   responsable: string;
   entidadMedio: string;
   observacion: string;
+  estado: string;
 }
