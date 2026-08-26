@@ -5,7 +5,7 @@
 
   <app-usuarios-metrics [usuarios]="usuarios" [metrics]="metrics" />
   <app-usuarios-filters (filtersChange)="updateFilters($event)" (newUsuario)="openNewUsuario()" />
-  <app-usuarios-table [usuarios]="filteredUsuarios" (editUsuario)="editUsuario($event)" />
+  <app-usuarios-table [usuarios]="filteredUsuarios" (editUsuario)="editUsuario($event)" (toggleStatus)="toggleStatus($event)" />
 </section>
 
 <app-usuario-modal [isOpen]="isUsuarioModalOpen" [usuario]="selectedUsuario" [existingEmails]="unavailableEmails" (closeModal)="closeUsuarioModal()" (saveUsuario)="saveUsuario($event)" (deleteUsuario)="requestDelete($event)" (resetPassword)="resetPassword($event)" />

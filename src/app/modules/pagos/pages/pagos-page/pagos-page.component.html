@@ -1,9 +1,12 @@
 <section class="flex min-h-full flex-col gap-4">
-  <header class="min-h-9">
+  <header class="flex min-h-9 items-center justify-between gap-3">
     <h1 class="text-xl font-bold text-slate-950 dark:text-white">Pagos</h1>
+    <button type="button" class="h-9 rounded-lg bg-slate-900 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-slate-700 dark:bg-slate-700" (click)="isPayrollAdminOpen = true">Administrar planillas</button>
   </header>
 
   <app-pagos-metrics [metrics]="metrics" />
   <app-pagos-filters [pagos]="pagos" [exportDisabled]="!filteredPagos.length" (filtersChange)="updateFilters($event)" (exportExcel)="exportExcel()" (exportPdf)="exportPdf()" />
   <app-pagos-table [pagos]="filteredPagos" [periodLabel]="periodLabel" (paymentSaved)="reload()" />
 </section>
+
+<app-administrar-planillas-modal [isOpen]="isPayrollAdminOpen" (closeModal)="isPayrollAdminOpen = false" (changed)="reload()" />

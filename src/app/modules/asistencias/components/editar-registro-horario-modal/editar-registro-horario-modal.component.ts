@@ -6,6 +6,7 @@ import { SelectSearchableComponent } from '../../../../shared/components/select-
 import { LugaresTrabajoService } from '../../services/lugares-trabajo.service';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
 import { ConfiguracionHorasExtrasService } from '../../services/configuracion-horas-extras.service';
+import { AsistenciasService } from '../../services/asistencias.service';
 
 @Component({
   selector: 'app-editar-registro-horario-modal',
@@ -15,6 +16,7 @@ import { ConfiguracionHorasExtrasService } from '../../services/configuracion-ho
 export class EditarRegistroHorarioModalComponent implements OnChanges {
   private readonly lugaresTrabajoService = inject(LugaresTrabajoService);
   private readonly configuracionPagosService = inject(ConfiguracionHorasExtrasService);
+  private readonly asistenciasService = inject(AsistenciasService);
 
   @Input() isOpen = false;
   @Input() registro: AsistenciaRegistroEdicion | null = null;
@@ -22,6 +24,9 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
   @Output() saveChanges = new EventEmitter<AsistenciaRegistroEdicion>();
 
   protected draft: AsistenciaRegistroEdicion | null = null;
+  protected justificationSaved = false;
+  protected justificationMessage = '';
+  protected reviewStatus: 'APROBADA' | 'RECHAZADA' = 'APROBADA';
   protected readonly tipoRegistroOptions = [
     { value: 'Horas normales', label: 'Horas normales', color: '#3b82f6' },
     { value: 'Horas extras', label: 'Horas extras', color: '#10b981' },
@@ -53,6 +58,8 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['registro'] || changes['isOpen']) {
       this.draft = this.registro ? { ...this.registro } : null;
+      this.justificationSaved = false;
+      this.justificationMessage = '';
     }
   }
 
@@ -145,6 +152,41 @@ export class EditarRegistroHorarioModalComponent implements OnChanges {
   }
   protected save(): void {
     if (this.draft) this.saveChanges.emit(this.draft);
+  }
+
+  protected saveJustification(): void {
+    const id = this.draft?.asistenciaId;
+    const motivo = this.draft?.justificacionMotivo?.trim();
+    if (!id || !motivo) return;
+    const payload = { motivo, descripcion: this.draft?.justificacionDescripcion?.trim() || undefined };
+    const request = this.justificationSaved
+      ? this.asistenciasService.updateJustification(id, payload)
+      : this.asistenciasService.createJustification(id, payload);
+    request.subscribe({
+      next: () => { this.justificationSaved = true; this.justificationMessage = 'Justificación guardada y pendiente de revisión.'; },
+      error: () => this.justificationMessage = 'No se pudo guardar la justificación.'
+    });
+  }
+
+  protected reviewJustification(): void {
+    const id = this.draft?.asistenciaId;
+    if (!id) return;
+    this.asistenciasService.reviewJustification(id, this.reviewStatus).subscribe({
+      next: () => this.justificationMessage = `Justificación ${this.reviewStatus.toLowerCase()}.`,
+      error: () => this.justificationMessage = 'Primero guarda una justificación para poder revisarla.'
+    });
+  }
+
+  protected quickReview(action: 'approve' | 'reject'): void {
+    const id = this.draft?.asistenciaId;
+    if (!id) return;
+    const request = action === 'approve'
+      ? this.asistenciasService.approveJustification(id)
+      : this.asistenciasService.rejectJustification(id);
+    request.subscribe({
+      next: () => this.justificationMessage = action === 'approve' ? 'Justificación aprobada.' : 'Justificación rechazada.',
+      error: () => this.justificationMessage = 'Primero guarda una justificación para poder revisarla.'
+    });
   }
 
   protected isExtraDuration(value: string): boolean {

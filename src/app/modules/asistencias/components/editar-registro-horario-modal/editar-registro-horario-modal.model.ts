@@ -1,4 +1,5 @@
 ﻿export interface AsistenciaRegistroEdicion {
+  asistenciaId?: string;
   colaborador: string;
   cargo: string;
   avatar: string;
@@ -16,4 +17,7 @@
   pagoPersonalizadoValor?: number;
   estado: string;
   lugar: string;
+  observacion?: string;
+  justificacionMotivo?: string;
+  justificacionDescripcion?: string;
 }

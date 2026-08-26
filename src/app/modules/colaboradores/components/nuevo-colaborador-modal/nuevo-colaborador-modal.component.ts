@@ -345,12 +345,13 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     delete this.documentFiles[key];
   }
 
-  public agregarDocumentoPersonalizado(nombre = '', fechaVencimiento = '', archivo = ''): void {
+  public agregarDocumentoPersonalizado(nombre = '', fechaVencimiento = '', archivo = '', archivoUrl = ''): void {
     this.documentosPersonalizados.push(this.formBuilder.group({
       id: [`personalizado-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`],
       nombre: [nombre, Validators.required],
       fechaVencimiento: [fechaVencimiento, Validators.required],
-      archivo: [archivo, Validators.required]
+      archivo: [archivo],
+      archivoUrl: [archivoUrl]
     }));
   }
 
@@ -484,7 +485,9 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         }),
         ...value.documentos.personalizados.flatMap((document) => {
           const uploaded = this.documentFiles[document['id'] ?? ''];
-          return uploaded ? [{ nombre: document['nombre'] ?? '', estado: this.documentStatusByExpiration(document['fechaVencimiento'] ?? '') as DocumentStatus, fechaVencimiento: document['fechaVencimiento'] ?? undefined, ...this.documentAttachment(uploaded) }] : [];
+          const externalUrl = String(document['archivoUrl'] ?? '').trim();
+          if (uploaded) return [{ nombre: document['nombre'] ?? '', estado: this.documentStatusByExpiration(document['fechaVencimiento'] ?? '') as DocumentStatus, fechaVencimiento: document['fechaVencimiento'] ?? undefined, ...this.documentAttachment(uploaded) }];
+          return externalUrl ? [{ nombre: document['nombre'] ?? '', estado: this.documentStatusByExpiration(document['fechaVencimiento'] ?? '') as DocumentStatus, fechaVencimiento: document['fechaVencimiento'] ?? undefined, archivoNombre: this.fileNameFromUrl(externalUrl), archivoTipo: this.fileTypeFromName(externalUrl), archivoUrl: externalUrl, archivoTamano: 0 }] : [];
         })
       ]
     });
@@ -515,7 +518,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     colaborador.documentos
       .filter((document) => !predefinedDocumentNames.has(document.nombre))
       .forEach((document) => {
-        this.agregarDocumentoPersonalizado(document.nombre, this.dateToInput(document.fechaVencimiento ?? ''), document.archivoNombre ?? '');
+        this.agregarDocumentoPersonalizado(document.nombre, this.dateToInput(document.fechaVencimiento ?? ''), document.archivoNombre ?? '', document.archivoUrl ?? '');
         const key = this.documentosPersonalizados.at(this.documentosPersonalizados.length - 1).controls['id'].value ?? '';
         const uploaded = this.uploadedDocumentFrom(document);
         if (uploaded) this.documentFiles[key] = uploaded;
@@ -676,6 +679,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     if (/\.webp$/i.test(fileName)) return 'image/webp';
     return 'application/octet-stream';
   }
+  private fileNameFromUrl(url: string): string { return decodeURIComponent(url.split('/').pop()?.split('?')[0] || 'documento-enlace'); }
 
   private fileToDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {

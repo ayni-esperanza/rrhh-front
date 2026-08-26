@@ -99,6 +99,14 @@ export class UsuariosPageComponent {
     });
   }
 
+  protected toggleStatus(usuario: Usuario): void {
+    const estado = usuario.estado === 'activo' ? 'inactivo' : 'activo';
+    this.usuariosService.setStatus(usuario.id, estado).subscribe((updated) => {
+      this.usuarios = this.usuarios.map((item) => item.id === updated.id ? updated : item);
+      this.usuariosService.getMetrics().subscribe((metrics) => this.metrics = metrics);
+    });
+  }
+
   private normalize(value: string): string {
     return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
   }

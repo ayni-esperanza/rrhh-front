@@ -172,7 +172,10 @@ export class ColaboradoresPageComponent {
 
   protected confirmDeletion(): void {
     const ids = new Set(this.pendingDeletionIds);
-    this.colaboradoresService.deleteColaboradores(ids).subscribe(() => { this.colaboradores = this.colaboradores.filter((x) => !ids.has(x.id)); this.selectedColaboradorIds = this.selectedColaboradorIds.filter((id) => !ids.has(id)); this.pendingDeletionIds = []; this.expandedId = ''; this.closeNewColaboradorModal(); });
+    const request = ids.size === 1
+      ? this.colaboradoresService.deleteColaborador([...ids][0])
+      : this.colaboradoresService.deleteColaboradores(ids);
+    request.subscribe(() => { this.colaboradores = this.colaboradores.filter((x) => !ids.has(x.id)); this.selectedColaboradorIds = this.selectedColaboradorIds.filter((id) => !ids.has(id)); this.pendingDeletionIds = []; this.expandedId = ''; this.closeNewColaboradorModal(); });
   }
 
   protected cancelDeletion(): void {

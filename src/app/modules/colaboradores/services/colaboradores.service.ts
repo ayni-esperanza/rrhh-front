@@ -72,6 +72,15 @@ export class ColaboradoresService {
             nombre: document.nombre,
             fechaVencimiento: document.fechaVencimiento ? this.iso(document.fechaVencimiento) : undefined
           }));
+        } else if (document.archivoUrl) {
+          operations.push(this.createDocument(id, {
+            nombre: document.nombre,
+            fechaVencimiento: document.fechaVencimiento ? this.iso(document.fechaVencimiento) : undefined,
+            archivoNombre: document.archivoNombre ?? document.nombre,
+            archivoTipo: document.archivoTipo,
+            archivoUrl: document.archivoUrl,
+            archivoTamano: String(document.archivoTamano ?? 0)
+          }));
         }
       }
 

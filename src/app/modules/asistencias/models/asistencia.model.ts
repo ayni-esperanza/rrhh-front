@@ -37,6 +37,7 @@ export interface AsistenciaFilters {
 }
 
 export interface AsistenciaCelda {
+  id?: string;
   dia: string;
   fecha: string;
   valor: string;
@@ -51,6 +52,8 @@ export interface AsistenciaCelda {
   salida?: string;
   lugarId?: string;
   lugar?: string;
+  estado?: string;
+  observacion?: string;
 }
 
 

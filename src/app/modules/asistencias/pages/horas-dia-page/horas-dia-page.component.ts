@@ -89,7 +89,7 @@ export class HorasDiaPageComponent {
   protected get dias() { return this.semana[0]?.dias ?? []; }
   protected isEditModalOpen = false;
   protected selectedRegistro: AsistenciaRegistroEdicion | null = null;
-  protected editingContext: { itemId: string; dia: string; fecha: string } | null = null;
+  protected editingContext: { itemId: string; asistenciaId?: string; dia: string; fecha: string } | null = null;
 
   protected paginaActual = 0;
   protected porPagina = 10;
@@ -181,14 +181,15 @@ export class HorasDiaPageComponent {
   protected openEditarRegistro(item: AsistenciaSemana, dia: AsistenciaCelda): void {
     if (this.ignoreNextRowAction) return;
     const blocked = !this.isWorkedDay(dia);
-    this.editingContext = { itemId: item.id, dia: dia.dia, fecha: dia.fecha };
+    this.editingContext = { itemId: item.id, asistenciaId: dia.id, dia: dia.dia, fecha: dia.fecha };
     this.selectedRegistro = {
+      asistenciaId: dia.id,
       colaborador: item.colaborador,
       cargo: item.cargo,
       avatar: item.avatar,
       fecha: `${dia.dia}, ${dia.fecha}`,
-      entrada: blocked ? '-' : '08:00 AM',
-      salida: blocked ? '-' : dia.tipo === 'extra' ? '05:45 PM' : '05:15 PM',
+      entrada: dia.entrada ?? '-',
+      salida: dia.salida ?? '-',
       entradaAlmuerzo: blocked ? '-' : '01:00 PM',
       salidaAlmuerzo: blocked ? '-' : '02:00 PM',
       horasNormales: blocked ? '-' : dia.valor,
@@ -198,10 +199,17 @@ export class HorasDiaPageComponent {
       usarPagoPersonalizado: Boolean(dia.pagoPersonalizado),
       pagoPersonalizadoTipo: dia.pagoPersonalizado?.tipo,
       pagoPersonalizadoValor: dia.pagoPersonalizado?.valor,
-      estado: dia.tipo === 'falta' ? 'Incompleto' : 'Completo',
-      lugar: dia.lugar ?? 'Sin registro'
+      estado: this.titleCase(dia.estado ?? (dia.tipo === 'falta' ? 'INCOMPLETO' : 'COMPLETO')),
+      lugar: dia.lugar ?? 'Sin registro',
+      observacion: dia.observacion ?? ''
     };
     this.isEditModalOpen = true;
+    if (dia.id) {
+      this.asistenciasService.getById(dia.id).subscribe((detail) => {
+        if (!this.selectedRegistro || this.selectedRegistro.asistenciaId !== detail.id) return;
+        this.selectedRegistro = { ...this.selectedRegistro, entrada: detail.horaEntrada ?? '-', salida: detail.horaSalida ?? '-', entradaAlmuerzo: detail.entradaAlmuerzo ?? '-', salidaAlmuerzo: detail.salidaAlmuerzo ?? '-', estado: this.titleCase(detail.estado), lugar: detail.lugarTrabajo?.nombre ?? this.selectedRegistro.lugar, observacion: detail.observacion ?? '' };
+      });
+    }
   }
 
   protected saveEditarRegistro(registro: AsistenciaRegistroEdicion): void {
@@ -225,7 +233,11 @@ export class HorasDiaPageComponent {
       else delete dia.pagoDetalle;
       if (updatedDia.pagoPersonalizado) dia.pagoPersonalizado = updatedDia.pagoPersonalizado;
       else delete dia.pagoPersonalizado;
-      this.asistenciasService.save(item.id, this.dateForCell(dia.fecha), { horaEntrada: this.time24(registro.entrada), horaSalida: this.time24(registro.salida), entradaAlmuerzo: this.time24(registro.entradaAlmuerzo), salidaAlmuerzo: this.time24(registro.salidaAlmuerzo), tipoRegistro: this.apiType(dia.tipo), estado: registro.estado.toUpperCase(), lugarTrabajoId: dia.lugarId || null, feriadoTrabajado: Boolean(registro.feriadoTrabajado), pagoPersonalizadoTipo: registro.pagoPersonalizadoTipo?.toUpperCase().replace('-', '_'), pagoPersonalizadoValor: registro.pagoPersonalizadoValor }).subscribe(() => this.closeEditarRegistro());
+      const payload = { horaEntrada: this.time24(registro.entrada), horaSalida: this.time24(registro.salida), entradaAlmuerzo: this.time24(registro.entradaAlmuerzo), salidaAlmuerzo: this.time24(registro.salidaAlmuerzo), tipoRegistro: this.apiType(dia.tipo), estado: registro.estado.toUpperCase(), lugarTrabajoId: dia.lugarId || null, feriadoTrabajado: Boolean(registro.feriadoTrabajado), pagoPersonalizadoTipo: registro.pagoPersonalizadoTipo?.toUpperCase().replace('-', '_'), pagoPersonalizadoValor: registro.pagoPersonalizadoValor, observacion: registro.observacion?.trim() || undefined };
+      const request = this.editingContext.asistenciaId
+        ? this.asistenciasService.updateById(this.editingContext.asistenciaId, payload)
+        : this.asistenciasService.save(item.id, this.dateForCell(dia.fecha), payload);
+      request.subscribe(() => this.closeEditarRegistro());
       return;
     }
     this.closeEditarRegistro();
@@ -428,6 +440,7 @@ export class HorasDiaPageComponent {
   private dateForCell(value: string): string { const [day, month] = value.split('/'); const year = this.filters.month.match(/\d{4}/)?.[0] ?? String(new Date().getFullYear()); return `${year}-${month}-${day}`; }
   private time24(value: string): string | null { if (!value || value === '-') return null; const match = value.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if (!match) return null; let hour = Number(match[1]); if (match[3]?.toUpperCase() === 'PM' && hour < 12) hour += 12; if (match[3]?.toUpperCase() === 'AM' && hour === 12) hour = 0; return `${String(hour).padStart(2, '0')}:${match[2]}`; }
   private apiType(type: AsistenciaCelda['tipo']): string { return type.toUpperCase().replaceAll('-', '_'); }
+  private titleCase(value: string): string { const normalized = value.toLowerCase(); return normalized.charAt(0).toUpperCase() + normalized.slice(1); }
 }
 
 

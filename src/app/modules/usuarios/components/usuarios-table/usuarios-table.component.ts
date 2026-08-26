@@ -10,6 +10,7 @@ import { Usuario } from '../../models/usuario.model';
 export class UsuariosTableComponent implements OnChanges {
   @Input({ required: true }) usuarios: Usuario[] = [];
   @Output() editUsuario = new EventEmitter<Usuario>();
+  @Output() toggleStatus = new EventEmitter<Usuario>();
 
   ngOnChanges(): void {
     const lastPage = Math.max(0, Math.ceil(this.usuarios.length / this.porPagina) - 1);

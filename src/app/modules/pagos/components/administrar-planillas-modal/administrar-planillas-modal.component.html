@@ -1,0 +1,50 @@
+@if (isOpen) {
+  <div class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="admin-planillas-title" (click)="close()">
+    <section class="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-slate-900" (click)="$event.stopPropagation()">
+      <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+        <div><h2 id="admin-planillas-title" class="text-base font-bold text-slate-950 dark:text-white">Administrar planillas</h2><p class="mt-0.5 text-[10px] text-slate-500">Crea, calcula, ajusta y cierra periodos de pago.</p></div>
+        <button class="h-8 w-8 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" type="button" aria-label="Cerrar" (click)="close()">&times;</button>
+      </header>
+
+      <div class="grid min-h-0 flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
+        <aside class="min-h-0 overflow-y-auto border-b border-slate-200 p-4 dark:border-slate-800 lg:border-b-0 lg:border-r">
+          <form class="grid grid-cols-2 gap-2" (ngSubmit)="createPeriod()">
+            <label class="space-y-1"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">Año</span><input class="h-9 w-full rounded-md border border-slate-200 px-3 text-xs dark:border-slate-700 dark:bg-slate-950" type="number" min="2000" max="2200" name="year" [(ngModel)]="year" /></label>
+            <label class="space-y-1"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">Mes</span><select class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs dark:border-slate-700 dark:bg-slate-950" name="month" [(ngModel)]="month">@for (item of [1,2,3,4,5,6,7,8,9,10,11,12]; track item) {<option [ngValue]="item">{{ item }}</option>}</select></label>
+            <label class="col-span-2 space-y-1"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-300">Fecha programada</span><app-date-picker [value]="scheduledDate" placeholder="Seleccionar fecha" inputClass="h-9 w-full rounded-md border border-slate-200 px-3 text-xs dark:border-slate-700 dark:bg-slate-950" (valueChange)="scheduledDate = $event" /></label>
+            <button class="col-span-2 h-9 rounded-md bg-[#22C55E] text-xs font-bold text-white disabled:opacity-50" type="submit" [disabled]="isLoading">Crear periodo</button>
+          </form>
+
+          <h3 class="mb-2 mt-5 text-[10px] font-bold uppercase tracking-wide text-slate-500">Periodos registrados</h3>
+          <div class="space-y-1.5">
+            @for (period of periods; track period.id) {
+              <button type="button" class="flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition" [class]="selectedPeriod?.id === period.id ? 'border-green-300 bg-green-50 dark:border-green-500/30 dark:bg-green-500/10' : 'border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800'" (click)="selectPeriod(period)"><span><strong class="block text-[11px] capitalize text-slate-800 dark:text-slate-100">{{ periodLabel(period) }}</strong><span class="text-[9px] text-slate-400">{{ period.fechaPagoProgramada || 'Sin fecha programada' }}</span></span><span class="text-[8px] font-bold" [class.text-green-600]="period.estado === 'CERRADO'">{{ period.estado }}</span></button>
+            } @empty {<p class="rounded-lg border border-dashed border-slate-200 p-4 text-center text-[10px] text-slate-400 dark:border-slate-700">No hay periodos.</p>}
+          </div>
+        </aside>
+
+        <main class="min-h-0 overflow-y-auto p-4 sm:p-5">
+          @if (selectedPeriod) {
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4 dark:border-slate-800">
+              <div><h3 class="text-sm font-bold capitalize text-slate-900 dark:text-white">{{ periodLabel(selectedPeriod) }}</h3><p class="text-[10px] text-slate-500">Estado: {{ selectedPeriod.estado }}</p></div>
+              <div class="flex gap-2"><button class="h-9 rounded-md border border-blue-200 px-4 text-[10px] font-bold text-blue-700 disabled:opacity-40 dark:border-blue-500/30 dark:text-blue-300" type="button" [disabled]="isLoading || selectedPeriod.estado === 'CERRADO'" (click)="calculate()">Calcular planilla</button><button class="h-9 rounded-md bg-slate-900 px-4 text-[10px] font-bold text-white disabled:opacity-40 dark:bg-slate-700" type="button" [disabled]="isLoading || selectedPeriod.estado !== 'CALCULADO'" (click)="closePeriod()">Cerrar periodo</button></div>
+            </div>
+
+            <div class="mt-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+              <table class="w-full min-w-[760px] text-left text-[10px]"><thead class="bg-slate-50 font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"><tr><th class="px-3 py-2.5">Colaborador</th><th class="px-3 py-2.5">Sueldo</th><th class="px-3 py-2.5">Bonificaciones</th><th class="px-3 py-2.5">Descuentos</th><th class="px-3 py-2.5">Programado</th><th class="px-3 py-2.5">Estado</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">@for (detail of details; track detail.id) {<tr class="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60" [class.bg-blue-50]="selectedDetail?.id === detail.id" (click)="selectDetail(detail)"><td class="px-3 py-2.5 font-bold text-slate-800 dark:text-slate-100">{{ personName(detail) }}</td><td class="px-3 py-2.5">{{ money(detail.sueldoBase) }}</td><td class="px-3 py-2.5">{{ money(detail.bonificaciones) }}</td><td class="px-3 py-2.5">{{ money(detail.descuentos) }}</td><td class="px-3 py-2.5 font-bold">{{ money(detail.montoProgramado) }}</td><td class="px-3 py-2.5">{{ detail.estado }}</td></tr>} @empty {<tr><td colspan="6" class="px-4 py-10 text-center text-slate-400">Calcula el periodo para generar sus detalles.</td></tr>}</tbody></table>
+            </div>
+
+            @if (selectedDetail) {
+              <section class="mt-4 rounded-lg border border-blue-200 bg-blue-50/40 p-4 dark:border-blue-500/30 dark:bg-blue-500/5">
+                <div class="flex flex-wrap items-end gap-3"><div class="mr-auto"><h4 class="text-xs font-bold text-slate-900 dark:text-white">{{ personName(selectedDetail) }}</h4><p class="text-[9px] text-slate-500">Saldo pendiente: {{ money(selectedDetail.saldoPendiente) }}</p></div><label class="space-y-1"><span class="block text-[9px] font-bold text-slate-600">Bonificaciones</span><input class="h-8 w-32 rounded-md border border-blue-200 bg-white px-2 text-[10px] dark:border-blue-500/30 dark:bg-slate-950" type="number" min="0" [(ngModel)]="bonuses" /></label><label class="space-y-1"><span class="block text-[9px] font-bold text-slate-600">Descuentos</span><input class="h-8 w-32 rounded-md border border-blue-200 bg-white px-2 text-[10px] dark:border-blue-500/30 dark:bg-slate-950" type="number" min="0" [(ngModel)]="discounts" /></label><button class="h-8 rounded-md bg-blue-600 px-3 text-[10px] font-bold text-white disabled:opacity-40" type="button" [disabled]="isLoading || selectedPeriod.estado === 'CERRADO'" (click)="updateDetail()">Guardar ajuste</button></div>
+                @if (selectedDetail.movimientos?.length) {<div class="mt-3 border-t border-blue-200 pt-3 dark:border-blue-500/20"><h5 class="mb-2 text-[9px] font-bold uppercase text-slate-500">Movimientos</h5><div class="space-y-1">@for (movement of selectedDetail.movimientos; track movement.id) {<div class="flex items-center justify-between rounded-md bg-white px-3 py-2 text-[10px] dark:bg-slate-900"><span>{{ movement.fechaPago | date:'dd/MM/yyyy HH:mm' }} · {{ movement.medioPago }} · {{ money(movement.monto) }}</span><button class="rounded border border-rose-200 px-2 py-1 text-[9px] font-bold text-rose-600 disabled:opacity-40" type="button" [disabled]="movement.estado === 'ANULADO' || isLoading" (click)="cancelPayment(movement.id)">{{ movement.estado === 'ANULADO' ? 'Anulado' : 'Anular' }}</button></div>}</div></div>}
+              </section>
+            }
+          } @else {<div class="flex min-h-64 items-center justify-center text-sm text-slate-400">Crea o selecciona un periodo.</div>}
+
+          <div class="mt-3 min-h-5 text-[10px] font-semibold" [class.text-rose-600]="!!errorMessage" [class.text-green-600]="!errorMessage" role="status">{{ errorMessage || message }}</div>
+        </main>
+      </div>
+    </section>
+  </div>
+}

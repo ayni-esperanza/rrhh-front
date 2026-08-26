@@ -8,6 +8,9 @@ import { PagosService } from '../../modules/pagos/services/pagos.service';
 import { UsuariosService } from '../../modules/usuarios/services/usuarios.service';
 import { AlertasService } from '../../modules/alertas/services/alertas.service';
 import { AsistenciasService } from '../../modules/asistencias/services/asistencias.service';
+import { ConfiguracionHorasExtrasService } from '../../modules/asistencias/services/configuracion-horas-extras.service';
+import { FeriadosService } from '../../modules/asistencias/services/feriados.service';
+import { ColaboradoresService } from '../../modules/colaboradores/services/colaboradores.service';
 
 describe('API contracts', () => {
   let http: HttpTestingController;
@@ -94,6 +97,42 @@ describe('API contracts', () => {
       'Registros', 'Horas trabajadas', 'Horas extras', 'Faltas', 'Registros incompletos'
     ]);
     expect(service.getMetrics()[4].value).toBe('3');
+  });
+
+  it('matches attendance justification, holiday and configuration routes', () => {
+    const attendance = TestBed.inject(AsistenciasService);
+    http.expectOne((request) => request.url.endsWith('/asistencias/matriz')).flush({ data: [], meta: {} });
+    http.expectOne((request) => request.url.endsWith('/asistencias/metricas')).flush({ registros: 0, minutosNormales: 0, minutosExtras: 0, faltas: 0, incompletos: 0 });
+    const calls: Array<[() => void, string, string]> = [
+      [() => attendance.createJustification('attendance-1', { motivo: 'Salud' }).subscribe(), '/asistencias/attendance-1/justificacion', 'POST'],
+      [() => attendance.updateJustification('attendance-1', { motivo: 'Salud' }).subscribe(), '/asistencias/attendance-1/justificacion', 'PATCH'],
+      [() => attendance.reviewJustification('attendance-1', 'APROBADA').subscribe(), '/asistencias/attendance-1/justificacion/revisar', 'POST'],
+      [() => attendance.approveJustification('attendance-1').subscribe(), '/asistencias/attendance-1/justificacion/aprobar', 'POST'],
+      [() => attendance.rejectJustification('attendance-1').subscribe(), '/asistencias/attendance-1/justificacion/rechazar', 'POST']
+    ];
+    for (const [invoke, path, method] of calls) { invoke(); const request = http.expectOne(`${environment.apiUrl}${path}`); expect(request.request.method).toBe(method); request.flush({}); }
+
+    const holidays = TestBed.inject(FeriadosService);
+    holidays.get('holiday-1').subscribe(); http.expectOne(`${environment.apiUrl}/feriados/holiday-1`).flush({});
+    holidays.getRule('2026-08-30').subscribe(); http.expectOne(`${environment.apiUrl}/feriados/fecha/2026-08-30/regla`).flush({});
+    holidays.calculatePayment('holiday-1', 1500, 8).subscribe(); http.expectOne(`${environment.apiUrl}/feriados/holiday-1/calcular-pago`).flush({});
+    holidays.delete('holiday-1').subscribe(); const holidayDelete = http.expectOne(`${environment.apiUrl}/feriados/holiday-1`); expect(holidayDelete.request.method).toBe('DELETE'); holidayDelete.flush(null);
+
+    const configurations = TestBed.inject(ConfiguracionHorasExtrasService);
+    http.expectOne((request) => request.url.endsWith('/configuraciones-horas-extra')).flush({ data: [], meta: {} });
+    http.expectOne((request) => request.url.endsWith('/configuraciones-pago-feriado')).flush({ data: [], meta: {} });
+    configurations.deactivateOvertime('overtime-1').subscribe(); http.expectOne(`${environment.apiUrl}/configuraciones-horas-extra/overtime-1`).flush(null);
+    configurations.getHolidayConfiguration('holiday-config-1').subscribe(); http.expectOne(`${environment.apiUrl}/configuraciones-pago-feriado/holiday-config-1`).flush({});
+    configurations.deactivateHolidayConfiguration('holiday-config-1').subscribe(); http.expectOne(`${environment.apiUrl}/configuraciones-pago-feriado/holiday-config-1`).flush(null);
+  });
+
+  it('registers collaborator documents backed by an external URL', () => {
+    const collaborators = TestBed.inject(ColaboradoresService);
+    collaborators.createDocument('collaborator-1', { nombre: 'Licencia', archivoNombre: 'licencia.pdf', archivoUrl: 'https://example.test/licencia.pdf' }).subscribe();
+    const request = http.expectOne(`${environment.apiUrl}/colaboradores/collaborator-1/documentos`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body.archivoUrl).toBe('https://example.test/licencia.pdf');
+    request.flush({});
   });
 
   it('matches users and alerts routes', () => {

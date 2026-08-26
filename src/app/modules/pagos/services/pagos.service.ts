@@ -8,8 +8,9 @@ import { PagoColaborador, PagoMetric, PagoMovimiento } from '../models/pago.mode
 interface ApiMetrics { periodo: string; colaboradores: number; planillaTotal: number; pagado: number; pendiente: number; proximoPago: { fecha: string; periodo: string } | null; }
 interface ApiPago { colaborador: { id: string; nombres: string; apellidoPaterno: string; apellidoMaterno?: string; fotoUrl?: string }; cuentasBancarias: Array<{ numeroCuenta: string; cci?: string; entidadBancaria: string; principal: boolean }>; meses: Array<{ id: string; periodo: { anio: number; mes: number }; estado: string; montoProgramado: number; totalPagado: number; saldoPendiente: number; updatedAt: string }> }
 interface ApiMovimiento { id: string; monto: number; fechaPago: string; medioPago: string; entidadMedio?: string; referencia?: string; observacion?: string; estado: string; responsableId?: string; }
-export interface PlanillaPeriodo { id: string; anio: number; mes: number; estado: string; fechaPagoProgramada?: string; }
-export interface PlanillaDetalle { id: string; bonificaciones: number; descuentos: number; estado: string; [key: string]: unknown; }
+export interface PlanillaPeriodo { id: string; anio: number; mes: number; estado: 'BORRADOR' | 'CALCULADO' | 'CERRADO'; fechaPagoProgramada?: string; fechaInicio?: string; fechaFin?: string; }
+export interface PlanillaMovimiento { id: string; monto: number; fechaPago: string; medioPago: string; referencia?: string; estado: string; }
+export interface PlanillaDetalle { id: string; colaboradorId: string; colaborador?: { nombres: string; apellidoPaterno: string; apellidoMaterno?: string; dni: string }; sueldoBase: number; montoHorasExtras: number; montoFeriados: number; bonificaciones: number; descuentos: number; montoProgramado: number; totalPagado: number; saldoPendiente: number; estado: string; movimientos?: PlanillaMovimiento[]; [key: string]: unknown; }
 
 @Injectable({ providedIn: 'root' })
 export class PagosService {
@@ -31,7 +32,7 @@ export class PagosService {
   createPeriod(value: { anio: number; mes: number; fechaPagoProgramada?: string }): Observable<PlanillaPeriodo> { return this.http.post<PlanillaPeriodo>(`${this.url}/periodos`, value); }
   getPeriod(id: string): Observable<PlanillaPeriodo> { return this.http.get<PlanillaPeriodo>(`${this.url}/periodos/${id}`); }
   getPeriodDetails(id: string, params: { estado?: string; areaId?: string; page?: number; limit?: number } = {}): Observable<PaginatedResponse<PlanillaDetalle>> { return this.http.get<PaginatedResponse<PlanillaDetalle>>(`${this.url}/periodos/${id}/detalles`, { params: { page: 1, limit: 100, ...params } }); }
-  calculatePeriod(id: string): Observable<PlanillaPeriodo> { return this.http.post<PlanillaPeriodo>(`${this.url}/periodos/${id}/calcular`, {}); }
+  calculatePeriod(id: string): Observable<PaginatedResponse<PlanillaDetalle>> { return this.http.post<PaginatedResponse<PlanillaDetalle>>(`${this.url}/periodos/${id}/calcular`, {}); }
   closePeriod(id: string): Observable<PlanillaPeriodo> { return this.http.post<PlanillaPeriodo>(`${this.url}/periodos/${id}/cerrar`, {}); }
   getDetail(id: string): Observable<PlanillaDetalle> { return this.http.get<PlanillaDetalle>(`${this.url}/detalles/${id}`); }
   updateDetail(id: string, value: { bonificaciones?: number; descuentos?: number }): Observable<PlanillaDetalle> { return this.http.patch<PlanillaDetalle>(`${this.url}/detalles/${id}`, value); }
@@ -43,7 +44,7 @@ export class PagosService {
       observacion: item.observacion ?? item.referencia ?? '', estado: item.estado
     }))));
   }
-  cancelPayment(paymentId: string): Observable<unknown> { return this.http.post(`${this.url}/pagos/${paymentId}/anular`, {}); }
+  cancelPayment(paymentId: string): Observable<PlanillaMovimiento> { return this.http.post<PlanillaMovimiento>(`${this.url}/pagos/${paymentId}/anular`, {}); }
   private toView(item: ApiPago): PagoColaborador {
     const accounts = item.cuentasBancarias.map((x) => ({ cuentaBancaria: x.numeroCuenta, cci: x.cci ?? '', entidadBancaria: x.entidadBancaria, esPrincipal: x.principal }));
     const principal = accounts.find((x) => x.esPrincipal) ?? accounts[0];

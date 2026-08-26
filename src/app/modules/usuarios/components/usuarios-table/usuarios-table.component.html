@@ -2,7 +2,7 @@
   <div class="overflow-x-auto">
     <table class="w-full min-w-[760px] text-left text-xs">
       <thead class="bg-slate-50 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-        <tr><th class="px-3 py-3">Nombre</th><th class="px-3 py-3">Correo</th><th class="px-3 py-3">Rol</th><th class="px-3 py-3">Último acceso</th><th class="px-3 py-3">Estado</th></tr>
+        <tr><th class="px-3 py-3">Nombre</th><th class="px-3 py-3">Correo</th><th class="px-3 py-3">Rol</th><th class="px-3 py-3">Último acceso</th><th class="px-3 py-3">Estado</th><th class="px-3 py-3 text-right">Acción</th></tr>
       </thead>
       <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
         @for (usuario of paginatedUsuarios; track usuario.correo) {
@@ -12,8 +12,9 @@
             <td class="px-3 py-3"><span class="inline-flex rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ rolLabel(usuario.rol) }}</span></td>
             <td class="px-3 py-3 text-slate-600 dark:text-slate-300">{{ usuario.ultimoAcceso }}</td>
             <td class="px-3 py-3"><span class="inline-flex rounded-md px-2 py-0.5 font-semibold capitalize" [class]="estadoClasses(usuario.estado)">{{ usuario.estado }}</span></td>
+            <td class="px-3 py-3 text-right"><button type="button" class="rounded-md border border-slate-200 px-2.5 py-1 text-[10px] font-bold text-slate-600 transition hover:border-[#22C55E] hover:text-[#22C55E] dark:border-slate-700 dark:text-slate-300" (click)="$event.stopPropagation(); toggleStatus.emit(usuario)">{{ usuario.estado === 'activo' ? 'Inactivar' : 'Activar' }}</button></td>
           </tr>
-        } @empty { <tr><td colspan="5" class="px-4 py-12 text-center"><p class="font-semibold text-slate-700 dark:text-slate-200">No se encontraron usuarios</p><p class="mt-1 text-slate-500">Prueba modificando los filtros.</p></td></tr> }
+        } @empty { <tr><td colspan="6" class="px-4 py-12 text-center"><p class="font-semibold text-slate-700 dark:text-slate-200">No se encontraron usuarios</p><p class="mt-1 text-slate-500">Prueba modificando los filtros.</p></td></tr> }
       </tbody>
     </table>
   </div>

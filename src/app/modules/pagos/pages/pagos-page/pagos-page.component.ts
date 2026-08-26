@@ -6,10 +6,11 @@ import { PagosService } from '../../services/pagos.service';
 import { PagoColaborador, PagoMes } from '../../models/pago.model';
 import { PagosFilterState } from '../../components/pagos-filters/pagos-filters.component';
 import { ExportTable, TableExportService } from '../../../../shared/services/table-export.service';
+import { AdministrarPlanillasModalComponent } from '../../components/administrar-planillas-modal/administrar-planillas-modal.component';
 
 @Component({
   selector: 'app-pagos-page',
-  imports: [PagosMetricsComponent, PagosFiltersComponent, PagosTableComponent],
+  imports: [PagosMetricsComponent, PagosFiltersComponent, PagosTableComponent, AdministrarPlanillasModalComponent],
   templateUrl: './pagos-page.component.html'
 })
 export class PagosPageComponent {
@@ -19,6 +20,7 @@ export class PagosPageComponent {
   protected metrics = [] as import('../../models/pago.model').PagoMetric[];
   protected pagos: PagoColaborador[] = [];
   protected filters: PagosFilterState = this.emptyFilters();
+  protected isPayrollAdminOpen = false;
 
   constructor() {
     this.reload();

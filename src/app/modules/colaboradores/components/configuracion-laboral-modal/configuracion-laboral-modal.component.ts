@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePickerComponent } from '../../../../shared/components/date-picker/date-picker.component';
+import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { CatalogosService } from '../../services/catalogos.service';
 import { forkJoin } from 'rxjs';
 
@@ -34,7 +35,7 @@ interface JornadaItem {
 
 @Component({
   selector: 'app-configuracion-laboral-modal',
-  imports: [FormsModule, DatePickerComponent],
+  imports: [FormsModule, DatePickerComponent, ConfirmDialogComponent],
   templateUrl: './configuracion-laboral-modal.component.html'
 })
 export class ConfiguracionLaboralModalComponent {
@@ -50,6 +51,7 @@ export class ConfiguracionLaboralModalComponent {
   protected errorMessage = '';
   protected isLoading = true;
   protected isSaving = false;
+  protected pendingDeletion: AreaItem | CargoItem | JornadaItem | null = null;
 
   protected areas: AreaItem[] = [];
   protected cargos: CargoItem[] = [];
@@ -174,8 +176,42 @@ export class ConfiguracionLaboralModalComponent {
     this.save();
   }
 
+  protected requestDeletion(): void {
+    if (this.isCreating || !this.selectedId || this.isSaving) return;
+    this.pendingDeletion = this.activeTab === 'areas'
+      ? this.areaDraft
+      : this.activeTab === 'cargos'
+        ? this.cargoDraft
+        : this.jornadaDraft;
+  }
+
+  protected cancelDeletion(): void {
+    this.pendingDeletion = null;
+  }
+
+  protected confirmDeletion(): void {
+    const pending = this.pendingDeletion;
+    if (!pending?.id || this.isSaving) return;
+    this.isSaving = true;
+    this.errorMessage = '';
+    this.catalogos.deactivate(this.activeTab, pending.id).subscribe({
+      next: () => {
+        this.pendingDeletion = null;
+        this.isSaving = false;
+        this.savedMessage = 'Registro eliminado';
+        this.reloadActive();
+      },
+      error: () => {
+        this.pendingDeletion = null;
+        this.isSaving = false;
+        this.errorMessage = 'No se pudo eliminar el registro. Verifica que no esté en uso.';
+      }
+    });
+  }
+
   protected close(): void {
     this.savedMessage = '';
+    this.pendingDeletion = null;
     this.closeModal.emit();
   }
 

@@ -21,6 +21,12 @@ export class App {
   constructor() {
     const initialUrl = this.getInitialUrl();
 
+    if (this.authService.isAuthenticated()) {
+      this.authService.getCurrentUser().subscribe({
+        error: () => undefined
+      });
+    }
+
     if (this.shouldRouteThroughStartupLoader(initialUrl)) {
       void this.router.navigate(['/loading'], {
         queryParams: {

@@ -37,7 +37,7 @@ export class PagosEspecialesModalComponent {
   readonly closed = output<void>();
   readonly incrementoSaved = output<number>();
 
-  private readonly configuracionHorasExtrasService = inject(ConfiguracionHorasExtrasService);
+  protected readonly configuracionHorasExtrasService = inject(ConfiguracionHorasExtrasService);
   private readonly feriadosService = inject(FeriadosService);
   private readonly configuracionInicial = this.configuracionHorasExtrasService.getConfiguracion();
 
@@ -58,6 +58,12 @@ export class PagosEspecialesModalComponent {
   protected calendarioFeriadosMonth = new Date().getMonth();
   protected calendarioFeriadosVista: CalendarioFeriadosVista = 'mes';
   protected feriadoPendienteInactivar: DiaFeriadoLocal | null = null;
+  protected feriadoSeleccionado: DiaFeriadoLocal | null = null;
+  protected feriadoReglaMessage = '';
+  protected remuneracionCalculo = 1500;
+  protected horasCalculo = 8;
+  protected montoCalculado: number | null = null;
+  protected configurationMessage = '';
   protected readonly monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   protected readonly calendarWeekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
   protected readonly calendarWeekDaysCompact = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -96,6 +102,22 @@ export class PagosEspecialesModalComponent {
     this.configuracionFeriado = { ...saved.feriado };
     this.incrementoSaved.emit(this.incrementoHorasExtras);
     this.close();
+  }
+
+  protected deactivateOvertimeConfiguration(): void {
+    if (!this.configuracionHorasExtrasService.hasOvertimeConfiguration()) return;
+    this.configuracionHorasExtrasService.deactivateOvertime().subscribe({
+      next: () => { this.incrementoHorasExtras = 0; this.incrementoHorasExtrasDraft = 0; this.configurationMessage = 'Configuración de horas extra inactivada.'; },
+      error: () => this.configurationMessage = 'No se pudo inactivar la configuración de horas extra.'
+    });
+  }
+
+  protected deactivateHolidayConfiguration(): void {
+    if (!this.configuracionHorasExtrasService.hasHolidayConfiguration()) return;
+    this.configuracionHorasExtrasService.deactivateHolidayConfiguration().subscribe({
+      next: () => { this.feriadoTipoDraft = 'multiplicador'; this.feriadoValorDraft = 0; this.feriadoDiasBaseDraft = 30; this.feriadoHorasJornadaDraft = 8; this.configurationMessage = 'Configuración de pago de feriado inactivada.'; },
+      error: () => this.configurationMessage = 'No se pudo inactivar la configuración de pago de feriado.'
+    });
   }
 
   protected setFeriadoTipo(tipo: string): void {
@@ -184,8 +206,7 @@ export class PagosEspecialesModalComponent {
   protected seleccionarDiaFeriado(celda: CalendarioFeriadoCelda): void {
     if (!celda.dia) return;
     if (celda.feriado) {
-      if (celda.feriado.activo) this.feriadoPendienteInactivar = celda.feriado;
-      else this.alternarDiaFeriado(celda.feriado.id);
+      this.gestionarDiaFeriado(celda.feriado);
       return;
     }
     this.diaFeriadoFechaDraft = celda.fecha;
@@ -201,7 +222,11 @@ export class PagosEspecialesModalComponent {
   protected confirmarInactivacionFeriado(): void {
     const pending = this.feriadoPendienteInactivar;
     if (!pending) return;
-    this.feriadosService.deactivate(pending.id).subscribe(() => { this.diasFeriados = this.diasFeriados.map((feriado) => feriado.id === pending.id ? { ...feriado, activo: false } : feriado); this.feriadoPendienteInactivar = null; });
+    this.feriadosService.delete(pending.id).subscribe(() => {
+      this.diasFeriados = this.diasFeriados.map((feriado) => feriado.id === pending.id ? { ...feriado, activo: false } : feriado);
+      this.feriadoSeleccionado = this.feriadoSeleccionado?.id === pending.id ? { ...this.feriadoSeleccionado, activo: false } : this.feriadoSeleccionado;
+      this.feriadoPendienteInactivar = null;
+    });
   }
 
   protected cancelarInactivacionFeriado(): void {
@@ -209,19 +234,48 @@ export class PagosEspecialesModalComponent {
   }
 
   protected alternarDiaFeriado(id: string): void {
-    this.diasFeriados = this.diasFeriados.map((feriado) =>
-      feriado.id === id ? { ...feriado, activo: !feriado.activo } : feriado
-    );
+    const current = this.diasFeriados.find((feriado) => feriado.id === id);
+    if (!current) return;
+    this.feriadosService.update(id, { activo: !current.activo }).subscribe((updated) => {
+      this.diasFeriados = this.diasFeriados.map((feriado) => feriado.id === id ? { ...feriado, ...updated } : feriado);
+      this.feriadoSeleccionado = this.feriadoSeleccionado?.id === id ? { ...this.feriadoSeleccionado, ...updated } : this.feriadoSeleccionado;
+      if (updated.activo) this.loadHolidayRule(updated.fecha);
+    });
   }
 
   protected gestionarDiaFeriado(feriado: DiaFeriadoLocal): void {
-    if (feriado.activo) this.feriadoPendienteInactivar = feriado;
-    else this.alternarDiaFeriado(feriado.id);
+    this.montoCalculado = null;
+    this.configurationMessage = '';
+    this.feriadosService.get(feriado.id).subscribe((detail) => {
+      this.feriadoSeleccionado = { ...feriado, ...detail };
+      if (detail.activo) this.loadHolidayRule(detail.fecha);
+      else this.feriadoReglaMessage = 'El feriado está inactivo. Puedes reactivarlo para aplicar una regla de pago.';
+    });
+  }
+
+  protected calculateHolidayPayment(): void {
+    const selected = this.feriadoSeleccionado;
+    if (!selected || !selected.activo || this.remuneracionCalculo <= 0 || this.horasCalculo <= 0) return;
+    this.feriadosService.calculatePayment(selected.id, Number(this.remuneracionCalculo), Number(this.horasCalculo)).subscribe({
+      next: (result) => this.montoCalculado = Number(result.montoCalculado),
+      error: () => this.feriadoReglaMessage = 'No se pudo calcular el pago para este feriado.'
+    });
+  }
+
+  protected requestHolidayDeactivation(): void {
+    if (this.feriadoSeleccionado?.activo) this.feriadoPendienteInactivar = this.feriadoSeleccionado;
+  }
+
+  protected reactivateSelectedHoliday(): void {
+    if (this.feriadoSeleccionado && !this.feriadoSeleccionado.activo) this.alternarDiaFeriado(this.feriadoSeleccionado.id);
   }
 
   protected actualizarFechaDiaFeriado(fecha: string): void {
     this.diaFeriadoFechaDraft = fecha;
     this.diaFeriadoError = '';
+    this.feriadoSeleccionado = null;
+    this.feriadoReglaMessage = '';
+    this.montoCalculado = null;
     const [year, month] = fecha.split('-').map(Number);
     if (year && month >= 1 && month <= 12) {
       this.calendarioFeriadosYear = year;
@@ -294,6 +348,17 @@ export class PagosEspecialesModalComponent {
       if (day < 1 || day > totalDays) return { fecha: `vacio-${year}-${month}-${index}`, dia: null };
       const fecha = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       return { fecha, dia: day, feriado: this.diasFeriados.find((item) => item.fecha === fecha) };
+    });
+  }
+
+  private loadHolidayRule(fecha: string): void {
+    this.feriadoReglaMessage = 'Consultando regla de pago…';
+    this.feriadosService.getRule(fecha).subscribe({
+      next: (rule) => {
+        const type = rule.configuracion.tipoCalculo.toLowerCase().replaceAll('_', ' ');
+        this.feriadoReglaMessage = `Regla ${rule.origen.toLowerCase()}: ${type}, valor ${Number(rule.configuracion.valor)}`;
+      },
+      error: () => this.feriadoReglaMessage = 'No existe una regla de pago aplicable para esta fecha.'
     });
   }
 }
