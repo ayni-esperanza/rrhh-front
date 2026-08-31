@@ -14,7 +14,7 @@ export interface PagoColaborador {
   avatar: string;
   montoMensual: string;
   fechaPago: string;
-  horaPago: string;
+  modalidadPago: string;
   cta: string;
   cci: string;
   banco: string;
@@ -23,6 +23,7 @@ export interface PagoColaborador {
 }
 
 export interface PagoCuentaBancaria {
+  id: string;
   cuentaBancaria: string;
   cci: string;
   entidadBancaria: string;
@@ -31,6 +32,7 @@ export interface PagoCuentaBancaria {
 
 export interface PagoMes {
   id: string;
+  monthNumber: number;
   mes: string;
   mesCompleto: string;
   estado: 'Pagado' | 'Abonado' | 'Pendiente';
@@ -40,9 +42,18 @@ export interface PagoMes {
   pagadoAbonado: string;
   pendiente: string;
   fechaPago: string;
+  fechasProgramadas: string[];
   responsable: string;
   entidadMedio: string;
   movimientos: PagoMovimiento[];
+  conceptos: PagoConcepto[];
+}
+
+export interface PagoConcepto {
+  id: string;
+  descripcion: string;
+  naturaleza: 'INGRESO' | 'DESCUENTO';
+  monto: number;
 }
 
 export interface PagoMovimiento {

@@ -3,11 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import { forkJoin, map, Observable, of, switchMap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { PaginatedResponse } from '../../../core/models/api.models';
-import { Colaborador, ColaboradorMetric } from '../models/colaborador.model';
+import { Colaborador, ColaboradorMetric, DatosBancarios } from '../models/colaborador.model';
 
 interface CatalogItem { id: string; nombre: string; }
 interface CargoCatalogItem extends CatalogItem { areaId: string; area?: CatalogItem; }
-interface ApiContrato { cargo: CatalogItem & { area: CatalogItem }; jornada: CatalogItem; tipoContrato: string; fechaInicio: string; sueldoBasico: number; }
+interface ApiContrato { cargo: CatalogItem & { area: CatalogItem }; jornada: CatalogItem; tipoContrato: string; fechaInicio: string; sueldoBasico: number; modalidadPago?: Colaborador['modalidadPago']; diaPagoPersonalizado?: number | null; }
 interface ApiDocumento { id: string; nombre: string; fechaVencimiento?: string; archivoNombre: string; archivoTipo?: string; archivoUrl: string; archivoTamano?: string; }
 interface ApiColaborador { id: string; dni: string; nombres: string; apellidoPaterno: string; apellidoMaterno?: string; sexo?: string; numeroHijos?: number; fechaNacimiento: string; lugarNacimiento?: string; estadoCivil?: string; gradoInstruccion?: string; tipoSangre?: string; telefono?: string; correo?: string; direccion?: string; fotoUrl?: string; epsSeguro?: string; estado: string; tallaCamisa?: string; tallaPantalon?: string; tallaCalzado?: string; contratoActual?: ApiContrato; contactosEmergencia?: Array<{ nombre: string; parentesco?: string; telefono: string }>; cuentasBancarias?: Array<{ entidadBancaria: string; numeroCuenta: string; cci?: string; principal: boolean }>; documentos?: ApiDocumento[] }
 interface ApiMetrics { total: number; activos: number; inactivos: number; minutos_extras: number; asistencia_promedio: number; costo_planilla: number; }
@@ -99,8 +99,54 @@ export class ColaboradoresService {
     const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
     return new File([bytes], document.archivoNombre ?? document.nombre, { type: mimeType });
   }
-  private toPayload(x: Colaborador, cargoId: string, jornadaId: string) { return { dni: x.dni, nombres: x.nombre, apellidoPaterno: x.apellidoPaterno || x.apellido.split(' ')[0], apellidoMaterno: x.apellidoMaterno || x.apellido.split(' ').slice(1).join(' ') || undefined, sexo: ({ Masculino: 'MASCULINO', Femenino: 'FEMENINO', 'No binario': 'NO_BINARIO' } as Record<string, string>)[x.sexo ?? ''] || undefined, fechaNacimiento: this.iso(x.fechaNacimiento), lugarNacimiento: x.lugarNacimiento || undefined, estadoCivil: x.estadoCivil || undefined, numeroHijos: Number(x.hijos || 0), gradoInstruccion: x.gradoInstruccion || undefined, tipoSangre: x.tipoSangre || undefined, telefono: x.telefono || undefined, correo: x.correo || undefined, direccion: x.direccion || undefined, fotoUrl: x.imagen || undefined, epsSeguro: x.epsSeguro || undefined, tallas: { camisa: x.tallas.camisa || undefined, pantalon: x.tallas.pantalon || undefined, calzado: x.tallas.calzado || undefined }, estado: x.estado.toUpperCase(), contrato: { cargoId, jornadaId, tipoContrato: x.tipoContrato, fechaInicio: this.iso(x.fechaIngreso), sueldoBasico: Number(x.sueldoBasico) }, cuentasBancarias: (x.datosBancarios ?? []).map((b) => ({ entidadBancaria: b.entidadBancaria, numeroCuenta: b.cuentaBancaria, cci: b.cci || undefined, principal: Boolean(b.esPrincipal) })), contactosEmergencia: (x.contactosEmergencia ?? []).map((c, index) => ({ nombre: c.nombre, parentesco: c.parentesco || undefined, telefono: c.telefono, principal: index === 0 })) }; }
-  private toView(x: ApiColaborador): Colaborador { const contract = x.contratoActual; const accounts = (x.cuentasBancarias ?? []).map((b) => ({ entidadBancaria: b.entidadBancaria, cuentaBancaria: b.numeroCuenta, cci: b.cci ?? '', esPrincipal: b.principal })); const principal = accounts.find((b) => b.esPrincipal) ?? accounts[0]; const contacts = (x.contactosEmergencia ?? []).map((contact) => ({ nombre: contact.nombre, parentesco: contact.parentesco, telefono: contact.telefono })); return { id: x.id, imagen: x.fotoUrl ?? '', nombre: x.nombres, apellido: [x.apellidoPaterno, x.apellidoMaterno].filter(Boolean).join(' '), apellidoPaterno: x.apellidoPaterno, apellidoMaterno: x.apellidoMaterno, dni: x.dni, sexo: ({ MASCULINO: 'Masculino', FEMENINO: 'Femenino', NO_BINARIO: 'No binario' } as Record<string, Colaborador['sexo']>)[x.sexo ?? ''], hijos: String(x.numeroHijos ?? 0), cargo: contract?.cargo?.nombre ?? '', area: contract?.cargo?.area?.nombre ?? '', telefono: x.telefono ?? '', telefonoEmergencia: contacts[0]?.telefono ?? '', contactosEmergencia: contacts, estadoCivil: x.estadoCivil ?? '', tallas: { camisa: x.tallaCamisa ?? '', pantalon: x.tallaPantalon ?? '', calzado: x.tallaCalzado ?? '' }, estado: x.estado === 'ACTIVO' ? 'Activo' : 'Inactivo', fechaNacimiento: this.displayDate(x.fechaNacimiento), direccion: x.direccion ?? '', correo: x.correo ?? '', fechaIngreso: this.displayDate(contract?.fechaInicio ?? ''), tipoContrato: contract?.tipoContrato ?? '', jornada: contract?.jornada?.nombre ?? '', sueldoBasico: String(contract?.sueldoBasico ?? ''), gradoInstruccion: x.gradoInstruccion ?? '', lugarNacimiento: x.lugarNacimiento ?? '', tipoSangre: x.tipoSangre ?? '', cuentaBancaria: principal?.cuentaBancaria ?? '', cci: principal?.cci ?? '', entidadBancaria: principal?.entidadBancaria ?? '', datosBancarios: accounts, epsSeguro: x.epsSeguro ?? '', contactoEmergencia: contacts[0] ? `${contacts[0].nombre} - ${contacts[0].telefono}` : '', documentos: (x.documentos ?? []).map((d) => ({ id: d.id, nombre: d.nombre, archivoNombre: d.archivoNombre, archivoTipo: d.archivoTipo, archivoUrl: d.archivoUrl, archivoTamano: Number(d.archivoTamano ?? 0), fechaVencimiento: d.fechaVencimiento, estado: this.documentStatus(d.fechaVencimiento) })) }; }
+  private toPayload(x: Colaborador, cargoId: string, jornadaId: string) {
+    return {
+      dni: x.dni, nombres: x.nombre,
+      apellidoPaterno: x.apellidoPaterno || x.apellido.split(' ')[0],
+      apellidoMaterno: x.apellidoMaterno || x.apellido.split(' ').slice(1).join(' ') || undefined,
+      sexo: ({ Masculino: 'MASCULINO', Femenino: 'FEMENINO', 'No binario': 'NO_BINARIO' } as Record<string, string>)[x.sexo ?? ''] || undefined,
+      fechaNacimiento: this.iso(x.fechaNacimiento), lugarNacimiento: x.lugarNacimiento || undefined,
+      estadoCivil: x.estadoCivil || undefined, numeroHijos: Number(x.hijos || 0),
+      gradoInstruccion: x.gradoInstruccion || undefined, tipoSangre: x.tipoSangre || undefined,
+      telefono: x.telefono || undefined, correo: x.correo || undefined,
+      direccion: x.direccion || undefined, fotoUrl: x.imagen || undefined,
+      epsSeguro: x.epsSeguro || undefined,
+      tallas: { camisa: x.tallas.camisa || undefined, pantalon: x.tallas.pantalon || undefined, calzado: x.tallas.calzado || undefined },
+      estado: x.estado.toUpperCase(),
+      contrato: {
+        cargoId, jornadaId, tipoContrato: x.tipoContrato,
+        fechaInicio: this.iso(x.fechaIngreso), sueldoBasico: Number(x.sueldoBasico),
+        modalidadPago: x.modalidadPago ?? 'FIN_MES',
+        diaPagoPersonalizado: x.modalidadPago === 'PERSONALIZADO' ? x.diaPagoPersonalizado : undefined
+      },
+      cuentasBancarias: (x.datosBancarios ?? []).map((b) => ({ entidadBancaria: b.entidadBancaria, numeroCuenta: b.cuentaBancaria, cci: b.cci || undefined, principal: Boolean(b.esPrincipal) })),
+      contactosEmergencia: (x.contactosEmergencia ?? []).map((c, index) => ({ nombre: c.nombre, parentesco: c.parentesco || undefined, telefono: c.telefono, principal: index === 0 }))
+    };
+  }
+  private toView(x: ApiColaborador): Colaborador {
+    const contract = x.contratoActual;
+    const accounts = (x.cuentasBancarias ?? []).map((b) => ({ entidadBancaria: b.entidadBancaria, cuentaBancaria: b.numeroCuenta, cci: b.cci ?? '', esPrincipal: b.principal }));
+    const principal = accounts.find((b) => b.esPrincipal) ?? accounts[0];
+    const contacts = (x.contactosEmergencia ?? []).map((contact) => ({ nombre: contact.nombre, parentesco: contact.parentesco, telefono: contact.telefono }));
+    return {
+      id: x.id, imagen: x.fotoUrl ?? '', nombre: x.nombres,
+      apellido: [x.apellidoPaterno, x.apellidoMaterno].filter(Boolean).join(' '),
+      apellidoPaterno: x.apellidoPaterno, apellidoMaterno: x.apellidoMaterno, dni: x.dni,
+      sexo: ({ MASCULINO: 'Masculino', FEMENINO: 'Femenino', NO_BINARIO: 'No binario' } as Record<string, Colaborador['sexo']>)[x.sexo ?? ''],
+      hijos: String(x.numeroHijos ?? 0), cargo: contract?.cargo?.nombre ?? '', area: contract?.cargo?.area?.nombre ?? '',
+      telefono: x.telefono ?? '', telefonoEmergencia: contacts[0]?.telefono ?? '', contactosEmergencia: contacts,
+      estadoCivil: x.estadoCivil ?? '', tallas: { camisa: x.tallaCamisa ?? '', pantalon: x.tallaPantalon ?? '', calzado: x.tallaCalzado ?? '' },
+      estado: x.estado === 'ACTIVO' ? 'Activo' : 'Inactivo', fechaNacimiento: this.displayDate(x.fechaNacimiento),
+      direccion: x.direccion ?? '', correo: x.correo ?? '', fechaIngreso: this.displayDate(contract?.fechaInicio ?? ''),
+      tipoContrato: contract?.tipoContrato ?? '', jornada: contract?.jornada?.nombre ?? '', sueldoBasico: String(contract?.sueldoBasico ?? ''),
+      modalidadPago: contract?.modalidadPago ?? 'FIN_MES', diaPagoPersonalizado: contract?.diaPagoPersonalizado ?? null,
+      gradoInstruccion: x.gradoInstruccion ?? '', lugarNacimiento: x.lugarNacimiento ?? '', tipoSangre: x.tipoSangre ?? '',
+      cuentaBancaria: principal?.cuentaBancaria ?? '', cci: principal?.cci ?? '', entidadBancaria: principal?.entidadBancaria ?? '',
+      datosBancarios: accounts, epsSeguro: x.epsSeguro ?? '',
+      contactoEmergencia: contacts[0] ? `${contacts[0].nombre} - ${contacts[0].telefono}` : '',
+      documentos: (x.documentos ?? []).map((d) => ({ id: d.id, nombre: d.nombre, archivoNombre: d.archivoNombre, archivoTipo: d.archivoTipo, archivoUrl: d.archivoUrl, archivoTamano: Number(d.archivoTamano ?? 0), fechaVencimiento: d.fechaVencimiento, estado: this.documentStatus(d.fechaVencimiento) }))
+    };
+  }
   private iso(value: string): string { if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value; const [d, m, y] = value.split('/'); return y && m && d ? `${y}-${m}-${d}` : value; }
   private displayDate(value: string): string { if (!value) return ''; const [y, m, d] = value.slice(0, 10).split('-'); return `${d}/${m}/${y}`; }
   private documentStatus(value?: string): 'Vigente' | 'Por vencer' | 'Vencido' { if (!value) return 'Vigente'; const days = (new Date(value).getTime() - Date.now()) / 86400000; return days < 0 ? 'Vencido' : days <= 30 ? 'Por vencer' : 'Vigente'; }

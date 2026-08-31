@@ -27,6 +27,8 @@
   tipoContrato: string;
   jornada: string;
   sueldoBasico: string;
+  modalidadPago?: 'FIN_MES' | 'QUINCENAL' | 'FECHA_INGRESO' | 'PERSONALIZADO';
+  diaPagoPersonalizado?: number | null;
   gradoInstruccion: string;
   lugarNacimiento?: string;
   tipoSangre?: string;

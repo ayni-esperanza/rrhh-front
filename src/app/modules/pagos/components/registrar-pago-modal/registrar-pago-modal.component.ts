@@ -25,10 +25,18 @@ export class RegistrarPagoModalComponent {
   protected entidad = '';
   protected monto = '';
   protected observacion = '';
+  protected cuentaBancariaId = '';
+
+  public ngOnChanges(): void {
+    if (!this.isOpen || !this.colaborador) return;
+    this.cuentaBancariaId = this.colaborador.cuentasBancarias.find((account) => account.esPrincipal)?.id
+      ?? this.colaborador.cuentasBancarias[0]?.id
+      ?? '';
+  }
 
   protected get hasAbono(): boolean { return this.mes?.estado === 'Abonado'; }
   protected get maximo(): string { return this.hasAbono ? this.mes?.pendiente ?? 'S/ 0.00' : this.mes?.montoProgramado ?? 'S/ 0.00'; }
-  protected submit(): void { if (!this.mes) return; const amount = Number(this.monto.replace(/[^0-9.]/g, '')); if (!amount || !this.fechaPago || !this.entidad.trim()) return; this.pagosService.registerPayment(this.mes.id, { monto: amount, fechaPago: this.fechaPago, medioPago: this.entidad.trim(), observacion: this.observacion.trim() || undefined }).subscribe(() => this.savePayment.emit()); }
+  protected submit(): void { if (!this.mes) return; const amount = Number(this.monto.replace(/[^0-9.]/g, '')); if (!amount || !this.fechaPago || !this.entidad.trim()) return; this.pagosService.registerPayment(this.mes.id, { monto: amount, fechaPago: this.fechaPago, medioPago: this.entidad.trim(), cuentaBancariaId: this.cuentaBancariaId || undefined, observacion: this.observacion.trim() || undefined }).subscribe(() => this.savePayment.emit()); }
 
   @HostListener('document:keydown.escape')
   protected onEscape(): void { if (this.isOpen) this.closeModal.emit(); }

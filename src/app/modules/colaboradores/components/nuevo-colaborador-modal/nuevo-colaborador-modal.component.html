@@ -77,9 +77,9 @@
                 <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Teléfono</span><input formControlName="telefono" class="field-input" placeholder="987654321" inputmode="numeric" maxlength="9" (input)="onlyDigits($event, personal.controls.telefono, 9)" /> @if (fieldInvalid(personal.controls.telefono)) { <p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">{{ fieldError(personal.controls.telefono, 'Teléfono') }}</p> }</label>
                 <label class="min-w-0 space-y-1.5 md:col-span-2"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Correo</span><input formControlName="correo" type="email" class="field-input" placeholder="correo@empresa.com" /> @if (fieldInvalid(personal.controls.correo)) { <p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">{{ fieldError(personal.controls.correo, 'Correo') }}</p> }</label>
                 <div class="grid min-w-0 grid-cols-3 gap-2">
-                  <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Camisa</span><app-select-searchable formControlName="camisa" [options]="tallaOptions" placeholder="Seleccionar" [allowEmpty]="false" buttonClass="field-input" /></label>
-                  <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pantalón</span><app-select-searchable formControlName="pantalon" [options]="tallaOptions" placeholder="Seleccionar" [allowEmpty]="false" buttonClass="field-input" /></label>
-                  <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Calzado</span><app-select-searchable formControlName="calzado" [options]="tallaOptions" placeholder="Seleccionar" [allowEmpty]="false" buttonClass="field-input" /></label>
+                  <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Camisa</span><app-select-searchable formControlName="camisa" [options]="['S', 'M', 'L', 'XL']" [allowEmpty]="false" buttonClass="field-input" /></label>
+                  <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Pantalón</span><app-select-searchable formControlName="pantalon" [options]="pantalonTallaOptions" placeholder="Seleccionar" [allowEmpty]="false" buttonClass="field-input" /></label>
+                  <label class="min-w-0 space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Calzado</span><input formControlName="calzado" class="field-input" placeholder="42" /></label>
                 </div>
               </div>
             </section>
@@ -95,6 +95,10 @@
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Tipo de contrato</span><app-select-searchable formControlName="tipoContrato" [options]="tipoContratoOptions" [allowEmpty]="false" searchPlaceholder="Buscar tipo..." buttonClass="field-input" /></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Jornada</span><app-select-searchable formControlName="jornada" [options]="jornadaOptions" [allowEmpty]="false" buttonClass="field-input" /></label>
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Sueldo básico</span><input formControlName="sueldoBasico" class="field-input" placeholder="2800.00" inputmode="decimal" (input)="onlyMoney($event, laboral.controls.sueldoBasico)" /> @if (fieldInvalid(laboral.controls.sueldoBasico)) { <p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">{{ fieldError(laboral.controls.sueldoBasico, 'Sueldo básico') }}</p> }</label>
+                <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Modalidad de pago</span><select formControlName="modalidadPago" class="field-input">@for (option of modalidadPagoOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
+                @if (laboral.controls.modalidadPago.value === 'PERSONALIZADO') {
+                  <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Día de pago personalizado</span><input formControlName="diaPagoPersonalizado" type="number" min="1" max="31" class="field-input" placeholder="Ej. 20" /> @if (fieldInvalid(laboral.controls.diaPagoPersonalizado)) { <p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">{{ fieldError(laboral.controls.diaPagoPersonalizado, 'Día de pago') }}</p> }</label>
+                }
                 <label class="space-y-1.5"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-300">Estado</span><app-select-searchable formControlName="estado" [options]="['Activo', 'Inactivo']" [allowEmpty]="false" buttonClass="field-input" /></label>
               </div>
             </section>
@@ -223,6 +227,7 @@
                       <label class="block space-y-1.5">
                         <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">Fecha de vencimiento</span>
                         <app-date-picker [value]="documentos.controls[document.key].value || ''" placeholder="dd/mm/aaaa" inputClass="field-input" [hasError]="fieldInvalid(documentos.controls[document.key])" (valueChange)="setControlDate(documentos.controls[document.key], $event)" />
+                        @if (fieldInvalid(documentos.controls[document.key])) {<p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">La fecha es obligatoria al adjuntar un archivo.</p>}
                       </label>
                     </div>
                   </article>
@@ -244,7 +249,7 @@
                         <button type="button" class="flex h-16 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 text-[11px] font-bold text-slate-600 transition hover:border-[#22C55E] hover:bg-green-50 hover:text-[#22C55E] dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-400" (click)="customFileInput.click()"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>Subir archivo</button>
                         <label class="mt-2 block space-y-1"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">O registrar URL externa</span><input formControlName="archivoUrl" class="field-input" type="url" placeholder="https://.../documento.pdf" /></label>
                       }
-                      <label class="block space-y-1.5"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">Fecha de vencimiento</span><app-date-picker [value]="document.controls['fechaVencimiento'].value || ''" placeholder="dd/mm/aaaa" inputClass="field-input" [hasError]="fieldInvalid(document.controls['fechaVencimiento'])" (valueChange)="setControlDate(document.controls['fechaVencimiento'], $event)" /></label>
+                      <label class="block space-y-1.5"><span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">Fecha de vencimiento</span><app-date-picker [value]="document.controls['fechaVencimiento'].value || ''" placeholder="dd/mm/aaaa" inputClass="field-input" [hasError]="fieldInvalid(document.controls['fechaVencimiento'])" (valueChange)="setControlDate(document.controls['fechaVencimiento'], $event)" />@if (fieldInvalid(document.controls['fechaVencimiento'])) {<p class="text-[10px] font-semibold text-rose-600 dark:text-rose-400">La fecha es obligatoria al adjuntar un archivo.</p>}</label>
                     </div>
                   </article>
                 }

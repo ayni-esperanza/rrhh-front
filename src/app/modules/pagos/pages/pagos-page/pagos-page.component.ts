@@ -6,11 +6,10 @@ import { PagosService } from '../../services/pagos.service';
 import { PagoColaborador, PagoMes } from '../../models/pago.model';
 import { PagosFilterState } from '../../components/pagos-filters/pagos-filters.component';
 import { ExportTable, TableExportService } from '../../../../shared/services/table-export.service';
-import { AdministrarPlanillasModalComponent } from '../../components/administrar-planillas-modal/administrar-planillas-modal.component';
 
 @Component({
   selector: 'app-pagos-page',
-  imports: [PagosMetricsComponent, PagosFiltersComponent, PagosTableComponent, AdministrarPlanillasModalComponent],
+  imports: [PagosMetricsComponent, PagosFiltersComponent, PagosTableComponent],
   templateUrl: './pagos-page.component.html'
 })
 export class PagosPageComponent {
@@ -20,7 +19,6 @@ export class PagosPageComponent {
   protected metrics = [] as import('../../models/pago.model').PagoMetric[];
   protected pagos: PagoColaborador[] = [];
   protected filters: PagosFilterState = this.emptyFilters();
-  protected isPayrollAdminOpen = false;
 
   constructor() {
     this.reload();
@@ -64,10 +62,11 @@ export class PagosPageComponent {
 
   private emptyFilters(): PagosFilterState {
     const amounts = this.pagos.map((pago) => this.moneyToNumber(pago.montoMensual));
+    const year = new Date().getFullYear();
     return {
       search: '',
-      dateFrom: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`,
-      dateTo: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toLocaleDateString('en-CA'),
+      dateFrom: `${year}-01-01`,
+      dateTo: `${year}-12-31`,
       area: '',
       estado: '',
       minAmount: amounts.length ? Math.floor(Math.min(...amounts) / 100) * 100 : 0,
@@ -107,7 +106,12 @@ export class PagosPageComponent {
   }
 
   private exportTable(): ExportTable {
-    const visibleMonths = this.filteredPagos[0]?.meses.filter((month) => this.monthIntersectsRange(month.mesCompleto)) ?? [];
+    const year = new Date().getFullYear();
+    const visibleMonths = Array.from({ length: 12 }, (_, index) => ({
+      number: index + 1,
+      label: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(new Date(Date.UTC(year, index))),
+      fullLabel: new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(year, index)))
+    })).filter((month) => this.monthIntersectsRange(month.fullLabel));
     return {
       title: `Historial de pagos - ${this.periodLabel}`,
       fileName: 'pagos',
@@ -115,12 +119,15 @@ export class PagosPageComponent {
         { key: 'nombre', header: 'Colaborador' }, { key: 'cargo', header: 'Cargo' },
         { key: 'area', header: 'Área' }, { key: 'monto', header: 'Monto mensual' },
         { key: 'fecha', header: 'Fecha de pago' }, { key: 'banco', header: 'Banco' },
-        ...visibleMonths.map((month, index) => ({ key: `mes${index}`, header: month.mes }))
+        ...visibleMonths.map((month) => ({ key: `mes${month.number}`, header: month.label }))
       ],
       rows: this.filteredPagos.map((pago) => ({
         nombre: pago.nombre, cargo: pago.cargo, area: pago.area, monto: pago.montoMensual,
-        fecha: `${pago.fechaPago} ${pago.horaPago}`, banco: pago.banco,
-        ...Object.fromEntries(pago.meses.filter((month) => this.monthIntersectsRange(month.mesCompleto)).map((month, index) => [`mes${index}`, this.exportMonthDetail(month)]))
+        fecha: pago.fechaPago, banco: pago.banco,
+        ...Object.fromEntries(visibleMonths.map((month) => {
+          const paymentMonth = pago.meses.find((item) => item.monthNumber === month.number);
+          return [`mes${month.number}`, paymentMonth ? this.exportMonthDetail(paymentMonth) : '—'];
+        }))
       }))
     };
   }

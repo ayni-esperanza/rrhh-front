@@ -89,6 +89,40 @@ describe('API contracts', () => {
     expect(labels).toEqual(['Colaboradores', 'Planilla mensual total', 'Pagos realizados', 'Pendiente por pagar', 'Próximo pago']);
   });
 
+  it('maps the active contract cargo and area in the payment view', () => {
+    const service = TestBed.inject(PagosService);
+    let result: Array<{ cargo: string; area: string }> = [];
+    service.getPagos(2026).subscribe((payments) => result = payments);
+    http.expectOne(`${environment.apiUrl}/planillas?anio=2026&page=1&limit=100`).flush({
+      data: [{
+        colaborador: { id: 'collaborator-1', nombres: 'Ana', apellidoPaterno: 'Pérez' },
+        contratoActual: { cargo: { nombre: 'Supervisora', area: { nombre: 'Operaciones' } } },
+        cuentasBancarias: [],
+        meses: []
+      }],
+      meta: { page: 1, limit: 100, total: 1, totalPages: 1 }
+    });
+    expect(result[0]).toEqual(jasmine.objectContaining({ cargo: 'Supervisora', area: 'Operaciones' }));
+  });
+
+  it('maps the payment schedule, bank account and monthly payment snapshot', () => {
+    const service = TestBed.inject(PagosService);
+    let result: ReturnType<PagosService['getPagos']> extends import('rxjs').Observable<infer T> ? T : never = [];
+    service.getPagos(2026).subscribe((payments) => result = payments);
+    http.expectOne(`${environment.apiUrl}/planillas?anio=2026&page=1&limit=100`).flush({
+      data: [{
+        colaborador: { id: 'collaborator-1', nombres: 'Ana', apellidoPaterno: 'Pérez' },
+        contratoActual: { modalidadPago: 'PERSONALIZADO', diaPagoPersonalizado: 20, cargo: { nombre: 'Analista', area: { nombre: 'RRHH' } } },
+        cuentasBancarias: [{ id: 'account-1', numeroCuenta: '1234567890', entidadBancaria: 'BCP', principal: true }],
+        meses: [{ id: 'detail-1', periodo: { anio: 2026, mes: 8 }, estado: 'ABONADO', montoProgramado: 1500, totalPagado: 500, saldoPendiente: 1000, fechaUltimoPago: '2026-08-15T15:00:00Z', programacionPagoAplicada: { modalidad: 'PERSONALIZADO', fechas: ['2026-08-20'] } }]
+      }],
+      meta: { page: 1, limit: 100, total: 1, totalPages: 1 }
+    });
+    expect(result[0].fechaPago).toBe('Día 20');
+    expect(result[0].cuentasBancarias[0]).toEqual(jasmine.objectContaining({ id: 'account-1', entidadBancaria: 'BCP', cuentaBancaria: '1234567890' }));
+    expect(result[0].meses[0]).toEqual(jasmine.objectContaining({ estado: 'Abonado', fechasProgramadas: ['2026-08-20'] }));
+  });
+
   it('maps incomplete attendance records as the fifth metric', () => {
     const service = TestBed.inject(AsistenciasService);
     const matrix = http.expectOne((request) => request.url === `${environment.apiUrl}/asistencias/matriz`);

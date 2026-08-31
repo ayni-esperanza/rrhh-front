@@ -17,6 +17,10 @@ export class PagosTableComponent implements OnChanges {
   protected expandedId: string | null = null;
   protected selectedPago: PagoColaborador | null = null;
   protected isDetalleOpen = false;
+  protected readonly yearMonths = Array.from({ length: 12 }, (_, index) => ({
+    number: index + 1,
+    label: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(new Date(Date.UTC(2026, index)))
+  }));
   private readonly selectedBankIndexes = new Map<string, number>();
 
   protected togglePago(id: string): void { this.expandedId = this.expandedId === id ? null : id; }
@@ -47,7 +51,11 @@ export class PagosTableComponent implements OnChanges {
   }
 
   protected estadoIcon(estado: PagoMes['estado']): string {
-    return estado === 'Pagado' ? 'M8 12.5 10.5 15 16 9.5' : estado === 'Abonado' ? 'M12 7v5l3 2' : 'M12 8v4';
+    return estado === 'Pagado' ? 'M8 12.5 10.5 15 16 9.5' : estado === 'Abonado' ? 'M12 7v5l3 2' : 'M12 8v4m0 4h.01';
+  }
+
+  protected paymentMonth(pago: PagoColaborador, monthNumber: number): PagoMes | undefined {
+    return pago.meses.find((month) => month.monthNumber === monthNumber);
   }
 
   protected paginaActual = 0;

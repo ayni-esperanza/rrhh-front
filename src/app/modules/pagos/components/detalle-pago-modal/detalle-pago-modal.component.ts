@@ -3,6 +3,7 @@ import { PagoColaborador, PagoMes } from '../../models/pago.model';
 import { inject } from '@angular/core';
 import { RegistrarPagoModalComponent } from '../registrar-pago-modal/registrar-pago-modal.component';
 import { PagosService } from '../../services/pagos.service';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-detalle-pago-modal',
@@ -37,8 +38,9 @@ export class DetallePagoModalComponent {
 
   protected toggleMovimientos(mes: PagoMes): void {
     if (this.expandedMonth === mes.mesCompleto) { this.expandedMonth = ''; return; }
-    if (mes.movimientos.length) { this.expandedMonth = mes.mesCompleto; return; }
-    this.pagosService.getPaymentHistory(mes.id).subscribe((movimientos) => { mes.movimientos = movimientos; this.expandedMonth = mes.mesCompleto; });
+    if (mes.movimientos.length || mes.conceptos.length) { this.expandedMonth = mes.mesCompleto; return; }
+    forkJoin({ movimientos: this.pagosService.getPaymentHistory(mes.id), detalle: this.pagosService.getDetail(mes.id) })
+      .subscribe(({ movimientos, detalle }) => { mes.movimientos = movimientos; mes.conceptos = detalle.conceptos ?? []; this.expandedMonth = mes.mesCompleto; });
   }
 
   protected paymentRegistered(): void {
@@ -53,13 +55,17 @@ export class DetallePagoModalComponent {
 
   protected movimientoLabel(mes: PagoMes): string {
     const count = mes.movimientos.length;
-    if (!count) return 'Ver movimientos';
+    if (!count) return 'Ver detalle';
     return `${count} ${mes.estado === 'Pagado' && count === 1 ? 'pago' : count === 1 ? 'abono' : 'abonos'}`;
   }
 
   protected estadoClasses(estado: PagoMes['estado']): string {
     const classes = { Pagado: 'text-emerald-600 dark:text-emerald-300', Abonado: 'text-orange-600 dark:text-orange-300', Pendiente: 'text-red-600 dark:text-red-300' };
     return classes[estado];
+  }
+
+  protected money(value: number): string {
+    return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(Number(value) || 0);
   }
 
   private moneyToNumber(value: string): number {

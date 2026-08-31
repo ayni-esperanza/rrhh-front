@@ -62,7 +62,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   protected cargoOptions: string[] = [];
   protected areaOptions: string[] = [];
   protected jornadaOptions: string[] = [];
-  protected readonly tallaOptions = ['26', '28', '30', '32', '34', '36', '40', '42', '44'];
+  protected readonly pantalonTallaOptions = ['26', '28', '30', '32', '34', '36', '40', '42', '44'];
   private areaCatalog: AreaCatalogItem[] = [];
   private cargoCatalog: CargoCatalogItem[] = [];
   private cargoCatalogLoaded = false;
@@ -70,6 +70,12 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   protected readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'];
   protected readonly seguroOptions = ['Rimac EPS', 'Pacífico EPS', 'SIS', 'EsSalud', 'Mapfre EPS', 'Sin seguro'];
   protected readonly entidadBancariaOptions = ['BCP', 'BBVA', 'Interbank', 'Scotiabank', 'Banco de la Nación', 'BanBif', 'Mibanco', 'Otro'];
+  protected readonly modalidadPagoOptions = [
+    { value: 'FIN_MES', label: 'Fin de mes' },
+    { value: 'QUINCENAL', label: 'Quincenal (15 y fin de mes)' },
+    { value: 'FECHA_INGRESO', label: 'Según fecha de ingreso' },
+    { value: 'PERSONALIZADO', label: 'Día personalizado' }
+  ] as const;
   protected readonly parentescoOptions = ['Madre', 'Padre', 'Hermano/a', 'Cónyuge', 'Pareja', 'Hijo/a', 'Tío/a', 'Primo/a', 'Amigo/a'];
   public readonly documentDefinitions: ReadonlyArray<{ key: DocumentKey; label: string }> = [
     { key: 'dni', label: 'DNI' },
@@ -109,6 +115,10 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     });
     this.catalogos.list<{ nombre: string; activo?: boolean }>('jornadas').subscribe((items) => this.jornadaOptions = items.filter((item) => item.activo !== false || item.nombre === this.laboral.controls.jornada.value).map((item) => item.nombre));
     this.laboral.controls.area.valueChanges.subscribe(() => this.updateCargoOptions());
+    this.laboral.controls.modalidadPago.valueChanges.subscribe(() => this.updatePaymentDayValidation());
+    this.laboral.controls.fechaIngreso.valueChanges.subscribe(() => this.updatePaymentDayValidation());
+    this.laboral.controls.diaPagoPersonalizado.valueChanges.subscribe(() => this.updatePaymentDayValidation());
+    this.updatePaymentDayValidation();
   }
 
   protected readonly form = this.formBuilder.group({
@@ -123,7 +133,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       correo: ['', [Validators.required, Validators.email]],
       telefono: ['', [Validators.required, Validators.pattern(this.phonePattern)]],
       estadoCivil: ['Soltero', Validators.required],
-      camisa: ['', Validators.required],
+      camisa: ['M', Validators.required],
       pantalon: ['', Validators.required],
       calzado: ['', Validators.required]
     }),
@@ -135,6 +145,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       tipoContrato: ['Planilla - Indeterminado', Validators.required],
       jornada: ['Tiempo completo', Validators.required],
       sueldoBasico: ['', [Validators.required, Validators.pattern(this.moneyPattern)]],
+      modalidadPago: ['FIN_MES' as NonNullable<Colaborador['modalidadPago']>, Validators.required],
+      diaPagoPersonalizado: [null as number | null],
       estado: ['Activo' as 'Activo' | 'Inactivo', Validators.required]
     }),
     adicional: this.formBuilder.group({
@@ -146,10 +158,10 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       contactosEmergencia: this.formBuilder.array<FormGroup>([])
     }),
     documentos: this.formBuilder.group({
-      dni: ['', Validators.required],
-      curriculum: ['', Validators.required],
-      antecedentes: ['', Validators.required],
-      certificados: ['', Validators.required],
+      dni: [''],
+      curriculum: [''],
+      antecedentes: [''],
+      certificados: [''],
       personalizados: this.formBuilder.array<FormGroup>([])
     })
   });
@@ -260,6 +272,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     if (control.hasError('required')) return `${label} es obligatorio.`;
     if (control.hasError('email')) return 'Ingresa un correo válido.';
     if (control.hasError('pattern')) return this.patternMessages[label] ?? 'Formato inválido.';
+    if (control.hasError('min') || control.hasError('max')) return 'Selecciona un día entre 1 y 31.';
+    if (control.hasError('sameAsEntry')) return 'El día personalizado debe ser diferente al día de ingreso.';
     return 'Revisa este campo.';
   }
 
@@ -282,7 +296,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         { label: 'Nombre', control: this.personal.controls.nombre }, { label: 'Apellido paterno', control: this.personal.controls.apellidoPaterno }, { label: 'Apellido materno', control: this.personal.controls.apellidoMaterno }, { label: 'DNI', control: this.personal.controls.dni }, { label: 'Sexo', control: this.personal.controls.sexo }, { label: 'Fecha de nacimiento', control: this.personal.controls.fechaNacimiento }, { label: 'Dirección', control: this.personal.controls.direccion }, { label: 'Correo', control: this.personal.controls.correo }, { label: 'Teléfono', control: this.personal.controls.telefono }, { label: 'Estado civil', control: this.personal.controls.estadoCivil }, { label: 'Camisa', control: this.personal.controls.camisa }, { label: 'Pantalón', control: this.personal.controls.pantalon }, { label: 'Calzado', control: this.personal.controls.calzado }
       ],
       [
-        { label: 'Área', control: this.laboral.controls.area }, { label: 'Cargo', control: this.laboral.controls.cargo }, { label: 'Grado de instrucción', control: this.laboral.controls.gradoInstruccion }, { label: 'Fecha de ingreso', control: this.laboral.controls.fechaIngreso }, { label: 'Tipo de contrato', control: this.laboral.controls.tipoContrato }, { label: 'Jornada', control: this.laboral.controls.jornada }, { label: 'Sueldo básico', control: this.laboral.controls.sueldoBasico }, { label: 'Estado', control: this.laboral.controls.estado }
+        { label: 'Área', control: this.laboral.controls.area }, { label: 'Cargo', control: this.laboral.controls.cargo }, { label: 'Grado de instrucción', control: this.laboral.controls.gradoInstruccion }, { label: 'Fecha de ingreso', control: this.laboral.controls.fechaIngreso }, { label: 'Tipo de contrato', control: this.laboral.controls.tipoContrato }, { label: 'Jornada', control: this.laboral.controls.jornada }, { label: 'Sueldo básico', control: this.laboral.controls.sueldoBasico }, { label: 'Modalidad de pago', control: this.laboral.controls.modalidadPago }, { label: 'Día de pago personalizado', control: this.laboral.controls.diaPagoPersonalizado }, { label: 'Estado', control: this.laboral.controls.estado }
       ],
       [
         { label: 'Hijos', control: this.adicional.controls.hijos }, { label: 'Lugar de nacimiento', control: this.adicional.controls.lugarNacimiento }, { label: 'Tipo de sangre', control: this.adicional.controls.tipoSangre }, { label: 'EPS / Seguro', control: this.adicional.controls.epsSeguro }
@@ -331,6 +345,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     };
     control?.setValue(file.name);
     control?.markAsTouched();
+    this.updateDocumentValidation(key);
     input.value = '';
     this.changeDetectorRef.markForCheck();
   }
@@ -363,21 +378,25 @@ export class NuevoColaboradorModalComponent implements OnChanges {
 
   public removeDocument(key: string): void {
     const document = this.documentFiles[key];
-    if (!document) return;
-
-    if (this.pdfViewerDocument === document) this.closePdfViewer();
-    if (document.url.startsWith('blob:')) URL.revokeObjectURL(document.url);
-    delete this.documentFiles[key];
+    if (document) {
+      if (this.pdfViewerDocument === document) this.closePdfViewer();
+      if (document.url.startsWith('blob:')) URL.revokeObjectURL(document.url);
+      delete this.documentFiles[key];
+    }
+    this.updateDocumentValidation(key);
   }
 
   public agregarDocumentoPersonalizado(nombre = '', fechaVencimiento = '', archivo = '', archivoUrl = ''): void {
-    this.documentosPersonalizados.push(this.formBuilder.group({
+    const document = this.formBuilder.group({
       id: [`personalizado-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`],
-      nombre: [nombre, Validators.required],
-      fechaVencimiento: [fechaVencimiento, Validators.required],
+      nombre: [nombre],
+      fechaVencimiento: [fechaVencimiento],
       archivo: [archivo],
       archivoUrl: [archivoUrl]
-    }));
+    });
+    this.documentosPersonalizados.push(document);
+    document.controls.archivoUrl.valueChanges.subscribe(() => this.updateDocumentValidation(document.controls.id.value ?? ''));
+    this.updateDocumentValidation(document.controls.id.value ?? '');
   }
 
   public eliminarDocumentoPersonalizado(index: number): void {
@@ -494,6 +513,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       tipoContrato: value.laboral.tipoContrato || '',
       jornada: value.laboral.jornada || '',
       sueldoBasico: value.laboral.sueldoBasico || '',
+      modalidadPago: value.laboral.modalidadPago || 'FIN_MES',
+      diaPagoPersonalizado: value.laboral.modalidadPago === 'PERSONALIZADO' ? value.laboral.diaPagoPersonalizado : null,
       gradoInstruccion: value.laboral.gradoInstruccion || '',
       lugarNacimiento: value.adicional.lugarNacimiento || '',
       tipoSangre: value.adicional.tipoSangre || '',
@@ -555,6 +576,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       predefinedDates[key] = this.dateToInput(document.fechaVencimiento ?? '');
       const uploaded = this.uploadedDocumentFrom(document);
       if (uploaded) this.documentFiles[key] = uploaded;
+      this.updateDocumentValidation(key);
     });
     this.form.patchValue({
       personal: {
@@ -580,6 +602,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         tipoContrato: colaborador.tipoContrato,
         jornada: colaborador.jornada,
         sueldoBasico: colaborador.sueldoBasico.replace(/[^\d.]/g, ''),
+        modalidadPago: colaborador.modalidadPago ?? 'FIN_MES',
+        diaPagoPersonalizado: colaborador.diaPagoPersonalizado ?? null,
         estado: colaborador.estado
       },
       adicional: {
@@ -593,15 +617,26 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   }
 
   private configureDocumentValidation(): void {
-    this.documentDefinitions.forEach(({ key }) => {
-      const control = this.documentos.controls[key];
-      if (this.colaborador) {
-        control.clearValidators();
-      } else {
-        control.setValidators(Validators.required);
-      }
-      control.updateValueAndValidity({ emitEvent: false });
-    });
+    this.documentDefinitions.forEach(({ key }) => this.updateDocumentValidation(key));
+    this.documentosPersonalizados.controls.forEach((document) => this.updateDocumentValidation(document.controls['id'].value ?? ''));
+  }
+
+  private updateDocumentValidation(key: string): void {
+    const predefined = this.documentDefinitions.find((document) => document.key === key);
+    if (predefined) {
+      const expiration = this.documentos.controls[predefined.key];
+      expiration.setValidators(this.documentFiles[key] ? Validators.required : null);
+      expiration.updateValueAndValidity({ emitEvent: false });
+      return;
+    }
+
+    const custom = this.documentosPersonalizados.controls.find((document) => document.controls['id'].value === key);
+    if (!custom) return;
+    const hasDocument = Boolean(this.documentFiles[key]) || Boolean(String(custom.controls['archivoUrl'].value ?? '').trim());
+    custom.controls['nombre'].setValidators(hasDocument ? Validators.required : null);
+    custom.controls['fechaVencimiento'].setValidators(hasDocument ? Validators.required : null);
+    custom.controls['nombre'].updateValueAndValidity({ emitEvent: false });
+    custom.controls['fechaVencimiento'].updateValueAndValidity({ emitEvent: false });
   }
 
   private dateToInput(value: string): string {
@@ -647,12 +682,24 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.datosBancarios.clear();
     this.form.reset({
       personal: {
-        nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', sexo: 'Masculino', fechaNacimiento: '', direccion: '', correo: '', telefono: '', estadoCivil: 'Soltero', camisa: '', pantalon: '', calzado: ''
+        nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', sexo: 'Masculino', fechaNacimiento: '', direccion: '', correo: '', telefono: '', estadoCivil: 'Soltero', camisa: 'M', pantalon: '', calzado: ''
       },
-      laboral: { cargo: '', area: '', gradoInstruccion: '', fechaIngreso: '', tipoContrato: 'Planilla - Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '', estado: 'Activo' },
+      laboral: { cargo: '', area: '', gradoInstruccion: '', fechaIngreso: '', tipoContrato: 'Planilla - Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '', modalidadPago: 'FIN_MES', diaPagoPersonalizado: null, estado: 'Activo' },
       adicional: { hijos: '0', lugarNacimiento: '', tipoSangre: '', epsSeguro: '', datosBancarios: [], contactosEmergencia: [] },
       documentos: { dni: '', curriculum: '', antecedentes: '', certificados: '', personalizados: [] }
     });
+  }
+
+  private updatePaymentDayValidation(): void {
+    const control = this.laboral.controls.diaPagoPersonalizado;
+    const custom = this.laboral.controls.modalidadPago.value === 'PERSONALIZADO';
+    control.setValidators(custom ? [Validators.required, Validators.min(1), Validators.max(31)] : null);
+    control.updateValueAndValidity({ emitEvent: false });
+    if (!custom) return;
+    const entryDay = Number((this.laboral.controls.fechaIngreso.value || '').slice(8, 10));
+    if (entryDay && Number(control.value) === entryDay) {
+      control.setErrors({ ...(control.errors ?? {}), sameAsEntry: true });
+    }
   }
 
   private digitsOnly(value: string, maxLength?: number): string {

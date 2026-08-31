@@ -6,11 +6,12 @@ import { PaginatedResponse } from '../../../core/models/api.models';
 import { PagoColaborador, PagoMetric, PagoMovimiento } from '../models/pago.model';
 
 interface ApiMetrics { periodo: string; colaboradores: number; planillaTotal: number; pagado: number; pendiente: number; proximoPago: { fecha: string; periodo: string } | null; }
-interface ApiPago { colaborador: { id: string; nombres: string; apellidoPaterno: string; apellidoMaterno?: string; fotoUrl?: string }; cuentasBancarias: Array<{ numeroCuenta: string; cci?: string; entidadBancaria: string; principal: boolean }>; meses: Array<{ id: string; periodo: { anio: number; mes: number }; estado: string; montoProgramado: number; totalPagado: number; saldoPendiente: number; updatedAt: string }> }
+interface ApiPago { colaborador: { id: string; nombres: string; apellidoPaterno: string; apellidoMaterno?: string; fotoUrl?: string }; contratoActual?: { cargo?: { nombre: string; area?: { nombre: string } }; modalidadPago?: string; diaPagoPersonalizado?: number; fechaInicio?: string } | null; cuentasBancarias: Array<{ id: string; numeroCuenta: string; cci?: string; entidadBancaria: string; principal: boolean }>; meses: Array<{ id: string; periodo: { anio: number; mes: number }; estado: string; montoProgramado: number; totalPagado: number; saldoPendiente: number; fechaUltimoPago?: string | null; programacionPagoAplicada?: { modalidad: string; fechas: string[] } | null }> }
 interface ApiMovimiento { id: string; monto: number; fechaPago: string; medioPago: string; entidadMedio?: string; referencia?: string; observacion?: string; estado: string; responsableId?: string; }
 export interface PlanillaPeriodo { id: string; anio: number; mes: number; estado: 'BORRADOR' | 'CALCULADO' | 'CERRADO'; fechaPagoProgramada?: string; fechaInicio?: string; fechaFin?: string; }
 export interface PlanillaMovimiento { id: string; monto: number; fechaPago: string; medioPago: string; referencia?: string; estado: string; }
-export interface PlanillaDetalle { id: string; colaboradorId: string; colaborador?: { nombres: string; apellidoPaterno: string; apellidoMaterno?: string; dni: string }; sueldoBase: number; montoHorasExtras: number; montoFeriados: number; bonificaciones: number; descuentos: number; montoProgramado: number; totalPagado: number; saldoPendiente: number; estado: string; movimientos?: PlanillaMovimiento[]; [key: string]: unknown; }
+export interface PlanillaConcepto { id: string; descripcion: string; naturaleza: 'INGRESO' | 'DESCUENTO'; monto: number; }
+export interface PlanillaDetalle { id: string; colaboradorId: string; colaborador?: { nombres: string; apellidoPaterno: string; apellidoMaterno?: string; dni: string }; sueldoBase: number; montoHorasExtras: number; montoFeriados: number; bonificaciones: number; descuentos: number; montoProgramado: number; totalPagado: number; saldoPendiente: number; estado: string; conceptos?: PlanillaConcepto[]; movimientos?: PlanillaMovimiento[]; [key: string]: unknown; }
 
 @Injectable({ providedIn: 'root' })
 export class PagosService {
@@ -46,10 +47,11 @@ export class PagosService {
   }
   cancelPayment(paymentId: string): Observable<PlanillaMovimiento> { return this.http.post<PlanillaMovimiento>(`${this.url}/pagos/${paymentId}/anular`, {}); }
   private toView(item: ApiPago): PagoColaborador {
-    const accounts = item.cuentasBancarias.map((x) => ({ cuentaBancaria: x.numeroCuenta, cci: x.cci ?? '', entidadBancaria: x.entidadBancaria, esPrincipal: x.principal }));
+    const accounts = item.cuentasBancarias.map((x) => ({ id: x.id, cuentaBancaria: x.numeroCuenta, cci: x.cci ?? '', entidadBancaria: x.entidadBancaria, esPrincipal: x.principal }));
     const principal = accounts.find((x) => x.esPrincipal) ?? accounts[0];
     const latest = item.meses[item.meses.length - 1];
-    return { id: item.colaborador.id, nombre: [item.colaborador.nombres, item.colaborador.apellidoPaterno, item.colaborador.apellidoMaterno].filter(Boolean).join(' '), cargo: '', area: '', avatar: item.colaborador.fotoUrl ?? '', montoMensual: this.money(latest?.montoProgramado ?? 0), fechaPago: latest?.updatedAt ? this.date(latest.updatedAt) : '-', horaPago: latest?.updatedAt ? new Intl.DateTimeFormat('es-PE', { timeStyle: 'short' }).format(new Date(latest.updatedAt)) : '-', cta: principal?.cuentaBancaria ?? '', cci: principal?.cci ?? '', banco: principal?.entidadBancaria ?? '', cuentasBancarias: accounts, meses: item.meses.map((month) => ({ id: month.id, mes: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(new Date(Date.UTC(month.periodo.anio, month.periodo.mes - 1))), mesCompleto: new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(month.periodo.anio, month.periodo.mes - 1))), estado: this.status(month.estado), monto: this.money(month.totalPagado), referencia: `de ${this.money(month.montoProgramado)}`, montoProgramado: this.money(month.montoProgramado), pagadoAbonado: this.money(month.totalPagado), pendiente: this.money(month.saldoPendiente), fechaPago: month.updatedAt ? this.date(month.updatedAt) : '-', responsable: '-', entidadMedio: '-', movimientos: [] })) };
+    const modalidad = item.contratoActual?.modalidadPago ?? 'FIN_MES';
+    return { id: item.colaborador.id, nombre: [item.colaborador.nombres, item.colaborador.apellidoPaterno, item.colaborador.apellidoMaterno].filter(Boolean).join(' '), cargo: item.contratoActual?.cargo?.nombre ?? '', area: item.contratoActual?.cargo?.area?.nombre ?? '', avatar: item.colaborador.fotoUrl ?? '', montoMensual: this.money(latest?.montoProgramado ?? 0), fechaPago: this.paymentScheduleLabel(item.contratoActual), modalidadPago: modalidad, cta: principal?.cuentaBancaria ?? '', cci: principal?.cci ?? '', banco: principal?.entidadBancaria ?? '', cuentasBancarias: accounts, meses: item.meses.map((month) => ({ id: month.id, monthNumber: month.periodo.mes, mes: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(new Date(Date.UTC(month.periodo.anio, month.periodo.mes - 1))), mesCompleto: new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(month.periodo.anio, month.periodo.mes - 1))), estado: this.status(month.estado), monto: this.money(month.totalPagado), referencia: `de ${this.money(month.montoProgramado)}`, montoProgramado: this.money(month.montoProgramado), pagadoAbonado: this.money(month.totalPagado), pendiente: this.money(month.saldoPendiente), fechaPago: month.fechaUltimoPago ? this.date(month.fechaUltimoPago) : '-', fechasProgramadas: month.programacionPagoAplicada?.fechas ?? [], responsable: '-', entidadMedio: '-', movimientos: [], conceptos: [] })) };
   }
   registerPayment(detailId: string, value: { monto: number; fechaPago: string; medioPago: string; cuentaBancariaId?: string; entidadMedio?: string; referencia?: string; observacion?: string }): Observable<unknown> { return this.http.post(`${this.url}/detalles/${detailId}/pagos`, value); }
   private status(value: string): 'Pagado' | 'Abonado' | 'Pendiente' { return value === 'PAGADO' ? 'Pagado' : value === 'ABONADO' ? 'Abonado' : 'Pendiente'; }
@@ -62,5 +64,12 @@ export class PagosService {
   private periodLabel(value: string): string {
     const [year, month] = value.split('-').map(Number);
     return new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(year, month - 1)));
+  }
+  private paymentScheduleLabel(contract: ApiPago['contratoActual']): string {
+    const mode = contract?.modalidadPago ?? 'FIN_MES';
+    if (mode === 'QUINCENAL') return '15 y fin de mes';
+    if (mode === 'FECHA_INGRESO') return `Día ${Number(contract?.fechaInicio?.slice(8, 10) || 0)}`;
+    if (mode === 'PERSONALIZADO') return `Día ${contract?.diaPagoPersonalizado ?? '-'}`;
+    return 'Fin de mes';
   }
 }

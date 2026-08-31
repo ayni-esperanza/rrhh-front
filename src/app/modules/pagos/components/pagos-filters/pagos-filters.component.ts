@@ -115,7 +115,7 @@ export class PagosFiltersComponent implements OnChanges {
 
   private emptyFilters(): PagosFilterState {
     const now = new Date();
-    return { search: '', dateFrom: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`, dateTo: new Date(now.getFullYear(), now.getMonth() + 1, 0).toLocaleDateString('en-CA'), area: '', estado: '', minAmount: this.minLimit, maxAmount: this.maxLimit };
+    return { search: '', dateFrom: `${now.getFullYear()}-01-01`, dateTo: `${now.getFullYear()}-12-31`, area: '', estado: '', minAmount: this.minLimit, maxAmount: this.maxLimit };
   }
 
   private emitFilters(): void {
