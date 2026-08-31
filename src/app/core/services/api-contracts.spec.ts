@@ -24,14 +24,16 @@ describe('API contracts', () => {
 
   it('never builds an empty catalog PATCH URL', () => {
     const service = TestBed.inject(CatalogosService);
-    service.create('areas', { nombre: 'Operaciones' }).subscribe();
+    service.create('areas', { nombre: 'Operaciones', descripcion: 'Operaciones', activo: true, createdAt: '2026-08-30' }).subscribe();
     const create = http.expectOne(`${environment.apiUrl}/catalogos/areas`);
     expect(create.request.method).toBe('POST');
+    expect(create.request.body).toEqual({ nombre: 'Operaciones', descripcion: 'Operaciones' });
     create.flush({ id: 'area-1', nombre: 'Operaciones' });
 
-    service.update('areas', 'area-1', { nombre: 'Operaciones' }).subscribe();
+    service.update('areas', 'area-1', { nombre: 'Operaciones', descripcion: 'Actualizada', activo: false, createdAt: '2026-08-30', updatedAt: '2026-08-31' }).subscribe();
     const update = http.expectOne(`${environment.apiUrl}/catalogos/areas/area-1`);
     expect(update.request.method).toBe('PATCH');
+    expect(update.request.body).toEqual({ nombre: 'Operaciones', descripcion: 'Actualizada', activo: false });
     update.flush({ id: 'area-1', nombre: 'Operaciones' });
   });
 
@@ -99,6 +101,17 @@ describe('API contracts', () => {
     expect(service.getMetrics()[4].value).toBe('3');
   });
 
+  it('removes response-only fields from attendance writes', () => {
+    const service = TestBed.inject(AsistenciasService);
+    http.expectOne((request) => request.url.endsWith('/asistencias/matriz')).flush({ data: [], meta: {} });
+    http.expectOne((request) => request.url.endsWith('/asistencias/metricas')).flush({ registros: 0, minutosNormales: 0, minutosExtras: 0, faltas: 0, incompletos: 0 });
+
+    service.updateById('attendance-1', { tipoRegistro: 'NORMAL', estado: 'COMPLETO', createdAt: '2026-08-30', minutosNormales: 480 } as never).subscribe();
+    const request = http.expectOne(`${environment.apiUrl}/asistencias/attendance-1`);
+    expect(request.request.body).toEqual({ tipoRegistro: 'NORMAL', estado: 'COMPLETO' });
+    request.flush({});
+  });
+
   it('matches attendance justification, holiday and configuration routes', () => {
     const attendance = TestBed.inject(AsistenciasService);
     http.expectOne((request) => request.url.endsWith('/asistencias/matriz')).flush({ data: [], meta: {} });
@@ -133,6 +146,28 @@ describe('API contracts', () => {
     expect(request.request.method).toBe('POST');
     expect(request.request.body.archivoUrl).toBe('https://example.test/licencia.pdf');
     request.flush({});
+  });
+
+  it('does not resend persistence fields from collaborator contacts', () => {
+    const collaborators = TestBed.inject(ColaboradoresService);
+    collaborators.saveColaborador({
+      id: 'collaborator-1', imagen: '', nombre: 'Ana', apellido: 'Pérez', apellidoPaterno: 'Pérez', dni: '12345678',
+      cargo: 'Supervisora', area: 'Operaciones', telefonoEmergencia: '999999999', contactosEmergencia: [{ nombre: 'Luis', parentesco: 'Hermano', telefono: '999999999', id: 'contact-1', createdAt: '2026-08-30' } as never],
+      estadoCivil: 'Soltera', tallas: { camisa: 'M', pantalon: '30', calzado: '37' }, estado: 'Activo', fechaNacimiento: '1990-01-01',
+      direccion: '', correo: '', fechaIngreso: '2026-01-01', tipoContrato: 'Indefinido', jornada: 'Completa', sueldoBasico: '2000', gradoInstruccion: '',
+      cuentaBancaria: '', epsSeguro: '', contactoEmergencia: 'Luis - 999999999', documentos: []
+    }).subscribe();
+
+    http.expectOne((request) => request.url.endsWith('/catalogos/areas')).flush({ data: [{ id: 'area-1', nombre: 'Operaciones' }], meta: {} });
+    http.expectOne((request) => request.url.endsWith('/catalogos/cargos')).flush({ data: [{ id: 'cargo-1', nombre: 'Supervisora', areaId: 'area-1' }], meta: {} });
+    http.expectOne((request) => request.url.endsWith('/catalogos/jornadas')).flush({ data: [{ id: 'jornada-1', nombre: 'Completa' }], meta: {} });
+
+    const update = http.expectOne(`${environment.apiUrl}/colaboradores/collaborator-1`);
+    expect(update.request.method).toBe('PATCH');
+    expect(update.request.body.contactosEmergencia).toEqual([{ nombre: 'Luis', parentesco: 'Hermano', telefono: '999999999', principal: true }]);
+    update.flush({ id: 'collaborator-1' });
+    http.expectOne(`${environment.apiUrl}/colaboradores/collaborator-1/documentos`).flush([]);
+    http.expectOne(`${environment.apiUrl}/colaboradores/collaborator-1`).flush({ id: 'collaborator-1', documentos: [] });
   });
 
   it('matches users and alerts routes', () => {

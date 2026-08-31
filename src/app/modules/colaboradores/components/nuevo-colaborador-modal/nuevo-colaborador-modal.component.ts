@@ -19,6 +19,18 @@ interface UploadedDocument {
   url: string;
 }
 
+interface AreaCatalogItem {
+  id: string;
+  nombre: string;
+  activo?: boolean;
+}
+
+interface CargoCatalogItem {
+  nombre: string;
+  areaId: string;
+  activo?: boolean;
+}
+
 @Component({
   selector: 'app-nuevo-colaborador-modal',
   imports: [CommonModule, ReactiveFormsModule, DatePickerComponent, PdfViewerModalComponent, SelectSearchableComponent],
@@ -50,6 +62,10 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   protected cargoOptions: string[] = [];
   protected areaOptions: string[] = [];
   protected jornadaOptions: string[] = [];
+  protected readonly tallaOptions = ['26', '28', '30', '32', '34', '36', '40', '42', '44'];
+  private areaCatalog: AreaCatalogItem[] = [];
+  private cargoCatalog: CargoCatalogItem[] = [];
+  private cargoCatalogLoaded = false;
   public readonly tipoContratoOptions = ['Planilla - Indeterminado', 'Planilla - Plazo fijo', 'Planilla - Temporal', 'Servicio - Indeterminado', 'Servicio - Plazo fijo', 'Servicio - Temporal'];
   protected readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'];
   protected readonly seguroOptions = ['Rimac EPS', 'Pacífico EPS', 'SIS', 'EsSalud', 'Mapfre EPS', 'Sin seguro'];
@@ -81,9 +97,18 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   };
 
   constructor() {
-    this.catalogos.list<{ nombre: string }>('areas').subscribe((items) => this.areaOptions = items.map((x) => x.nombre));
-    this.catalogos.list<{ nombre: string }>('cargos').subscribe((items) => this.cargoOptions = items.map((x) => x.nombre));
-    this.catalogos.list<{ nombre: string }>('jornadas').subscribe((items) => this.jornadaOptions = items.map((x) => x.nombre));
+    this.catalogos.list<AreaCatalogItem>('areas').subscribe((items) => {
+      this.areaCatalog = items;
+      this.areaOptions = items.filter((item) => item.activo !== false || item.nombre === this.laboral.controls.area.value).map((item) => item.nombre);
+      this.updateCargoOptions();
+    });
+    this.catalogos.list<CargoCatalogItem>('cargos').subscribe((items) => {
+      this.cargoCatalog = items;
+      this.cargoCatalogLoaded = true;
+      this.updateCargoOptions();
+    });
+    this.catalogos.list<{ nombre: string; activo?: boolean }>('jornadas').subscribe((items) => this.jornadaOptions = items.filter((item) => item.activo !== false || item.nombre === this.laboral.controls.jornada.value).map((item) => item.nombre));
+    this.laboral.controls.area.valueChanges.subscribe(() => this.updateCargoOptions());
   }
 
   protected readonly form = this.formBuilder.group({
@@ -98,8 +123,8 @@ export class NuevoColaboradorModalComponent implements OnChanges {
       correo: ['', [Validators.required, Validators.email]],
       telefono: ['', [Validators.required, Validators.pattern(this.phonePattern)]],
       estadoCivil: ['Soltero', Validators.required],
-      camisa: ['M', Validators.required],
-      pantalon: ['L', Validators.required],
+      camisa: ['', Validators.required],
+      pantalon: ['', Validators.required],
       calzado: ['', Validators.required]
     }),
     laboral: this.formBuilder.group({
@@ -257,7 +282,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
         { label: 'Nombre', control: this.personal.controls.nombre }, { label: 'Apellido paterno', control: this.personal.controls.apellidoPaterno }, { label: 'Apellido materno', control: this.personal.controls.apellidoMaterno }, { label: 'DNI', control: this.personal.controls.dni }, { label: 'Sexo', control: this.personal.controls.sexo }, { label: 'Fecha de nacimiento', control: this.personal.controls.fechaNacimiento }, { label: 'Dirección', control: this.personal.controls.direccion }, { label: 'Correo', control: this.personal.controls.correo }, { label: 'Teléfono', control: this.personal.controls.telefono }, { label: 'Estado civil', control: this.personal.controls.estadoCivil }, { label: 'Camisa', control: this.personal.controls.camisa }, { label: 'Pantalón', control: this.personal.controls.pantalon }, { label: 'Calzado', control: this.personal.controls.calzado }
       ],
       [
-        { label: 'Cargo', control: this.laboral.controls.cargo }, { label: 'Área', control: this.laboral.controls.area }, { label: 'Grado de instrucción', control: this.laboral.controls.gradoInstruccion }, { label: 'Fecha de ingreso', control: this.laboral.controls.fechaIngreso }, { label: 'Tipo de contrato', control: this.laboral.controls.tipoContrato }, { label: 'Jornada', control: this.laboral.controls.jornada }, { label: 'Sueldo básico', control: this.laboral.controls.sueldoBasico }, { label: 'Estado', control: this.laboral.controls.estado }
+        { label: 'Área', control: this.laboral.controls.area }, { label: 'Cargo', control: this.laboral.controls.cargo }, { label: 'Grado de instrucción', control: this.laboral.controls.gradoInstruccion }, { label: 'Fecha de ingreso', control: this.laboral.controls.fechaIngreso }, { label: 'Tipo de contrato', control: this.laboral.controls.tipoContrato }, { label: 'Jornada', control: this.laboral.controls.jornada }, { label: 'Sueldo básico', control: this.laboral.controls.sueldoBasico }, { label: 'Estado', control: this.laboral.controls.estado }
       ],
       [
         { label: 'Hijos', control: this.adicional.controls.hijos }, { label: 'Lugar de nacimiento', control: this.adicional.controls.lugarNacimiento }, { label: 'Tipo de sangre', control: this.adicional.controls.tipoSangre }, { label: 'EPS / Seguro', control: this.adicional.controls.epsSeguro }
@@ -622,7 +647,7 @@ export class NuevoColaboradorModalComponent implements OnChanges {
     this.datosBancarios.clear();
     this.form.reset({
       personal: {
-        nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', sexo: 'Masculino', fechaNacimiento: '', direccion: '', correo: '', telefono: '', estadoCivil: 'Soltero', camisa: 'M', pantalon: 'L', calzado: ''
+        nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', sexo: 'Masculino', fechaNacimiento: '', direccion: '', correo: '', telefono: '', estadoCivil: 'Soltero', camisa: '', pantalon: '', calzado: ''
       },
       laboral: { cargo: '', area: '', gradoInstruccion: '', fechaIngreso: '', tipoContrato: 'Planilla - Indeterminado', jornada: 'Tiempo completo', sueldoBasico: '', estado: 'Activo' },
       adicional: { hijos: '0', lugarNacimiento: '', tipoSangre: '', epsSeguro: '', datosBancarios: [], contactosEmergencia: [] },
@@ -644,6 +669,18 @@ export class NuevoColaboradorModalComponent implements OnChanges {
   private revokeProfileImagePreview(): void {
     if (this.profileImagePreviewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(this.profileImagePreviewUrl);
+    }
+  }
+
+  private updateCargoOptions(): void {
+    const areaId = this.areaCatalog.find((area) => area.nombre === this.laboral.controls.area.value)?.id;
+    const currentCargo = this.laboral.controls.cargo.value;
+    this.cargoOptions = areaId
+      ? this.cargoCatalog.filter((cargo) => cargo.areaId === areaId && (cargo.activo !== false || cargo.nombre === currentCargo)).map((cargo) => cargo.nombre)
+      : [];
+
+    if (this.cargoCatalogLoaded && currentCargo && !this.cargoOptions.includes(currentCargo)) {
+      this.laboral.controls.cargo.setValue('');
     }
   }
 

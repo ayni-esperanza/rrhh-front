@@ -27,11 +27,11 @@ export class CatalogosService {
   }
 
   create<T>(type: CatalogType, value: unknown): Observable<T> {
-    return this.http.post<T>(`${this.url}/${type}`, value).pipe(tap(() => this.invalidate(type)));
+    return this.http.post<T>(`${this.url}/${type}`, this.toPayload(type, value, false)).pipe(tap(() => this.invalidate(type)));
   }
 
   update<T>(type: CatalogType, id: string, value: unknown): Observable<T> {
-    return this.http.patch<T>(`${this.url}/${type}/${id}`, value).pipe(tap(() => this.invalidate(type)));
+    return this.http.patch<T>(`${this.url}/${type}/${id}`, this.toPayload(type, value, true)).pipe(tap(() => this.invalidate(type)));
   }
 
   deactivate(type: CatalogType, id: string): Observable<void> {
@@ -41,5 +41,24 @@ export class CatalogosService {
   invalidate(type?: CatalogType): void {
     if (type) this.listCache.delete(type);
     else this.listCache.clear();
+  }
+
+  private toPayload(type: CatalogType, value: unknown, includeActivo: boolean): Record<string, unknown> {
+    const source = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+    const payload: Record<string, unknown> = type === 'areas'
+      ? { nombre: source['nombre'], descripcion: source['descripcion'] }
+      : type === 'cargos'
+        ? { areaId: source['areaId'], nombre: source['nombre'], descripcion: source['descripcion'] }
+        : {
+            nombre: source['nombre'],
+            horaEntrada: source['horaEntrada'],
+            horaSalida: source['horaSalida'],
+            inicioAlmuerzo: source['inicioAlmuerzo'],
+            finAlmuerzo: source['finAlmuerzo'],
+            minutosDiarios: source['minutosDiarios']
+          };
+
+    if (includeActivo && Object.prototype.hasOwnProperty.call(source, 'activo')) payload['activo'] = source['activo'];
+    return payload;
   }
 }

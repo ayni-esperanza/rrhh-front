@@ -148,13 +148,13 @@ export class ConfiguracionLaboralModalComponent {
   protected save(): void {
     if (!this.canSave || this.isSaving) return;
     const draft = this.activeTab === 'areas' ? this.areaDraft : this.activeTab === 'cargos' ? this.cargoDraft : this.jornadaDraft;
-    const { id, ...payload } = draft;
+    const { id } = draft;
     const creating = this.isCreating || !id;
     this.isSaving = true;
     this.errorMessage = '';
     const request = creating
-      ? this.catalogos.create<typeof draft>(this.activeTab, payload)
-      : this.catalogos.update<typeof draft>(this.activeTab, id, payload);
+      ? this.catalogos.create<typeof draft>(this.activeTab, this.buildPayload(false))
+      : this.catalogos.update<typeof draft>(this.activeTab, id, this.buildPayload(true));
     request.subscribe({
       next: () => {
         this.isCreating = false;
@@ -244,6 +244,40 @@ export class ConfiguracionLaboralModalComponent {
 
   private emptyJornada(): JornadaItem {
     return { id: '', nombre: '', horaEntrada: '08:00', horaSalida: '17:00', inicioAlmuerzo: '13:00', finAlmuerzo: '14:00', minutosDiarios: 480, activo: true };
+  }
+
+  private buildPayload(includeActivo: boolean): Record<string, unknown> {
+    let payload: Record<string, unknown>;
+
+    if (this.activeTab === 'areas') {
+      payload = {
+        nombre: this.areaDraft.nombre,
+        descripcion: this.areaDraft.descripcion
+      };
+      if (includeActivo) payload['activo'] = this.areaDraft.activo;
+      return payload;
+    }
+
+    if (this.activeTab === 'cargos') {
+      payload = {
+        areaId: this.cargoDraft.areaId,
+        nombre: this.cargoDraft.nombre,
+        descripcion: this.cargoDraft.descripcion
+      };
+      if (includeActivo) payload['activo'] = this.cargoDraft.activo;
+      return payload;
+    }
+
+    payload = {
+      nombre: this.jornadaDraft.nombre,
+      horaEntrada: this.jornadaDraft.horaEntrada,
+      horaSalida: this.jornadaDraft.horaSalida,
+      inicioAlmuerzo: this.jornadaDraft.inicioAlmuerzo,
+      finAlmuerzo: this.jornadaDraft.finAlmuerzo,
+      minutosDiarios: this.jornadaDraft.minutosDiarios
+    };
+    if (includeActivo) payload['activo'] = this.jornadaDraft.activo;
+    return payload;
   }
 
   private reloadActive(): void {
