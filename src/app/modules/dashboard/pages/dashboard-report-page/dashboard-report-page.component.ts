@@ -37,9 +37,7 @@ export class DashboardReportPageComponent {
     return classes[tone];
   }
 
-  protected percentFormat(value: number): string {
-    return `${value}%`;
-  }
+  protected readonly percentFormat = (value: number): string => `${value}%`;
 
   private formatPeriod(period: string | null): string {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period ?? '')) {

@@ -228,4 +228,18 @@ describe('API contracts', () => {
     expect(generate.request.method).toBe('POST');
     generate.flush({});
   });
+
+  it('sends every users filter and the server pagination as query params', () => {
+    const users = TestBed.inject(UsuariosService);
+    users.getUsuarios({ search: ' Ana ', rol: 'rrhh', estado: 'ACTIVO', page: 2, limit: 25 }).subscribe();
+
+    const request = http.expectOne((candidate) => candidate.url === `${environment.apiUrl}/usuarios`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('search')).toBe('Ana');
+    expect(request.request.params.get('rol')).toBe('rrhh');
+    expect(request.request.params.get('estado')).toBe('ACTIVO');
+    expect(request.request.params.get('page')).toBe('2');
+    expect(request.request.params.get('limit')).toBe('25');
+    request.flush({ data: [], meta: { page: 2, limit: 25, total: 0, totalPages: 0 } });
+  });
 });

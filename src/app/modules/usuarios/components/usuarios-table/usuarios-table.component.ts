@@ -1,5 +1,5 @@
 ﻿import { CambioPaginaEvent, PaginacionComponent, PaginacionConfig } from '../../../../shared/components/paginacion/paginacion.component';
-import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Usuario } from '../../models/usuario.model';
 
 @Component({
@@ -7,15 +7,15 @@ import { Usuario } from '../../models/usuario.model';
   selector: 'app-usuarios-table',
   templateUrl: './usuarios-table.component.html'
 })
-export class UsuariosTableComponent implements OnChanges {
+export class UsuariosTableComponent {
   @Input({ required: true }) usuarios: Usuario[] = [];
+  @Input() paginaActual = 0;
+  @Input() porPagina = 10;
+  @Input() totalElementos = 0;
+  @Input() totalPaginas = 1;
   @Output() editUsuario = new EventEmitter<Usuario>();
   @Output() toggleStatus = new EventEmitter<Usuario>();
-
-  ngOnChanges(): void {
-    const lastPage = Math.max(0, Math.ceil(this.usuarios.length / this.porPagina) - 1);
-    this.paginaActual = Math.min(this.paginaActual, lastPage);
-  }
+  @Output() pageChange = new EventEmitter<CambioPaginaEvent>();
 
   protected rolLabel(rol: Usuario['rol']): string {
     const labels: Record<Usuario['rol'], string> = { admin: 'Administrador', rrhh: 'RR.HH.', supervisor: 'Supervisor', colaborador: 'Colaborador' };
@@ -28,26 +28,17 @@ export class UsuariosTableComponent implements OnChanges {
       : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300';
   }
 
-  protected paginaActual = 0;
-  protected porPagina = 10;
-
   protected get paginationConfig(): PaginacionConfig {
-    const totalElementos = this.usuarios.length;
     return {
       paginaActual: this.paginaActual,
       porPagina: this.porPagina,
-      totalElementos,
-      totalPaginas: Math.max(1, Math.ceil(totalElementos / this.porPagina))
+      totalElementos: this.totalElementos,
+      totalPaginas: Math.max(1, this.totalPaginas)
     };
   }
 
-  protected get paginatedUsuarios(): Usuario[] {
-    const inicio = this.paginaActual * this.porPagina;
-    return this.usuarios.slice(inicio, inicio + this.porPagina);
-  }
-
   protected onPageChange(event: CambioPaginaEvent): void {
-    this.paginaActual = event.pagina;
-    this.porPagina = event.porPagina;
-  }}
+    this.pageChange.emit(event);
+  }
+}
 

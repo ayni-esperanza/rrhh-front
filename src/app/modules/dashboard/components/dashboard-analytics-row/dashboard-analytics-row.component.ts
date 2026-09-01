@@ -16,9 +16,7 @@ export class DashboardAnalyticsRowComponent {
   protected readonly areaScheme: Color = { name: 'areas', selectable: true, group: ScaleType.Ordinal, domain: ['#22c55e', '#3b82f6', '#8b5cf6', '#fb923c', '#14b8a6', '#ef4444'] };
   protected readonly attendanceScheme: Color = { name: 'asistencia-mensual', selectable: true, group: ScaleType.Ordinal, domain: ['#2563eb'] };
 
-  protected percentFormat(value: number): string {
-    return `${value}%`;
-  }
+  protected readonly percentFormat = (value: number): string => `${value}%`;
 
   protected get averageHours(): number { const s = this.summary; return s?.colaboradores?.activos ? s.asistencia.minutos_normales / 60 / s.colaboradores.activos : 0; }
   protected get averageExtraHours(): number { const s = this.summary; return s?.colaboradores?.activos ? s.asistencia.minutos_extras / 60 / s.colaboradores.activos : 0; }

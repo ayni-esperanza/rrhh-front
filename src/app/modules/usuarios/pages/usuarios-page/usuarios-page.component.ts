@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { UsuariosFiltersComponent, UsuariosFilterState } from '../../components/usuarios-filters/usuarios-filters.component';
 import { UsuariosMetricsComponent } from '../../components/usuarios-metrics/usuarios-metrics.component';
 import { UsuariosTableComponent } from '../../components/usuarios-table/usuarios-table.component';
@@ -7,16 +8,24 @@ import { Usuario } from '../../models/usuario.model';
 import { UsuarioModalComponent } from '../../components/usuario-modal/usuario-modal.component';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { UsuarioCredentialsModalComponent } from '../../components/usuario-credentials-modal/usuario-credentials-modal.component';
+import { CambioPaginaEvent } from '../../../../shared/components/paginacion/paginacion.component';
 
 @Component({
   selector: 'app-usuarios-page',
   imports: [UsuariosMetricsComponent, UsuariosFiltersComponent, UsuariosTableComponent, UsuarioModalComponent, UsuarioCredentialsModalComponent, ConfirmDialogComponent],
   templateUrl: './usuarios-page.component.html'
 })
-export class UsuariosPageComponent {
+export class UsuariosPageComponent implements OnDestroy {
   private readonly usuariosService = inject(UsuariosService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private filterTimer: ReturnType<typeof setTimeout> | null = null;
   protected usuarios: Usuario[] = [];
-  protected filters: UsuariosFilterState = { search: '', rol: '', estado: '' };
+  protected filters: UsuariosFilterState = this.filtersFromUrl();
+  protected page = this.positiveInteger(this.route.snapshot.queryParamMap.get('page'), 1);
+  protected limit = this.allowedLimit(this.route.snapshot.queryParamMap.get('limit'));
+  protected total = 0;
+  protected totalPages = 1;
   protected isUsuarioModalOpen = false;
   protected selectedUsuario: Usuario | null = null;
   protected pendingDeletion: Usuario | null = null;
@@ -25,13 +34,8 @@ export class UsuariosPageComponent {
 
   constructor() { this.reload(); }
 
-  protected get filteredUsuarios(): Usuario[] {
-    const search = this.normalize(this.filters.search);
-    return this.usuarios.filter((usuario) => {
-      return (!search || this.normalize(`${usuario.nombre} ${usuario.correo}`).includes(search))
-        && (!this.filters.rol || usuario.rol === this.filters.rol)
-        && (!this.filters.estado || usuario.estado === this.filters.estado);
-    });
+  ngOnDestroy(): void {
+    if (this.filterTimer) clearTimeout(this.filterTimer);
   }
 
   protected get unavailableEmails(): string[] {
@@ -39,7 +43,20 @@ export class UsuariosPageComponent {
   }
 
   protected updateFilters(filters: UsuariosFilterState): void {
-    this.filters = filters;
+    this.filters = { ...filters };
+    this.page = 1;
+    if (this.filterTimer) clearTimeout(this.filterTimer);
+    this.filterTimer = setTimeout(() => {
+      this.syncUrl();
+      this.loadUsuarios();
+    }, 300);
+  }
+
+  protected updatePage(event: CambioPaginaEvent): void {
+    this.page = event.pagina + 1;
+    this.limit = event.porPagina;
+    this.syncUrl();
+    this.loadUsuarios();
   }
 
   protected openNewUsuario(): void {
@@ -59,15 +76,15 @@ export class UsuariosPageComponent {
   protected saveUsuario(usuario: Usuario): void {
     if (!usuario.id) {
       this.usuariosService.create(usuario).subscribe(({ usuario: createdUsuario, temporaryPassword }) => {
-        this.usuarios = [createdUsuario, ...this.usuarios];
         this.closeUsuarioModal();
         this.createdCredentials = { correo: createdUsuario.correo, password: temporaryPassword };
+        this.reload();
       });
       return;
     }
     this.usuariosService.update(usuario).subscribe((updated) => {
-      this.usuarios = this.usuarios.map((item) => item.id === updated.id ? updated : item);
       this.closeUsuarioModal();
+      this.reload();
     });
   }
 
@@ -78,9 +95,9 @@ export class UsuariosPageComponent {
   protected confirmDeletion(): void {
     if (!this.pendingDeletion) return;
     this.usuariosService.delete(this.pendingDeletion.id).subscribe(() => {
-      this.usuarios = this.usuarios.filter((usuario) => usuario.id !== this.pendingDeletion?.id);
       this.pendingDeletion = null;
       this.closeUsuarioModal();
+      this.reload();
     });
   }
 
@@ -102,17 +119,63 @@ export class UsuariosPageComponent {
   protected toggleStatus(usuario: Usuario): void {
     const estado = usuario.estado === 'activo' ? 'inactivo' : 'activo';
     this.usuariosService.setStatus(usuario.id, estado).subscribe((updated) => {
-      this.usuarios = this.usuarios.map((item) => item.id === updated.id ? updated : item);
-      this.usuariosService.getMetrics().subscribe((metrics) => this.metrics = metrics);
+      this.reload();
     });
   }
 
-  private normalize(value: string): string {
-    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  private filtersFromUrl(): UsuariosFilterState {
+    const params = this.route.snapshot.queryParamMap;
+    const rol = params.get('rol');
+    const estado = params.get('estado');
+    return {
+      search: params.get('search') ?? '',
+      rol: rol === 'admin' || rol === 'rrhh' || rol === 'supervisor' || rol === 'colaborador' ? rol : '',
+      estado: estado === 'activo' || estado === 'inactivo' ? estado : ''
+    };
+  }
+
+  private positiveInteger(value: string | null, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  private allowedLimit(value: string | null): number {
+    const parsed = Number(value);
+    return [10, 25, 50].includes(parsed) ? parsed : 10;
+  }
+
+  private syncUrl(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        search: this.filters.search.trim() || null,
+        rol: this.filters.rol || null,
+        estado: this.filters.estado || null,
+        page: this.page > 1 ? this.page : null,
+        limit: this.limit !== 10 ? this.limit : null
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
+
+  private loadUsuarios(): void {
+    this.usuariosService.getUsuarios({
+      search: this.filters.search,
+      rol: this.filters.rol || undefined,
+      estado: this.filters.estado ? this.filters.estado.toUpperCase() as 'ACTIVO' | 'INACTIVO' : undefined,
+      page: this.page,
+      limit: this.limit
+    }).subscribe(({ data, meta }) => {
+      this.usuarios = data;
+      this.total = meta.total;
+      this.totalPages = Math.max(1, meta.totalPages);
+      this.page = meta.page;
+    });
   }
 
   private reload(): void {
-    this.usuariosService.getUsuarios().subscribe((usuarios) => this.usuarios = usuarios);
+    this.loadUsuarios();
     this.usuariosService.getMetrics().subscribe((metrics) => this.metrics = metrics);
   }
 }

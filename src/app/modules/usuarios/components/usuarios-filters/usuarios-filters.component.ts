@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
 import { Usuario } from '../../models/usuario.model';
 
@@ -14,10 +14,10 @@ export interface UsuariosFilterState {
   templateUrl: './usuarios-filters.component.html'
 })
 export class UsuariosFiltersComponent {
+  @Input({ required: true }) filters: UsuariosFilterState = { search: '', rol: '', estado: '' };
   @Output() filtersChange = new EventEmitter<UsuariosFilterState>();
   @Output() newUsuario = new EventEmitter<void>();
 
-  protected filters: UsuariosFilterState = { search: '', rol: '', estado: '' };
   protected readonly rolOptions = [
     { value: 'admin', label: 'Administrador' },
     { value: 'rrhh', label: 'RR.HH.' },

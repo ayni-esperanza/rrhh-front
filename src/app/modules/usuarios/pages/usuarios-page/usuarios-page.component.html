@@ -4,8 +4,8 @@
   </header>
 
   <app-usuarios-metrics [usuarios]="usuarios" [metrics]="metrics" />
-  <app-usuarios-filters (filtersChange)="updateFilters($event)" (newUsuario)="openNewUsuario()" />
-  <app-usuarios-table [usuarios]="filteredUsuarios" (editUsuario)="editUsuario($event)" (toggleStatus)="toggleStatus($event)" />
+  <app-usuarios-filters [filters]="filters" (filtersChange)="updateFilters($event)" (newUsuario)="openNewUsuario()" />
+  <app-usuarios-table [usuarios]="usuarios" [paginaActual]="page - 1" [porPagina]="limit" [totalElementos]="total" [totalPaginas]="totalPages" (pageChange)="updatePage($event)" (editUsuario)="editUsuario($event)" (toggleStatus)="toggleStatus($event)" />
 </section>
 
 <app-usuario-modal [isOpen]="isUsuarioModalOpen" [usuario]="selectedUsuario" [existingEmails]="unavailableEmails" (closeModal)="closeUsuarioModal()" (saveUsuario)="saveUsuario($event)" (deleteUsuario)="requestDelete($event)" (resetPassword)="resetPassword($event)" />

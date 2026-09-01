@@ -14,9 +14,7 @@ export class DashboardCostsRowComponent {
   protected get attendanceComparison() { return (this.costs?.data ?? []).map((x) => ({ name: x.area, value: x.monto_programado })); }
   protected readonly comparisonScheme: Color = { name: 'comparacion-asistencia', selectable: true, group: ScaleType.Ordinal, domain: ['#fecdd3', '#fda4af', '#fb7185', '#fda4af', '#f43f5e'] };
 
-  protected percentFormat(value: number): string {
-    return this.money(value);
-  }
+  protected readonly percentFormat = (value: number): string => this.money(value);
   protected get averageCost(): number { const s = this.summary; return s?.colaboradores?.activos ? s.planilla.total / s.colaboradores.activos : 0; }
   protected money(value: number): string { return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value ?? 0); }
 }

@@ -10,14 +10,36 @@ interface ApiUsuario {
   ultimoAccesoAt: string | null; rol: { codigo: Usuario['rol'] };
 }
 export interface UsuariosMetrics { total: number; activos: number; inactivos: number; accesosMes: number; }
+export interface UsuariosQuery {
+  search?: string;
+  rol?: Usuario['rol'];
+  estado?: 'ACTIVO' | 'INACTIVO';
+  page?: number;
+  limit?: number;
+}
+export interface UsuariosPage {
+  data: Usuario[];
+  meta: PaginatedResponse<ApiUsuario>['meta'];
+}
 
 @Injectable({ providedIn: 'root' })
 export class UsuariosService {
   private readonly http = inject(HttpClient);
   private readonly url = `${environment.apiUrl}/usuarios`;
 
-  getUsuarios(): Observable<Usuario[]> {
-    return this.http.get<PaginatedResponse<ApiUsuario>>(this.url, { params: { page: 1, limit: 100 } }).pipe(map(({ data }) => data.map((item) => this.toView(item))));
+  getUsuarios(query: UsuariosQuery = {}): Observable<UsuariosPage> {
+    const search = query.search?.trim();
+    const params: Record<string, string | number> = {
+      page: query.page ?? 1,
+      limit: query.limit ?? 10
+    };
+    if (search) params['search'] = search;
+    if (query.rol) params['rol'] = query.rol;
+    if (query.estado) params['estado'] = query.estado;
+
+    return this.http.get<PaginatedResponse<ApiUsuario>>(this.url, { params }).pipe(
+      map(({ data, meta }) => ({ data: data.map((item) => this.toView(item)), meta }))
+    );
   }
   getMetrics(): Observable<UsuariosMetrics> { return this.http.get<UsuariosMetrics>(`${this.url}/metricas`); }
   getById(id: string): Observable<Usuario> { return this.http.get<ApiUsuario>(`${this.url}/${id}`).pipe(map((item) => this.toView(item))); }

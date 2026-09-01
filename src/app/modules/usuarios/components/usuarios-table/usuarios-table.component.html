@@ -5,7 +5,7 @@
         <tr><th class="px-3 py-3">Nombre</th><th class="px-3 py-3">Correo</th><th class="px-3 py-3">Rol</th><th class="px-3 py-3">Último acceso</th><th class="px-3 py-3">Estado</th><th class="px-3 py-3 text-right">Acción</th></tr>
       </thead>
       <tbody class="divide-y divide-slate-200 text-[11px] text-slate-800 dark:divide-slate-800 dark:text-slate-200">
-        @for (usuario of paginatedUsuarios; track usuario.correo) {
+        @for (usuario of usuarios; track usuario.correo) {
           <tr class="cursor-pointer transition hover:bg-slate-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:hover:bg-slate-800/50" role="button" tabindex="0" [attr.aria-label]="'Editar usuario ' + usuario.nombre" (click)="editUsuario.emit(usuario)" (keydown.enter)="editUsuario.emit(usuario)" (keydown.space)="editUsuario.emit(usuario); $event.preventDefault()">
             <td class="px-3 py-3"><div class="flex items-center gap-2"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">{{ usuario.nombre.charAt(0) }}</span><span class="font-bold text-slate-900 dark:text-white">{{ usuario.nombre }}</span></div></td>
             <td class="px-3 py-3 font-medium text-slate-600 dark:text-slate-300">{{ usuario.correo }}</td>
