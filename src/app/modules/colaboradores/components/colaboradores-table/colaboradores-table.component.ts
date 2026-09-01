@@ -16,14 +16,17 @@ type SharePlatform = 'whatsapp' | 'messenger' | 'instagram';
 export class ColaboradoresTableComponent {
   private readonly colaboradoresService = inject(ColaboradoresService);
   @Input({ required: true }) colaboradores: Colaborador[] = [];
+  @Input() paginaActual = 0;
+  @Input() porPagina = 10;
+  @Input() totalElementos = 0;
+  @Input() totalPaginas = 1;
   @Input() expandedId = '';
   @Output() expandedIdChange = new EventEmitter<string>();
   @Output() editColaborador = new EventEmitter<Colaborador>();
   @Output() selectedIdsChange = new EventEmitter<string[]>();
+  @Output() pageChange = new EventEmitter<CambioPaginaEvent>();
 
   protected selectedIds = new Set<string>();
-  protected paginaActual = 0;
-  protected porPagina = 10;
   protected previewDocument: DocumentoColaborador | null = null;
   protected shareDocumentSelection: DocumentoColaborador | null = null;
   protected sharePlatformSelection: SharePlatform | null = null;
@@ -56,18 +59,16 @@ export class ColaboradoresTableComponent {
   }
 
   protected get paginationConfig(): PaginacionConfig {
-    const totalElementos = this.colaboradores.length;
     return {
       paginaActual: this.paginaActual,
       porPagina: this.porPagina,
-      totalElementos,
-      totalPaginas: Math.max(1, Math.ceil(totalElementos / this.porPagina))
+      totalElementos: this.totalElementos,
+      totalPaginas: Math.max(1, this.totalPaginas)
     };
   }
 
   protected get paginatedColaboradores(): Colaborador[] {
-    const inicio = this.paginaActual * this.porPagina;
-    return this.colaboradores.slice(inicio, inicio + this.porPagina);
+    return this.colaboradores;
   }
 
   protected get allPageRowsSelected(): boolean {
@@ -79,8 +80,7 @@ export class ColaboradoresTableComponent {
   }
 
   protected onPageChange(event: CambioPaginaEvent): void {
-    this.paginaActual = event.pagina;
-    this.porPagina = event.porPagina;
+    this.pageChange.emit(event);
   }
 
   protected isSelected(colaboradorId: string): boolean {

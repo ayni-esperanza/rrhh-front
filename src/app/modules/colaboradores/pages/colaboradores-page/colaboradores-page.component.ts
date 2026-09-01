@@ -1,14 +1,16 @@
 ﻿import { Component, inject } from '@angular/core';
 import { ColaboradoresFiltersComponent, ColaboradoresFilterState } from '../../components/colaboradores-filters/colaboradores-filters.component';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ColaboradoresMetricsComponent } from '../../components/colaboradores-metrics/colaboradores-metrics.component';
 import { ColaboradoresTableComponent } from '../../components/colaboradores-table/colaboradores-table.component';
 import { NuevoColaboradorModalComponent } from '../../components/nuevo-colaborador-modal/nuevo-colaborador-modal.component';
 import { Colaborador } from '../../models/colaborador.model';
-import { ColaboradoresService } from '../../services/colaboradores.service';
+import { ColaboradoresFilterOptions, ColaboradoresService } from '../../services/colaboradores.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ExportTable, TableExportService } from '../../../../shared/services/table-export.service';
 import { SelectboxComponent } from '../../../../shared/components/selectbox/selectbox.component';
 import { ConfiguracionLaboralModalComponent } from '../../components/configuracion-laboral-modal/configuracion-laboral-modal.component';
+import { CambioPaginaEvent } from '../../../../shared/components/paginacion/paginacion.component';
 
 type ExportFormat = 'excel' | 'pdf';
 
@@ -26,10 +28,18 @@ interface ColaboradorExportColumn {
 export class ColaboradoresPageComponent {
   private readonly colaboradoresService = inject(ColaboradoresService);
   private readonly tableExport = inject(TableExportService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private filterTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected metrics: import('../../models/colaborador.model').ColaboradorMetric[] = [];
   protected colaboradores: Colaborador[] = [];
-  protected filters: ColaboradoresFilterState = this.emptyFilters();
+  protected filters: ColaboradoresFilterState = this.filtersFromUrl();
+  protected filterOptions: ColaboradoresFilterOptions = { areas: [], cargos: [], jornadas: [], documentos: [], estadosCiviles: [], gradosInstruccion: [], tiposSangre: [], camisas: [], pantalones: [], calzados: [] };
+  protected page = this.positiveInteger(this.route.snapshot.queryParamMap.get('page'), 1);
+  protected limit = this.allowedLimit(this.route.snapshot.queryParamMap.get('limit'));
+  protected total = 0;
+  protected totalPages = 1;
   protected expandedId = '';
   protected isNewColaboradorModalOpen = false;
   protected isConfiguracionLaboralModalOpen = false;
@@ -62,33 +72,13 @@ export class ColaboradoresPageComponent {
   ];
   protected selectedExportColumnKeys = new Set<string>(['nombre', 'apellido', 'dni', 'cargo', 'area', 'telefono', 'correo', 'fechaIngreso', 'contrato', 'estado']);
 
-  constructor() { this.reload(); this.colaboradoresService.getMetrics().subscribe((metrics) => this.metrics = metrics); }
+  constructor() {
+    this.reload();
+    this.colaboradoresService.getFilterOptions().subscribe((options) => this.filterOptions = options);
+  }
 
   protected get filteredColaboradores(): Colaborador[] {
-    const search = this.normalize(this.filters.search);
-    return this.colaboradores.filter((colaborador) => {
-      const matchesSearch = !search || this.normalize([
-        colaborador.nombre,
-        colaborador.apellido,
-        colaborador.dni,
-        colaborador.cargo,
-        colaborador.correo
-      ].join(' ')).includes(search);
-
-      return matchesSearch
-        && this.matchesFilter(colaborador.cargo, this.filters.cargo)
-        && this.matchesFilter(colaborador.area ?? '', this.filters.area)
-        && (!this.filters.documento || colaborador.documentos.some((documento) => documento.nombre === this.filters.documento))
-        && this.matchesFilter(colaborador.estadoCivil, this.filters.estadoCivil)
-        && this.matchesFilter(colaborador.estado, this.filters.estado)
-        && this.matchesFilter(colaborador.sexo ?? '', this.filters.sexo)
-        && this.matchesFilter(colaborador.jornada, this.filters.jornada)
-        && this.matchesFilter(colaborador.gradoInstruccion, this.filters.gradoInstruccion)
-        && this.matchesFilter(colaborador.tipoSangre ?? '', this.filters.tipoSangre)
-        && this.matchesFilter(colaborador.tallas.camisa, this.filters.camisa)
-        && this.matchesFilter(colaborador.tallas.pantalon, this.filters.pantalon)
-        && this.matchesFilter(colaborador.tallas.calzado, this.filters.calzado);
-    });
+    return this.colaboradores;
   }
 
   protected openNewColaboradorModal(): void {
@@ -106,8 +96,22 @@ export class ColaboradoresPageComponent {
   }
 
   protected updateFilters(filters: ColaboradoresFilterState): void {
-    this.filters = filters;
+    this.filters = { ...filters };
+    this.page = 1;
     this.expandedId = '';
+    if (this.filterTimer) clearTimeout(this.filterTimer);
+    this.filterTimer = setTimeout(() => {
+      this.syncUrl();
+      this.loadColaboradores();
+    }, 300);
+  }
+
+  protected updatePage(event: CambioPaginaEvent): void {
+    this.page = event.pagina + 1;
+    this.limit = event.porPagina;
+    this.expandedId = '';
+    this.syncUrl();
+    this.loadColaboradores();
   }
 
   protected exportExcel(): void {
@@ -150,7 +154,7 @@ export class ColaboradoresPageComponent {
   }
 
   protected saveColaborador(colaborador: Colaborador): void {
-    this.colaboradoresService.saveColaborador(colaborador).subscribe((saved) => { const index = this.colaboradores.findIndex((x) => x.id === saved.id); this.colaboradores = index < 0 ? [saved, ...this.colaboradores] : this.colaboradores.map((x) => x.id === saved.id ? saved : x); this.expandedId = ''; this.closeNewColaboradorModal(); });
+    this.colaboradoresService.saveColaborador(colaborador).subscribe(() => { this.expandedId = ''; this.closeNewColaboradorModal(); this.reload(); });
   }
 
   protected updateSelectedColaboradores(ids: string[]): void {
@@ -159,7 +163,7 @@ export class ColaboradoresPageComponent {
 
   protected updateSelectedStatus(estado: Colaborador['estado']): void {
     const selectedIds = new Set(this.selectedColaboradorIds);
-    this.colaboradoresService.updateEstado(selectedIds, estado).subscribe(() => this.colaboradores = this.colaboradores.map((item) => selectedIds.has(item.id) ? { ...item, estado } : item));
+    this.colaboradoresService.updateEstado(selectedIds, estado).subscribe(() => { this.selectedColaboradorIds = []; this.reload(); });
   }
 
   protected deleteSelectedColaboradores(): void {
@@ -175,19 +179,11 @@ export class ColaboradoresPageComponent {
     const request = ids.size === 1
       ? this.colaboradoresService.deleteColaborador([...ids][0])
       : this.colaboradoresService.deleteColaboradores(ids);
-    request.subscribe(() => { this.colaboradores = this.colaboradores.filter((x) => !ids.has(x.id)); this.selectedColaboradorIds = this.selectedColaboradorIds.filter((id) => !ids.has(id)); this.pendingDeletionIds = []; this.expandedId = ''; this.closeNewColaboradorModal(); });
+    request.subscribe(() => { this.selectedColaboradorIds = this.selectedColaboradorIds.filter((id) => !ids.has(id)); this.pendingDeletionIds = []; this.expandedId = ''; this.closeNewColaboradorModal(); this.reload(); });
   }
 
   protected cancelDeletion(): void {
     this.pendingDeletionIds = [];
-  }
-
-  private matchesFilter(value: string, filter: string): boolean {
-    return !filter || value === filter;
-  }
-
-  private normalize(value: string): string {
-    return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
 
   private exportTable(): ExportTable {
@@ -228,5 +224,67 @@ export class ColaboradoresPageComponent {
       calzado: ''
     };
   }
-  private reload(): void { this.colaboradoresService.getColaboradores().subscribe((items) => this.colaboradores = items); }
+  private filtersFromUrl(): ColaboradoresFilterState {
+    const params = this.route.snapshot.queryParamMap;
+    const filters = this.emptyFilters();
+    for (const key of Object.keys(filters) as Array<keyof ColaboradoresFilterState>) {
+      const paramKey = key === 'area' || key === 'cargo' || key === 'jornada' ? `${key}Id` : key;
+      filters[key] = params.get(paramKey) ?? '';
+    }
+    if (!['', 'Activo', 'Inactivo'].includes(filters.estado)) filters.estado = '';
+    if (!['', 'Masculino', 'Femenino', 'No binario'].includes(filters.sexo)) filters.sexo = '';
+    return filters;
+  }
+
+  private positiveInteger(value: string | null, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+  }
+
+  private allowedLimit(value: string | null): number {
+    const parsed = Number(value);
+    return [10, 25, 50].includes(parsed) ? parsed : 10;
+  }
+
+  private syncUrl(): void {
+    const queryParams: Record<string, string | number | null> = {};
+    for (const [key, value] of Object.entries(this.filters)) {
+      const paramKey = key === 'area' || key === 'cargo' || key === 'jornada' ? `${key}Id` : key;
+      queryParams[paramKey] = value.trim() || null;
+    }
+    queryParams['page'] = this.page > 1 ? this.page : null;
+    queryParams['limit'] = this.limit !== 10 ? this.limit : null;
+    void this.router.navigate([], { relativeTo: this.route, queryParams, queryParamsHandling: 'merge', replaceUrl: true });
+  }
+
+  private loadColaboradores(): void {
+    const sexo = ({ Masculino: 'MASCULINO', Femenino: 'FEMENINO', 'No binario': 'NO_BINARIO' } as const)[this.filters.sexo as 'Masculino' | 'Femenino' | 'No binario'];
+    this.colaboradoresService.getColaboradores({
+      search: this.filters.search,
+      cargoId: this.filters.cargo || undefined,
+      areaId: this.filters.area || undefined,
+      jornadaId: this.filters.jornada || undefined,
+      documento: this.filters.documento || undefined,
+      estadoCivil: this.filters.estadoCivil || undefined,
+      estado: this.filters.estado ? this.filters.estado.toUpperCase() as 'ACTIVO' | 'INACTIVO' : undefined,
+      sexo,
+      gradoInstruccion: this.filters.gradoInstruccion || undefined,
+      tipoSangre: this.filters.tipoSangre || undefined,
+      camisa: this.filters.camisa || undefined,
+      pantalon: this.filters.pantalon || undefined,
+      calzado: this.filters.calzado || undefined,
+      page: this.page,
+      limit: this.limit
+    }).subscribe(({ data, meta }) => {
+      this.colaboradores = data;
+      this.total = meta.total;
+      this.totalPages = Math.max(1, meta.totalPages);
+      this.page = meta.page;
+    });
+  }
+
+  private reload(): void {
+    this.loadColaboradores();
+    this.colaboradoresService.getMetrics().subscribe((metrics) => this.metrics = metrics);
+  }
 }

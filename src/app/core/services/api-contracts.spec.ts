@@ -183,6 +183,24 @@ describe('API contracts', () => {
     request.flush({});
   });
 
+  it('sends every collaborator filter and server pagination as query params', () => {
+    const collaborators = TestBed.inject(ColaboradoresService);
+    collaborators.getColaboradores({
+      search: ' Ana ', estado: 'ACTIVO', areaId: 'area-1', cargoId: 'cargo-1', jornadaId: 'jornada-1',
+      documento: 'DNI', estadoCivil: 'Soltera', sexo: 'FEMENINO', gradoInstruccion: 'Bachiller',
+      tipoSangre: 'O+', camisa: 'M', pantalon: '30', calzado: '37', page: 3, limit: 25
+    }).subscribe();
+
+    const request = http.expectOne((candidate) => candidate.url === `${environment.apiUrl}/colaboradores`);
+    expect(request.request.method).toBe('GET');
+    expect(Object.fromEntries(request.request.params.keys().map((key) => [key, request.request.params.get(key)]))).toEqual(jasmine.objectContaining({
+      search: 'Ana', estado: 'ACTIVO', areaId: 'area-1', cargoId: 'cargo-1', jornadaId: 'jornada-1',
+      documento: 'DNI', estadoCivil: 'Soltera', sexo: 'FEMENINO', gradoInstruccion: 'Bachiller',
+      tipoSangre: 'O+', camisa: 'M', pantalon: '30', calzado: '37', page: '3', limit: '25'
+    }));
+    request.flush({ data: [], meta: { page: 3, limit: 25, total: 0, totalPages: 0 } });
+  });
+
   it('does not resend persistence fields from collaborator contacts', () => {
     const collaborators = TestBed.inject(ColaboradoresService);
     collaborators.saveColaborador({

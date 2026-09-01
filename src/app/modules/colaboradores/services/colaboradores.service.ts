@@ -11,6 +11,19 @@ interface ApiContrato { cargo: CatalogItem & { area: CatalogItem }; jornada: Cat
 interface ApiDocumento { id: string; nombre: string; fechaVencimiento?: string; archivoNombre: string; archivoTipo?: string; archivoUrl: string; archivoTamano?: string; }
 interface ApiColaborador { id: string; dni: string; nombres: string; apellidoPaterno: string; apellidoMaterno?: string; sexo?: string; numeroHijos?: number; fechaNacimiento: string; lugarNacimiento?: string; estadoCivil?: string; gradoInstruccion?: string; tipoSangre?: string; telefono?: string; correo?: string; direccion?: string; fotoUrl?: string; epsSeguro?: string; estado: string; tallaCamisa?: string; tallaPantalon?: string; tallaCalzado?: string; contratoActual?: ApiContrato; contactosEmergencia?: Array<{ nombre: string; parentesco?: string; telefono: string }>; cuentasBancarias?: Array<{ entidadBancaria: string; numeroCuenta: string; cci?: string; principal: boolean }>; documentos?: ApiDocumento[] }
 interface ApiMetrics { total: number; activos: number; inactivos: number; minutos_extras: number; asistencia_promedio: number; costo_planilla: number; }
+interface ApiFilterOptions { documentos: string[]; estadosCiviles: string[]; gradosInstruccion: string[]; tiposSangre: string[]; camisas: string[]; pantalones: string[]; calzados: string[]; }
+export interface ColaboradoresQuery {
+  search?: string; estado?: 'ACTIVO' | 'INACTIVO'; areaId?: string; cargoId?: string; jornadaId?: string;
+  documento?: string; estadoCivil?: string; sexo?: 'MASCULINO' | 'FEMENINO' | 'NO_BINARIO';
+  gradoInstruccion?: string; tipoSangre?: string; camisa?: string; pantalon?: string; calzado?: string;
+  page?: number; limit?: number;
+}
+export interface ColaboradoresPage { data: Colaborador[]; meta: PaginatedResponse<ApiColaborador>['meta']; }
+export interface ColaboradoresFilterOptions extends ApiFilterOptions {
+  areas: Array<{ value: string; label: string }>;
+  cargos: Array<{ value: string; label: string }>;
+  jornadas: Array<{ value: string; label: string }>;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ColaboradoresService {
@@ -24,7 +37,29 @@ export class ColaboradoresService {
       { label: 'Costo de planilla (mes)', value: this.money(m.costo_planilla), detail: 'Periodo actual', icon: 'money', tone: 'emerald' }
     ] as ColaboradorMetric[]));
   }
-  getColaboradores(): Observable<Colaborador[]> { return this.http.get<PaginatedResponse<ApiColaborador>>(this.url, { params: { page: 1, limit: 100 } }).pipe(map(({ data }) => data.map((x) => this.toView(x)))); }
+  getColaboradores(query: ColaboradoresQuery = {}): Observable<ColaboradoresPage> {
+    const params: Record<string, string | number> = { page: query.page ?? 1, limit: query.limit ?? 10 };
+    for (const [key, value] of Object.entries(query)) {
+      if (key === 'page' || key === 'limit' || value === undefined || value === null || value === '') continue;
+      params[key] = typeof value === 'string' ? value.trim() : value;
+    }
+    return this.http.get<PaginatedResponse<ApiColaborador>>(this.url, { params }).pipe(
+      map(({ data, meta }) => ({ data: data.map((x) => this.toView(x)), meta }))
+    );
+  }
+  getFilterOptions(): Observable<ColaboradoresFilterOptions> {
+    return forkJoin({
+      values: this.http.get<ApiFilterOptions>(`${this.url}/filtros`),
+      areas: this.catalog<CatalogItem>('areas', false),
+      cargos: this.catalog<CargoCatalogItem>('cargos', false),
+      jornadas: this.catalog<CatalogItem>('jornadas', false)
+    }).pipe(map(({ values, areas, cargos, jornadas }) => ({
+      ...values,
+      areas: areas.map(({ id, nombre }) => ({ value: id, label: nombre })),
+      cargos: cargos.map(({ id, nombre }) => ({ value: id, label: nombre })),
+      jornadas: jornadas.map(({ id, nombre }) => ({ value: id, label: nombre }))
+    })));
+  }
   getColaborador(id: string): Observable<Colaborador> { return this.http.get<ApiColaborador>(`${this.url}/${id}`).pipe(map((x) => this.toView(x))); }
   saveColaborador(item: Colaborador): Observable<Colaborador> {
     return forkJoin({ areas: this.catalog<CatalogItem>('areas'), cargos: this.catalog<CargoCatalogItem>('cargos'), jornadas: this.catalog<CatalogItem>('jornadas') }).pipe(switchMap(({ areas, cargos, jornadas }) => {
@@ -55,7 +90,11 @@ export class ColaboradoresService {
     return this.http.post<ApiDocumento>(`${this.url}/${id}/documentos/archivo`, formData);
   }
   downloadDocument(url: string): Observable<Blob> { return this.http.get(url.startsWith('http') ? url : `${environment.apiUrl.replace(/\/api$/, '')}${url}`, { responseType: 'blob' }); }
-  private catalog<T extends CatalogItem>(type: string): Observable<T[]> { return this.http.get<PaginatedResponse<T>>(`${environment.apiUrl}/catalogos/${type}`, { params: { page: 1, limit: 100, activo: true } }).pipe(map((x) => x.data)); }
+  private catalog<T extends CatalogItem>(type: string, onlyActive = true): Observable<T[]> {
+    const params: Record<string, string | number | boolean> = { page: 1, limit: 100 };
+    if (onlyActive) params['activo'] = true;
+    return this.http.get<PaginatedResponse<T>>(`${environment.apiUrl}/catalogos/${type}`, { params }).pipe(map((x) => x.data));
+  }
   private syncDocuments(id: string, documents: Colaborador['documentos']): Observable<unknown> {
     return this.listDocuments(id).pipe(switchMap((existing) => {
       const submittedIds = new Set(documents.map((document) => document.id).filter((value): value is string => Boolean(value)));

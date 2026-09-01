@@ -12,7 +12,7 @@
   </div>
 
   <div>
-    <app-colaboradores-filters [colaboradores]="colaboradores" [exportDisabled]="!filteredColaboradores.length" (filtersChange)="updateFilters($event)" (newColaborador)="openNewColaboradorModal()" (exportExcel)="exportExcel()" (exportPdf)="exportPdf()" />
+    <app-colaboradores-filters [filters]="filters" [areaOptions]="filterOptions.areas" [cargoOptions]="filterOptions.cargos" [jornadaOptions]="filterOptions.jornadas" [documentoOptions]="filterOptions.documentos" [estadoCivilOptions]="filterOptions.estadosCiviles" [gradoInstruccionOptions]="filterOptions.gradosInstruccion" [tipoSangreOptions]="filterOptions.tiposSangre" [camisaOptions]="filterOptions.camisas" [pantalonOptions]="filterOptions.pantalones" [calzadoOptions]="filterOptions.calzados" [exportDisabled]="!filteredColaboradores.length" (filtersChange)="updateFilters($event)" (newColaborador)="openNewColaboradorModal()" (exportExcel)="exportExcel()" (exportPdf)="exportPdf()" />
   </div>
 
   @if (selectedColaboradorIds.length) {
@@ -25,7 +25,7 @@
   }
 
   <div>
-    <app-colaboradores-table [colaboradores]="filteredColaboradores" [(expandedId)]="expandedId" (editColaborador)="editColaborador($event)" (selectedIdsChange)="updateSelectedColaboradores($event)" />
+    <app-colaboradores-table [colaboradores]="filteredColaboradores" [paginaActual]="page - 1" [porPagina]="limit" [totalElementos]="total" [totalPaginas]="totalPages" [(expandedId)]="expandedId" (pageChange)="updatePage($event)" (editColaborador)="editColaborador($event)" (selectedIdsChange)="updateSelectedColaboradores($event)" />
   </div>
 </section>
 

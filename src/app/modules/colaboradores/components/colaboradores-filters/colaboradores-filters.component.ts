@@ -1,6 +1,5 @@
 ﻿import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { Colaborador } from '../../models/colaborador.model';
-import { SelectSearchableComponent } from '../../../../shared/components/select-searchable/select-searchable.component';
+import { SelectSearchableComponent, SelectSearchableOption } from '../../../../shared/components/select-searchable/select-searchable.component';
 import { TableExportButtonsComponent } from '../../../../shared/components/table-export-buttons/table-export-buttons.component';
 
 export interface ColaboradoresFilterState {
@@ -27,7 +26,17 @@ type FilterKey = keyof ColaboradoresFilterState;
   templateUrl: './colaboradores-filters.component.html'
 })
 export class ColaboradoresFiltersComponent {
-  @Input() colaboradores: Colaborador[] = [];
+  @Input({ required: true }) filters: ColaboradoresFilterState = this.emptyFilters();
+  @Input() cargoOptions: readonly SelectSearchableOption[] = [];
+  @Input() areaOptions: readonly SelectSearchableOption[] = [];
+  @Input() documentoOptions: readonly string[] = [];
+  @Input() jornadaOptions: readonly SelectSearchableOption[] = [];
+  @Input() estadoCivilOptions: readonly string[] = [];
+  @Input() gradoInstruccionOptions: readonly string[] = [];
+  @Input() tipoSangreOptions: readonly string[] = [];
+  @Input() camisaOptions: readonly string[] = [];
+  @Input() pantalonOptions: readonly string[] = [];
+  @Input() calzadoOptions: readonly string[] = [];
   @Input() exportDisabled = false;
   @Output() filtersChange = new EventEmitter<ColaboradoresFilterState>();
   @Output() newColaborador = new EventEmitter<void>();
@@ -35,36 +44,9 @@ export class ColaboradoresFiltersComponent {
   @Output() exportPdf = new EventEmitter<void>();
 
   public isFiltersOpen = false;
-  public filters: ColaboradoresFilterState = this.emptyFilters();
 
-  public readonly estadoCivilOptions = ['Soltero', 'Soltera', 'Casado', 'Casada'];
   public readonly estadoOptions = ['Activo', 'Inactivo'];
   public readonly sexoOptions = ['Masculino', 'Femenino', 'No binario'];
-  public readonly jornadaOptions = ['Tiempo completo', 'Medio tiempo', 'Turno nocturno'];
-  public readonly gradoInstruccionOptions = ['Secundaria completa', 'Técnico', 'Tecnico', 'Universitario', 'Bachiller', 'Titulado', 'Maestría'];
-  public readonly tipoSangreOptions = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
-
-  public get cargoOptions(): string[] {
-    return this.uniqueOptions('cargo');
-  }
-  public get areaOptions(): string[] {
-    return this.uniqueOptions('area');
-  }
-  public get documentoOptions(): string[] {
-    return Array.from(new Set(this.colaboradores.flatMap((item) => item.documentos.map((document) => document.nombre)).filter(Boolean))).sort((a, b) => a.localeCompare(b));
-  }
-
-  public get camisaOptions(): string[] {
-    return this.uniqueTallaOptions('camisa');
-  }
-
-  public get pantalonOptions(): string[] {
-    return this.uniqueTallaOptions('pantalon');
-  }
-
-  public get calzadoOptions(): string[] {
-    return this.uniqueTallaOptions('calzado');
-  }
 
   public get hasActiveFilters(): boolean {
     return Object.values(this.filters).some((value) => value.trim() !== '');
@@ -100,14 +82,6 @@ export class ColaboradoresFiltersComponent {
       pantalon: '',
       calzado: ''
     };
-  }
-
-  private uniqueOptions(key: keyof Colaborador): string[] {
-    return Array.from(new Set(this.colaboradores.map((item) => String(item[key] ?? '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b));
-  }
-
-  private uniqueTallaOptions(key: keyof Colaborador['tallas']): string[] {
-    return Array.from(new Set(this.colaboradores.map((item) => item.tallas[key].trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   }
 }
 
