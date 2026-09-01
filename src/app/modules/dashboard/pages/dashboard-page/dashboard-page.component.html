@@ -14,8 +14,19 @@
     </label>
   </header>
 
-  <app-dashboard-summary-row [summary]="summary" [attendance]="attendance" />
-  <app-dashboard-ranking-row [rankings]="rankings" [totalAbsences]="summary?.asistencia?.faltas ?? 0" />
-  <app-dashboard-analytics-row [attendance]="attendance" [summary]="summary" />
-  <app-dashboard-costs-row [costs]="costs" [summary]="summary" />
+  @defer (on idle) {
+    <app-dashboard-summary-row [summary]="summary" [attendance]="attendance" />
+    <app-dashboard-ranking-row [rankings]="rankings" [totalAbsences]="summary?.asistencia?.faltas ?? 0" />
+    <app-dashboard-analytics-row [attendance]="attendance" [summary]="summary" />
+    <app-dashboard-costs-row [costs]="costs" [summary]="summary" />
+  } @placeholder {
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Cargando indicadores del dashboard">
+      @for (item of [1, 2, 3, 4]; track item) {
+        <div class="h-32 animate-pulse rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+          <div class="m-4 h-3 w-24 rounded bg-slate-200 dark:bg-slate-700"></div>
+          <div class="mx-4 mt-8 h-7 w-16 rounded bg-slate-200 dark:bg-slate-700"></div>
+        </div>
+      }
+    </div>
+  }
 </section>
