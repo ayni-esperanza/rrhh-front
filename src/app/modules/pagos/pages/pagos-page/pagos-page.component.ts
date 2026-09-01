@@ -34,7 +34,7 @@ export class PagosPageComponent {
     const search = this.normalize(this.filters.search);
 
     return this.pagos.filter((pago) => {
-      const mesesEnRango = pago.meses.filter((mes) => this.monthIntersectsRange(mes.mesCompleto));
+      const mesesEnRango = pago.meses.filter((mes) => this.paymentDueInRange(mes));
       const monto = this.moneyToNumber(pago.montoMensual);
 
       return (!search || this.normalize(`${pago.nombre} ${pago.cargo} ${pago.area} ${pago.banco}`).includes(search))
@@ -74,18 +74,21 @@ export class PagosPageComponent {
     };
   }
 
-  private monthIntersectsRange(monthLabel: string): boolean {
-    const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-    const [monthName, yearText] = monthLabel.toLowerCase().split(' ');
-    const monthIndex = monthNames.indexOf(monthName);
-    const year = Number(yearText);
-    if (monthIndex < 0 || !year) return false;
-
-    const monthStart = new Date(year, monthIndex, 1).getTime();
-    const monthEnd = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999).getTime();
+  private monthIntersectsRange(year: number, monthNumber: number): boolean {
+    const monthStart = new Date(year, monthNumber - 1, 1).getTime();
+    const monthEnd = new Date(year, monthNumber, 0, 23, 59, 59, 999).getTime();
     const rangeStart = this.filters.dateFrom ? this.localDate(this.filters.dateFrom).getTime() : Number.NEGATIVE_INFINITY;
     const rangeEnd = this.filters.dateTo ? this.localDate(this.filters.dateTo, true).getTime() : Number.POSITIVE_INFINITY;
     return monthStart <= rangeEnd && monthEnd >= rangeStart;
+  }
+
+  private paymentDueInRange(month: PagoMes): boolean {
+    const rangeStart = this.filters.dateFrom ? this.filters.dateFrom : '0000-01-01';
+    const rangeEnd = this.filters.dateTo ? this.filters.dateTo : '9999-12-31';
+    return month.fechasProgramadas.some((scheduledDate) => {
+      const date = scheduledDate.slice(0, 10);
+      return date >= rangeStart && date <= rangeEnd;
+    });
   }
 
   private localDate(value: string, endOfDay = false): Date {
@@ -109,9 +112,8 @@ export class PagosPageComponent {
     const year = new Date().getFullYear();
     const visibleMonths = Array.from({ length: 12 }, (_, index) => ({
       number: index + 1,
-      label: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(new Date(Date.UTC(year, index))),
-      fullLabel: new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(year, index)))
-    })).filter((month) => this.monthIntersectsRange(month.fullLabel));
+      label: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(new Date(year, index, 1, 12))
+    })).filter((month) => this.monthIntersectsRange(year, month.number));
     return {
       title: `Historial de pagos - ${this.periodLabel}`,
       fileName: 'pagos',

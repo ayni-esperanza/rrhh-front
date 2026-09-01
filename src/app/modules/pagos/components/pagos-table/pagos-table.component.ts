@@ -19,7 +19,7 @@ export class PagosTableComponent implements OnChanges {
   protected isDetalleOpen = false;
   protected readonly yearMonths = Array.from({ length: 12 }, (_, index) => ({
     number: index + 1,
-    label: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(new Date(Date.UTC(2026, index)))
+    label: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(new Date(2000, index, 1, 12))
   }));
   private readonly selectedBankIndexes = new Map<string, number>();
 

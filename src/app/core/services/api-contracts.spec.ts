@@ -114,13 +114,14 @@ describe('API contracts', () => {
         colaborador: { id: 'collaborator-1', nombres: 'Ana', apellidoPaterno: 'Pérez' },
         contratoActual: { modalidadPago: 'PERSONALIZADO', diaPagoPersonalizado: 20, cargo: { nombre: 'Analista', area: { nombre: 'RRHH' } } },
         cuentasBancarias: [{ id: 'account-1', numeroCuenta: '1234567890', entidadBancaria: 'BCP', principal: true }],
-        meses: [{ id: 'detail-1', periodo: { anio: 2026, mes: 8 }, estado: 'ABONADO', montoProgramado: 1500, totalPagado: 500, saldoPendiente: 1000, fechaUltimoPago: '2026-08-15T15:00:00Z', programacionPagoAplicada: { modalidad: 'PERSONALIZADO', fechas: ['2026-08-20'] } }]
+        meses: [{ id: 'detail-1', periodo: { anio: 2026, mes: 8 }, estado: 'ABONADO', montoProgramado: 1500, totalPagado: 500, saldoPendiente: 1000, fechaUltimoPago: '2026-08-15T15:00:00Z' }]
       }],
       meta: { page: 1, limit: 100, total: 1, totalPages: 1 }
     });
     expect(result[0].fechaPago).toBe('Día 20');
     expect(result[0].cuentasBancarias[0]).toEqual(jasmine.objectContaining({ id: 'account-1', entidadBancaria: 'BCP', cuentaBancaria: '1234567890' }));
-    expect(result[0].meses[0]).toEqual(jasmine.objectContaining({ estado: 'Abonado', fechasProgramadas: ['2026-08-20'] }));
+    expect(result[0].meses[0]).toEqual(jasmine.objectContaining({ year: 2026, monthNumber: 8, estado: 'Abonado', fechasProgramadas: ['2026-08-20'] }));
+    expect(result[0].meses[0].mesCompleto.toLowerCase()).toContain('agosto');
   });
 
   it('maps incomplete attendance records as the fifth metric', () => {

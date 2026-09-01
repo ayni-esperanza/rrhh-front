@@ -32,6 +32,7 @@ export interface PagoCuentaBancaria {
 
 export interface PagoMes {
   id: string;
+  year: number;
   monthNumber: number;
   mes: string;
   mesCompleto: string;

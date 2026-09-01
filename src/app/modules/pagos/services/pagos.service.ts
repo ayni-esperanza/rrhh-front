@@ -51,7 +51,29 @@ export class PagosService {
     const principal = accounts.find((x) => x.esPrincipal) ?? accounts[0];
     const latest = item.meses[item.meses.length - 1];
     const modalidad = item.contratoActual?.modalidadPago ?? 'FIN_MES';
-    return { id: item.colaborador.id, nombre: [item.colaborador.nombres, item.colaborador.apellidoPaterno, item.colaborador.apellidoMaterno].filter(Boolean).join(' '), cargo: item.contratoActual?.cargo?.nombre ?? '', area: item.contratoActual?.cargo?.area?.nombre ?? '', avatar: item.colaborador.fotoUrl ?? '', montoMensual: this.money(latest?.montoProgramado ?? 0), fechaPago: this.paymentScheduleLabel(item.contratoActual), modalidadPago: modalidad, cta: principal?.cuentaBancaria ?? '', cci: principal?.cci ?? '', banco: principal?.entidadBancaria ?? '', cuentasBancarias: accounts, meses: item.meses.map((month) => ({ id: month.id, monthNumber: month.periodo.mes, mes: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(new Date(Date.UTC(month.periodo.anio, month.periodo.mes - 1))), mesCompleto: new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(month.periodo.anio, month.periodo.mes - 1))), estado: this.status(month.estado), monto: this.money(month.totalPagado), referencia: `de ${this.money(month.montoProgramado)}`, montoProgramado: this.money(month.montoProgramado), pagadoAbonado: this.money(month.totalPagado), pendiente: this.money(month.saldoPendiente), fechaPago: month.fechaUltimoPago ? this.date(month.fechaUltimoPago) : '-', fechasProgramadas: month.programacionPagoAplicada?.fechas ?? [], responsable: '-', entidadMedio: '-', movimientos: [], conceptos: [] })) };
+    return {
+      id: item.colaborador.id,
+      nombre: [item.colaborador.nombres, item.colaborador.apellidoPaterno, item.colaborador.apellidoMaterno].filter(Boolean).join(' '),
+      cargo: item.contratoActual?.cargo?.nombre ?? '', area: item.contratoActual?.cargo?.area?.nombre ?? '',
+      avatar: item.colaborador.fotoUrl ?? '', montoMensual: this.money(latest?.montoProgramado ?? 0),
+      fechaPago: this.paymentScheduleLabel(item.contratoActual), modalidadPago: modalidad,
+      cta: principal?.cuentaBancaria ?? '', cci: principal?.cci ?? '', banco: principal?.entidadBancaria ?? '', cuentasBancarias: accounts,
+      meses: item.meses.map((month) => {
+        const monthDate = new Date(month.periodo.anio, month.periodo.mes - 1, 1, 12);
+        return {
+          id: month.id, year: month.periodo.anio, monthNumber: month.periodo.mes,
+          mes: new Intl.DateTimeFormat('es-PE', { month: 'short' }).format(monthDate),
+          mesCompleto: new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(monthDate),
+          estado: this.status(month.estado), monto: this.money(month.totalPagado), referencia: `de ${this.money(month.montoProgramado)}`,
+          montoProgramado: this.money(month.montoProgramado), pagadoAbonado: this.money(month.totalPagado), pendiente: this.money(month.saldoPendiente),
+          fechaPago: month.fechaUltimoPago ? this.date(month.fechaUltimoPago) : '-',
+          fechasProgramadas: month.programacionPagoAplicada?.fechas?.length
+            ? month.programacionPagoAplicada.fechas
+            : this.scheduleDates(month.periodo.anio, month.periodo.mes, item.contratoActual),
+          responsable: '-', entidadMedio: '-', movimientos: [], conceptos: []
+        };
+      })
+    };
   }
   registerPayment(detailId: string, value: { monto: number; fechaPago: string; medioPago: string; cuentaBancariaId?: string; entidadMedio?: string; referencia?: string; observacion?: string }): Observable<unknown> { return this.http.post(`${this.url}/detalles/${detailId}/pagos`, value); }
   private status(value: string): 'Pagado' | 'Abonado' | 'Pendiente' { return value === 'PAGADO' ? 'Pagado' : value === 'ABONADO' ? 'Abonado' : 'Pendiente'; }
@@ -63,7 +85,7 @@ export class PagosService {
   private percent(value: number, total: number): string { return total ? `${((value / total) * 100).toFixed(1)}% del total` : '0% del total'; }
   private periodLabel(value: string): string {
     const [year, month] = value.split('-').map(Number);
-    return new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(year, month - 1)));
+    return new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1, 12));
   }
   private paymentScheduleLabel(contract: ApiPago['contratoActual']): string {
     const mode = contract?.modalidadPago ?? 'FIN_MES';
@@ -71,5 +93,14 @@ export class PagosService {
     if (mode === 'FECHA_INGRESO') return `Día ${Number(contract?.fechaInicio?.slice(8, 10) || 0)}`;
     if (mode === 'PERSONALIZADO') return `Día ${contract?.diaPagoPersonalizado ?? '-'}`;
     return 'Fin de mes';
+  }
+  private scheduleDates(year: number, month: number, contract: ApiPago['contratoActual']): string[] {
+    const lastDay = new Date(year, month, 0).getDate();
+    const date = (day: number) => `${year}-${String(month).padStart(2, '0')}-${String(Math.min(day, lastDay)).padStart(2, '0')}`;
+    const mode = contract?.modalidadPago ?? 'FIN_MES';
+    if (mode === 'QUINCENAL') return [date(15), date(lastDay)];
+    if (mode === 'FECHA_INGRESO') return [date(Number(contract?.fechaInicio?.slice(8, 10) || lastDay))];
+    if (mode === 'PERSONALIZADO') return [date(contract?.diaPagoPersonalizado ?? lastDay)];
+    return [date(lastDay)];
   }
 }
